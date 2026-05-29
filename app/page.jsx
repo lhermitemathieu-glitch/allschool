@@ -3,8 +3,9 @@
 import { useState } from 'react'
 import TopNav from '../components/TopNav'
 import Sidebar from '../components/Sidebar'
+import PanelHome from '../components/panels/PanelHome'
 
-// ── Configuration des espaces (repris du prototype) ──────────────────────────
+// ── Configuration des espaces ─────────────────────────────────────────────────
 const SPACES = {
   home: {
     label: 'Accueil',
@@ -23,8 +24,8 @@ const SPACES = {
       { icon: 'ti-building',    label: 'Mes candidatures',  panel: 'candidat-candidatures',  cls: 'cand' },
       { icon: 'ti-trophy',      label: 'Mes badges',        panel: 'candidat-badges',        cls: 'cand' },
       { section: 'Explorer' },
-      { icon: 'ti-search',      label: 'Offres alternance', panel: null,                     cls: 'cand' },
-      { icon: 'ti-gift',        label: 'Bons plans',        panel: null,                     cls: 'cand' },
+      { icon: 'ti-search',      label: 'Offres alternance', panel: null, cls: 'cand' },
+      { icon: 'ti-gift',        label: 'Bons plans',        panel: null, cls: 'cand' },
     ],
     firstPanel: 'candidat-profil',
   },
@@ -33,14 +34,14 @@ const SPACES = {
     dot: 'var(--accent)',
     user: { av: 'BL', bg: 'var(--accent)', name: 'Boulangerie Leroux', role: 'Entreprise' },
     nav: [
-      { icon: 'ti-building-community', label: 'Mon entreprise',    panel: 'entreprise-siret',      cls: 'ent' },
-      { icon: 'ti-search',             label: 'Rechercher un profil', panel: 'entreprise-recherche', cls: 'ent' },
-      { icon: 'ti-school',             label: 'Écoles près de moi', panel: 'entreprise-ecoles',    cls: 'ent' },
-      { icon: 'ti-speakerphone',       label: 'Mes offres',         panel: 'entreprise-offres',    cls: 'ent' },
-      { icon: 'ti-calculator',         label: 'Simulateurs',        panel: 'entreprise-simulateur',cls: 'ent' },
+      { icon: 'ti-building-community', label: 'Mon entreprise',      panel: 'entreprise-siret',       cls: 'ent' },
+      { icon: 'ti-search',             label: 'Rechercher un profil', panel: 'entreprise-recherche',   cls: 'ent' },
+      { icon: 'ti-school',             label: 'Écoles près de moi',   panel: 'entreprise-ecoles',      cls: 'ent' },
+      { icon: 'ti-speakerphone',       label: 'Mes offres',           panel: 'entreprise-offres',      cls: 'ent' },
+      { icon: 'ti-calculator',         label: 'Simulateurs',          panel: 'entreprise-simulateur',  cls: 'ent' },
       { section: 'Ressources' },
-      { icon: 'ti-file-text',          label: 'Guide alternance',   panel: null,                   cls: 'ent' },
-      { icon: 'ti-chart-bar',          label: 'Chiffres clés',      panel: null,                   cls: 'ent' },
+      { icon: 'ti-file-text',          label: 'Guide alternance',     panel: null, cls: 'ent' },
+      { icon: 'ti-chart-bar',          label: 'Chiffres clés',        panel: null, cls: 'ent' },
     ],
     firstPanel: 'entreprise-recherche',
   },
@@ -50,14 +51,14 @@ const SPACES = {
     user: { av: 'ESG', bg: 'var(--purple)', name: 'ESG Lyon', role: 'École Premium' },
     nav: [
       { section: 'Ma page école' },
-      { icon: 'ti-layout',    label: 'Ma page publique', panel: 'ecole-page',       cls: 'eco' },
-      { icon: 'ti-users',     label: 'Mes apprentis',    panel: 'ecole-apprentis',  cls: 'eco' },
-      { icon: 'ti-speakerphone', label: 'Mes offres',   panel: null,               cls: 'eco' },
-      { icon: 'ti-building',  label: 'Partenaires',      panel: null,               cls: 'eco' },
-      { icon: 'ti-calendar',  label: 'Événements',       panel: null,               cls: 'eco' },
-      { icon: 'ti-star',      label: 'Avis & liens',     panel: null,               cls: 'eco' },
+      { icon: 'ti-layout',       label: 'Ma page publique', panel: 'ecole-page',      cls: 'eco' },
+      { icon: 'ti-users',        label: 'Mes apprentis',    panel: 'ecole-apprentis', cls: 'eco' },
+      { icon: 'ti-speakerphone', label: 'Mes offres',       panel: null, cls: 'eco' },
+      { icon: 'ti-building',     label: 'Partenaires',      panel: null, cls: 'eco' },
+      { icon: 'ti-calendar',     label: 'Événements',       panel: null, cls: 'eco' },
+      { icon: 'ti-star',         label: 'Avis & liens',     panel: null, cls: 'eco' },
       { section: 'Pilotage' },
-      { icon: 'ti-chart-bar', label: 'Dashboard',        panel: 'ecole-dashboard',  cls: 'eco' },
+      { icon: 'ti-chart-bar',    label: 'Dashboard',        panel: 'ecole-dashboard', cls: 'eco' },
     ],
     firstPanel: 'ecole-page',
   },
@@ -67,14 +68,14 @@ const SPACES = {
     user: { av: 'AD', bg: 'var(--gold)', name: 'Admin Allschool', role: 'Super admin' },
     nav: [
       { section: 'Vue globale' },
-      { icon: 'ti-dashboard', label: 'Vue d\'ensemble',  panel: 'back-overview',    cls: 'back' },
-      { icon: 'ti-history',   label: 'Journal imports',  panel: 'back-logs',        cls: 'back' },
+      { icon: 'ti-dashboard', label: "Vue d'ensemble",    panel: 'back-overview',    cls: 'back' },
+      { icon: 'ti-history',   label: 'Journal imports',   panel: 'back-logs',        cls: 'back' },
       { section: 'Imports CSV' },
-      { icon: 'ti-users',     label: 'Apprentis',        panel: 'back-apprentis',   cls: 'back' },
-      { icon: 'ti-school',    label: 'Écoles',           panel: 'back-ecoles',      cls: 'back' },
-      { icon: 'ti-building',  label: 'Entreprises',      panel: 'back-entreprises', cls: 'back' },
+      { icon: 'ti-users',     label: 'Apprentis',         panel: 'back-apprentis',   cls: 'back' },
+      { icon: 'ti-school',    label: 'Écoles',            panel: 'back-ecoles',      cls: 'back' },
+      { icon: 'ti-building',  label: 'Entreprises',       panel: 'back-entreprises', cls: 'back' },
       { section: 'Gestion' },
-      { icon: 'ti-list',      label: 'Toutes les entrées', panel: null,             cls: 'back' },
+      { icon: 'ti-list',      label: 'Toutes les entrées', panel: null,              cls: 'back' },
     ],
     firstPanel: 'back-overview',
   },
@@ -93,6 +94,24 @@ export default function Home() {
     setActivePanel(SPACES[name].firstPanel)
   }
 
+  function renderPanel() {
+    switch (activePanel) {
+      case 'home':
+        return <PanelHome onSwitch={switchSpace} />
+      default:
+        return (
+          <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--muted)' }}>
+            <p style={{ fontFamily: 'Syne, sans-serif', fontSize: 20, fontWeight: 800, color: 'var(--navy)', marginBottom: 8 }}>
+              Panel : <code style={{ color: 'var(--accent)' }}>{activePanel}</code>
+            </p>
+            <p style={{ fontSize: 13 }}>
+              Crée <code>components/panels/{activePanel}.jsx</code> et importe-le ici.
+            </p>
+          </div>
+        )
+    }
+  }
+
   return (
     <>
       <TopNav
@@ -100,9 +119,7 @@ export default function Home() {
         onSwitch={switchSpace}
         user={space?.user}
       />
-
       <div className={`workspace ${isHome ? 'home-mode' : ''}`}>
-        {/* Sidebar — masquée sur home */}
         {!isHome && (
           <Sidebar
             space={space}
@@ -110,20 +127,8 @@ export default function Home() {
             onNavigate={setActivePanel}
           />
         )}
-
-        {/* Contenu principal */}
         <main className="main" id="main-content">
-          {/* TODO : ajouter les panels ici au fur et à mesure */}
-          {/* Exemple : {activePanel === 'home' && <PanelHome onSwitch={switchSpace} />} */}
-
-          <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--muted)' }}>
-            <p style={{ fontFamily: 'Syne, sans-serif', fontSize: 20, fontWeight: 800, color: 'var(--navy)', marginBottom: 8 }}>
-              Panel : <code style={{ color: 'var(--accent)' }}>{activePanel}</code>
-            </p>
-            <p style={{ fontSize: 13 }}>
-              Crée un fichier <code>components/panels/{activePanel}.jsx</code> et importe-le ici.
-            </p>
-          </div>
+          {renderPanel()}
         </main>
       </div>
     </>
