@@ -8,6 +8,13 @@ import PanelCandidatProfil from '../components/panels/PanelCandidatProfil'
 import PanelCandidatEcoles from '../components/panels/PanelCandidatEcoles'
 import PanelCandidatCandidatures from '../components/panels/PanelCandidatCandidatures'
 import PanelCandidatBadges from '../components/panels/PanelCandidatBadges'
+import {
+  PanelEntrepriseSiret,
+  PanelEntrepriseRecherche,
+  PanelEntrepriseEcoles,
+  PanelEntrepriseOffres,
+  PanelEntrepriseSimulateur,
+} from '../components/panels/PanelEntreprise'
 
 const SPACES = {
   home: {
@@ -24,8 +31,8 @@ const SPACES = {
       { icon: 'ti-building',    label: 'Mes candidatures', panel: 'candidat-candidatures', cls: 'cand' },
       { icon: 'ti-trophy',      label: 'Mes badges',       panel: 'candidat-badges',       cls: 'cand' },
       { section: 'Explorer' },
-      { icon: 'ti-search',      label: 'Offres alternance', panel: null, cls: 'cand' },
-      { icon: 'ti-gift',        label: 'Bons plans',        panel: null, cls: 'cand' },
+      { icon: 'ti-search', label: 'Offres alternance', panel: null, cls: 'cand' },
+      { icon: 'ti-gift',   label: 'Bons plans',        panel: null, cls: 'cand' },
     ],
     firstPanel: 'candidat-profil',
   },
@@ -92,11 +99,16 @@ export default function Home() {
 
   function renderPanel() {
     switch (activePanel) {
-      case 'home':                   return <PanelHome onSwitch={switchSpace} />
-      case 'candidat-profil':        return <PanelCandidatProfil />
-      case 'candidat-ecoles':        return <PanelCandidatEcoles />
-      case 'candidat-candidatures':  return <PanelCandidatCandidatures />
-      case 'candidat-badges':        return <PanelCandidatBadges />
+      case 'home':                    return <PanelHome onSwitch={switchSpace} />
+      case 'candidat-profil':         return <PanelCandidatProfil />
+      case 'candidat-ecoles':         return <PanelCandidatEcoles />
+      case 'candidat-candidatures':   return <PanelCandidatCandidatures />
+      case 'candidat-badges':         return <PanelCandidatBadges />
+      case 'entreprise-siret':        return <PanelEntrepriseSiret />
+      case 'entreprise-recherche':    return <PanelEntrepriseRecherche onNavigate={setActivePanel} />
+      case 'entreprise-ecoles':       return <PanelEntrepriseEcoles />
+      case 'entreprise-offres':       return <PanelEntrepriseOffres />
+      case 'entreprise-simulateur':   return <PanelEntrepriseSimulateur />
       default:
         return (
           <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--muted)' }}>
