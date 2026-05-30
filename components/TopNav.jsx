@@ -6,7 +6,7 @@
 //   onSwitch    : (space: string) => void
 //   user        : { av: string, bg: string, name: string }
 
-export default function TopNav({ activeSpace, onSwitch, user }) {
+export default function TopNav({ activeSpace, onSwitch, user, onLogout }) {
   const spaces = [
     { key: 'candidat',   label: 'Candidat',   icon: 'ti-user-circle', cls: 'cand' },
     { key: 'entreprise', label: 'Entreprise',  icon: 'ti-building',    cls: 'ent'  },
@@ -35,7 +35,7 @@ export default function TopNav({ activeSpace, onSwitch, user }) {
         ))}
       </div>
 
-      {/* Utilisateur */}
+      {/* Utilisateur + Logout */}
       <div className="topnav-right">
         <div className="user-pill">
           <div
@@ -46,6 +46,25 @@ export default function TopNav({ activeSpace, onSwitch, user }) {
           </div>
           <div className="user-name">{user?.name || 'Allschool'}</div>
         </div>
+        {onLogout && (
+          <button onClick={onLogout} style={{
+            background: 'rgba(255,255,255,0.08)',
+            border: 'none',
+            borderRadius: 8,
+            color: 'rgba(255,255,255,0.6)',
+            cursor: 'pointer',
+            padding: '6px 10px',
+            fontSize: 13,
+            fontFamily: 'DM Sans, sans-serif',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 5,
+            transition: 'all 0.15s',
+          }}>
+            <i className="ti ti-logout" style={{ fontSize: 15 }} />
+            Déconnexion
+          </button>
+        )}
       </div>
     </div>
   )

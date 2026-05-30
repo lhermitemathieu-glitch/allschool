@@ -1,6 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { createClient } from '../lib/supabase/client'
 import TopNav from '../components/TopNav'
 import Sidebar from '../components/Sidebar'
 import PanelHome from '../components/panels/PanelHome'
@@ -8,13 +10,9 @@ import PanelCandidatProfil from '../components/panels/PanelCandidatProfil'
 import PanelCandidatEcoles from '../components/panels/PanelCandidatEcoles'
 import PanelCandidatCandidatures from '../components/panels/PanelCandidatCandidatures'
 import PanelCandidatBadges from '../components/panels/PanelCandidatBadges'
-import {
-  PanelEntrepriseSiret,
-  PanelEntrepriseRecherche,
-  PanelEntrepriseEcoles,
-  PanelEntrepriseOffres,
-  PanelEntrepriseSimulateur,
-} from '../components/panels/PanelEntreprise'
+import { PanelEntrepriseSiret, PanelEntrepriseRecherche, PanelEntrepriseEcoles, PanelEntrepriseOffres, PanelEntrepriseSimulateur } from '../components/panels/PanelEntreprise'
+import { PanelEcolePage, PanelEcoleApprentis, PanelEcoleDashboard } from '../components/panels/PanelEcole'
+import { PanelBackOverview, PanelBackApprentis, PanelBackEcoles, PanelBackEntreprises, PanelBackLogs } from '../components/panels/PanelBackoffice'
 
 const SPACES = {
   home: {
@@ -85,9 +83,46 @@ const SPACES = {
   },
 }
 
+// Mapping rôle Supabase → espace de l'app
+const ROLE_TO_SPACE = {
+  candidat:   'candidat',
+  entreprise: 'entreprise',
+  ecole:      'ecole',
+  admin:      'backoffice',
+}
+
 export default function Home() {
+  const router = useRouter()
+  const supabase = createClient()
+
   const [activeSpace, setActiveSpace] = useState('home')
   const [activePanel, setActivePanel] = useState('home')
+  const [authUser, setAuthUser]       = useState(null)
+
+  // Au chargement : récupère l'utilisateur et oriente vers le bon espace
+  useEffect(() => {
+    async function loadUser() {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        router.push('/login')
+        return
+      }
+      setAuthUser(user)
+      const role  = user.user_metadata?.role
+      const space = ROLE_TO_SPACE[role]
+      if (space) {
+        setActiveSpace(space)
+        setActivePanel(SPACES[space].firstPanel)
+      }
+    }
+    loadUser()
+  }, [])
+
+  async function handleLogout() {
+    await supabase.auth.signOut()
+    router.push('/login')
+    router.refresh()
+  }
 
   const space = SPACES[activeSpace]
   const isHome = activeSpace === 'home'
@@ -99,23 +134,31 @@ export default function Home() {
 
   function renderPanel() {
     switch (activePanel) {
-      case 'home':                    return <PanelHome onSwitch={switchSpace} />
-      case 'candidat-profil':         return <PanelCandidatProfil />
-      case 'candidat-ecoles':         return <PanelCandidatEcoles />
-      case 'candidat-candidatures':   return <PanelCandidatCandidatures />
-      case 'candidat-badges':         return <PanelCandidatBadges />
-      case 'entreprise-siret':        return <PanelEntrepriseSiret />
-      case 'entreprise-recherche':    return <PanelEntrepriseRecherche onNavigate={setActivePanel} />
-      case 'entreprise-ecoles':       return <PanelEntrepriseEcoles />
-      case 'entreprise-offres':       return <PanelEntrepriseOffres />
-      case 'entreprise-simulateur':   return <PanelEntrepriseSimulateur />
+      case 'home':                  return <PanelHome onSwitch={switchSpace} />
+      case 'candidat-profil':       return <PanelCandidatProfil />
+      case 'candidat-ecoles':       return <PanelCandidatEcoles />
+      case 'candidat-candidatures': return <PanelCandidatCandidatures />
+      case 'candidat-badges':       return <PanelCandidatBadges />
+      case 'entreprise-siret':      return <PanelEntrepriseSiret />
+      case 'entreprise-recherche':  return <PanelEntrepriseRecherche onNavigate={setActivePanel} />
+      case 'entreprise-ecoles':     return <PanelEntrepriseEcoles />
+      case 'entreprise-offres':     return <PanelEntrepriseOffres />
+      case 'entreprise-simulateur': return <PanelEntrepriseSimulateur />
+      case 'ecole-page':            return <PanelEcolePage />
+      case 'ecole-apprentis':       return <PanelEcoleApprentis />
+      case 'ecole-dashboard':       return <PanelEcoleDashboard />
+      case 'back-overview':         return <PanelBackOverview onNavigate={setActivePanel} />
+      case 'back-apprentis':        return <PanelBackApprentis />
+      case 'back-ecoles':           return <PanelBackEcoles />
+      case 'back-entreprises':      return <PanelBackEntreprises />
+      case 'back-logs':             return <PanelBackLogs />
       default:
         return (
-          <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--muted)' }}>
+          <div style={{ padding: '2rem', textAlign: 'center' }}>
             <p style={{ fontFamily: 'Syne, sans-serif', fontSize: 20, fontWeight: 800, color: 'var(--navy)', marginBottom: 8 }}>
               Panel : <code style={{ color: 'var(--accent)' }}>{activePanel}</code>
             </p>
-            <p style={{ fontSize: 13 }}>À venir !</p>
+            <p style={{ fontSize: 13, color: 'var(--muted)' }}>À venir !</p>
           </div>
         )
     }
@@ -123,7 +166,7 @@ export default function Home() {
 
   return (
     <>
-      <TopNav activeSpace={activeSpace} onSwitch={switchSpace} user={space?.user} />
+      <TopNav activeSpace={activeSpace} onSwitch={switchSpace} user={space?.user} onLogout={handleLogout} />
       <div className={`workspace ${isHome ? 'home-mode' : ''}`}>
         {!isHome && (
           <Sidebar space={space} activePanel={activePanel} onNavigate={setActivePanel} />
