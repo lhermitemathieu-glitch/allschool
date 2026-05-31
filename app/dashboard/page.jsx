@@ -108,6 +108,12 @@ export default function Home() {
   const [authUser, setAuthUser]             = useState(null)
   const [allowedSpaces, setAllowedSpaces]   = useState([])
 
+  // Verrouille le scroll sur le body (layout fixe du dashboard)
+  useEffect(() => {
+    document.body.classList.add('app-mode')
+    return () => document.body.classList.remove('app-mode')
+  }, [])
+
   // Au chargement : récupère l'utilisateur et oriente vers le bon espace
   useEffect(() => {
     async function loadUser() {

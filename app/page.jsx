@@ -1,13 +1,6 @@
-'use client'
-
-import { useEffect } from 'react'
 import Link from 'next/link'
 
 export default function LandingPage() {
-  useEffect(() => {
-    document.body.style.overflow = 'auto'
-    return () => { document.body.style.overflow = '' }
-  }, [])
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--light)', display: 'flex', flexDirection: 'column' }}>
@@ -155,14 +148,7 @@ export default function LandingPage() {
         <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.25)', marginBottom: '1rem' }}>
           All<span style={{ color: 'var(--accent)' }}>school</span> — Démocratiser l&rsquo;alternance
         </p>
-        <Link href="/login" style={{
-          fontSize: 12, color: 'rgba(255,255,255,0.2)',
-          textDecoration: 'none', borderBottom: '0.5px solid rgba(255,255,255,0.15)',
-          paddingBottom: 2, transition: 'color 0.2s',
-        }}
-          onMouseEnter={e => e.currentTarget.style.color = 'rgba(255,255,255,0.5)'}
-          onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.2)'}
-        >
+        <Link href="/login" className="lp-access-link">
           Accès plateforme
         </Link>
       </footer>
