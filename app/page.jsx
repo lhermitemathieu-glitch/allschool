@@ -91,13 +91,22 @@ const ROLE_TO_SPACE = {
   admin:      'backoffice',
 }
 
+// Espaces visibles dans la TopNav selon le rôle
+const ROLE_TO_ALLOWED_SPACES = {
+  candidat:   ['candidat'],
+  entreprise: ['entreprise'],
+  ecole:      ['ecole'],
+  admin:      ['candidat', 'entreprise', 'ecole', 'backoffice'],
+}
+
 export default function Home() {
   const router = useRouter()
   const supabase = createClient()
 
-  const [activeSpace, setActiveSpace] = useState('home')
-  const [activePanel, setActivePanel] = useState('home')
-  const [authUser, setAuthUser]       = useState(null)
+  const [activeSpace, setActiveSpace]       = useState('home')
+  const [activePanel, setActivePanel]       = useState('home')
+  const [authUser, setAuthUser]             = useState(null)
+  const [allowedSpaces, setAllowedSpaces]   = useState([])
 
   // Au chargement : récupère l'utilisateur et oriente vers le bon espace
   useEffect(() => {
@@ -110,6 +119,7 @@ export default function Home() {
       setAuthUser(user)
       const role  = user.user_metadata?.role
       const space = ROLE_TO_SPACE[role]
+      setAllowedSpaces(ROLE_TO_ALLOWED_SPACES[role] ?? [])
       if (space) {
         setActiveSpace(space)
         setActivePanel(SPACES[space].firstPanel)
@@ -166,7 +176,7 @@ export default function Home() {
 
   return (
     <>
-      <TopNav activeSpace={activeSpace} onSwitch={switchSpace} user={space?.user} onLogout={handleLogout} />
+      <TopNav activeSpace={activeSpace} onSwitch={switchSpace} user={space?.user} onLogout={handleLogout} allowedSpaces={allowedSpaces} />
       <div className={`workspace ${isHome ? 'home-mode' : ''}`}>
         {!isHome && (
           <Sidebar space={space} activePanel={activePanel} onNavigate={setActivePanel} />

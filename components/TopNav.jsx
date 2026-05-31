@@ -6,13 +6,14 @@
 //   onSwitch    : (space: string) => void
 //   user        : { av: string, bg: string, name: string }
 
-export default function TopNav({ activeSpace, onSwitch, user, onLogout }) {
-  const spaces = [
+export default function TopNav({ activeSpace, onSwitch, user, onLogout, allowedSpaces = [] }) {
+  const ALL_SPACES = [
     { key: 'candidat',   label: 'Candidat',   icon: 'ti-user-circle', cls: 'cand' },
     { key: 'entreprise', label: 'Entreprise',  icon: 'ti-building',    cls: 'ent'  },
     { key: 'ecole',      label: 'École',       icon: 'ti-school',      cls: 'eco'  },
     { key: 'backoffice', label: 'Backoffice',  icon: 'ti-settings',    cls: 'back' },
   ]
+  const spaces = ALL_SPACES.filter((s) => allowedSpaces.includes(s.key))
 
   return (
     <div className="topnav">
