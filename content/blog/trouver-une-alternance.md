@@ -36,6 +36,7 @@ Le vrai marché de l'alternance, aujourd'hui en France, c'est celui des **TPE et
 - **Cibler les PME** — plus accessibles, souvent plus formatives
 - **S'appuyer sur son école** quand c'est possible
 - **Construire son réseau** même de zéro, LinkedIn, événements, forums
+- **Utiliser les bons outils** — et bientôt, **Allschool** sera là pour ça : un profil visible, des candidatures organisées, et un accès direct aux entreprises et aux écoles qui recrutent près de chez toi.
 
 ## La fin justifie les moyens
 
