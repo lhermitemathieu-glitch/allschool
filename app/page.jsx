@@ -22,9 +22,9 @@ export default function LandingPage() {
         <span style={{ fontFamily: 'Syne, sans-serif', fontWeight: 800, fontSize: 20, color: 'white', letterSpacing: '-0.5px' }}>
           All<span style={{ color: 'var(--accent)' }}>school</span>
         </span>
-        <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', fontWeight: 500 }}>
-          Bientôt disponible
-        </span>
+        <Link href="/blog" style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', fontWeight: 500, textDecoration: 'none' }}>
+          Blog →
+        </Link>
       </nav>
 
       {/* HERO */}

@@ -5,7 +5,7 @@ export async function proxy(request) {
   const { pathname } = request.nextUrl
 
   // Pages publiques toujours accessibles
-  if (pathname === '/' || pathname.startsWith('/login')) {
+  if (pathname === '/' || pathname.startsWith('/login') || pathname.startsWith('/blog')) {
     return NextResponse.next()
   }
 

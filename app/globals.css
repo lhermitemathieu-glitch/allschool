@@ -285,6 +285,18 @@ body {
 .event-day   { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 800; color: var(--purple); line-height: 1; }
 .event-month { font-size: 10px; color: var(--purple-mid); text-transform: uppercase; letter-spacing: 0.5px; }
 
+/* ── BLOG ── */
+.blog-card {
+  background: white; border-radius: 16px;
+  border: 0.5px solid var(--border); padding: 1.5rem 1.75rem;
+  transition: box-shadow 0.2s, transform 0.2s;
+  cursor: pointer;
+}
+.blog-card:hover {
+  box-shadow: 0 8px 28px rgba(14,27,46,0.09);
+  transform: translateY(-2px);
+}
+
 /* ── LANDING HOME ── */
 @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.6; transform: scale(1.3); } }
 .lp-hero { background: var(--navy); padding: 5rem 2rem 3rem; text-align: center; }
