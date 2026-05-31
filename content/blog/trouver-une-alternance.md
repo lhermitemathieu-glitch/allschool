@@ -1,6 +1,6 @@
 ---
 title: "Trouver une alternance : pourquoi c'est si difficile (et comment s'en sortir)"
-date: "2026-05-31"
+date: "2026-05-30"
 description: "Le marché de l'alternance est largement caché, dominé par le réseau et les candidatures à l'aveugle. Voici pourquoi c'est si dur — et pourquoi ça vaut quand même le coup."
 tag: "Candidat"
 tagColor: "accent"

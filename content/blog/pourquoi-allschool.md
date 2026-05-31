@@ -1,6 +1,6 @@
 ---
 title: "Pourquoi Allschool ?"
-date: "2026-05-31"
+date: "2026-05-29"
 description: "L'alternance est un formidable levier d'insertion professionnelle. Pourtant, trouver un contrat reste un parcours du combattant. On vous explique pourquoi on a décidé de changer ça."
 tag: "Vision"
 tagColor: "teal"
