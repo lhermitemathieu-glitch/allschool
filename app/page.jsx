@@ -1,190 +1,199 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import { createClient } from '../lib/supabase/client'
-import TopNav from '../components/TopNav'
-import Sidebar from '../components/Sidebar'
-import PanelHome from '../components/panels/PanelHome'
-import PanelCandidatProfil from '../components/panels/PanelCandidatProfil'
-import PanelCandidatEcoles from '../components/panels/PanelCandidatEcoles'
-import PanelCandidatCandidatures from '../components/panels/PanelCandidatCandidatures'
-import PanelCandidatBadges from '../components/panels/PanelCandidatBadges'
-import { PanelEntrepriseSiret, PanelEntrepriseRecherche, PanelEntrepriseEcoles, PanelEntrepriseOffres, PanelEntrepriseSimulateur } from '../components/panels/PanelEntreprise'
-import { PanelEcolePage, PanelEcoleApprentis, PanelEcoleDashboard } from '../components/panels/PanelEcole'
-import { PanelBackOverview, PanelBackApprentis, PanelBackEcoles, PanelBackEntreprises, PanelBackLogs } from '../components/panels/PanelBackoffice'
+import { useEffect } from 'react'
+import Link from 'next/link'
 
-const SPACES = {
-  home: {
-    label: 'Accueil', dot: 'var(--navy)',
-    user: { av: 'AS', bg: 'var(--navy)', name: 'Allschool', role: 'Plateforme' },
-    nav: [], firstPanel: 'home',
-  },
-  candidat: {
-    label: 'Espace Candidat', dot: 'var(--teal)',
-    user: { av: 'TM', bg: 'var(--teal)', name: 'Thomas Martin', role: 'Candidat' },
-    nav: [
-      { icon: 'ti-user-circle', label: 'Mon profil',      panel: 'candidat-profil',      cls: 'cand' },
-      { icon: 'ti-school',      label: 'Mes écoles',       panel: 'candidat-ecoles',       cls: 'cand' },
-      { icon: 'ti-building',    label: 'Mes candidatures', panel: 'candidat-candidatures', cls: 'cand' },
-      { icon: 'ti-trophy',      label: 'Mes badges',       panel: 'candidat-badges',       cls: 'cand' },
-      { section: 'Explorer' },
-      { icon: 'ti-search', label: 'Offres alternance', panel: null, cls: 'cand' },
-      { icon: 'ti-gift',   label: 'Bons plans',        panel: null, cls: 'cand' },
-    ],
-    firstPanel: 'candidat-profil',
-  },
-  entreprise: {
-    label: 'Espace Entreprise', dot: 'var(--accent)',
-    user: { av: 'BL', bg: 'var(--accent)', name: 'Boulangerie Leroux', role: 'Entreprise' },
-    nav: [
-      { icon: 'ti-building-community', label: 'Mon entreprise',      panel: 'entreprise-siret',      cls: 'ent' },
-      { icon: 'ti-search',             label: 'Rechercher un profil', panel: 'entreprise-recherche',  cls: 'ent' },
-      { icon: 'ti-school',             label: 'Écoles près de moi',   panel: 'entreprise-ecoles',     cls: 'ent' },
-      { icon: 'ti-speakerphone',       label: 'Mes offres',           panel: 'entreprise-offres',     cls: 'ent' },
-      { icon: 'ti-calculator',         label: 'Simulateurs',          panel: 'entreprise-simulateur', cls: 'ent' },
-      { section: 'Ressources' },
-      { icon: 'ti-file-text', label: 'Guide alternance', panel: null, cls: 'ent' },
-      { icon: 'ti-chart-bar', label: 'Chiffres clés',    panel: null, cls: 'ent' },
-    ],
-    firstPanel: 'entreprise-recherche',
-  },
-  ecole: {
-    label: 'Espace École', dot: 'var(--purple)',
-    user: { av: 'ESG', bg: 'var(--purple)', name: 'ESG Lyon', role: 'École Premium' },
-    nav: [
-      { section: 'Ma page école' },
-      { icon: 'ti-layout',       label: 'Ma page publique', panel: 'ecole-page',      cls: 'eco' },
-      { icon: 'ti-users',        label: 'Mes apprentis',    panel: 'ecole-apprentis', cls: 'eco' },
-      { icon: 'ti-speakerphone', label: 'Mes offres',       panel: null, cls: 'eco' },
-      { icon: 'ti-building',     label: 'Partenaires',      panel: null, cls: 'eco' },
-      { icon: 'ti-calendar',     label: 'Événements',       panel: null, cls: 'eco' },
-      { icon: 'ti-star',         label: 'Avis & liens',     panel: null, cls: 'eco' },
-      { section: 'Pilotage' },
-      { icon: 'ti-chart-bar', label: 'Dashboard', panel: 'ecole-dashboard', cls: 'eco' },
-    ],
-    firstPanel: 'ecole-page',
-  },
-  backoffice: {
-    label: 'Backoffice Admin', dot: 'var(--gold)',
-    user: { av: 'AD', bg: 'var(--gold)', name: 'Admin Allschool', role: 'Super admin' },
-    nav: [
-      { section: 'Vue globale' },
-      { icon: 'ti-dashboard', label: "Vue d'ensemble",    panel: 'back-overview',    cls: 'back' },
-      { icon: 'ti-history',   label: 'Journal imports',   panel: 'back-logs',        cls: 'back' },
-      { section: 'Imports CSV' },
-      { icon: 'ti-users',    label: 'Apprentis',          panel: 'back-apprentis',   cls: 'back' },
-      { icon: 'ti-school',   label: 'Écoles',             panel: 'back-ecoles',      cls: 'back' },
-      { icon: 'ti-building', label: 'Entreprises',        panel: 'back-entreprises', cls: 'back' },
-      { section: 'Gestion' },
-      { icon: 'ti-list', label: 'Toutes les entrées', panel: null, cls: 'back' },
-    ],
-    firstPanel: 'back-overview',
-  },
-}
-
-// Mapping rôle Supabase → espace de l'app
-const ROLE_TO_SPACE = {
-  candidat:   'candidat',
-  entreprise: 'entreprise',
-  ecole:      'ecole',
-  admin:      'backoffice',
-}
-
-// Espaces visibles dans la TopNav selon le rôle
-const ROLE_TO_ALLOWED_SPACES = {
-  candidat:   ['candidat'],
-  entreprise: ['entreprise'],
-  ecole:      ['ecole'],
-  admin:      ['candidat', 'entreprise', 'ecole', 'backoffice'],
-}
-
-export default function Home() {
-  const router = useRouter()
-  const supabase = createClient()
-
-  const [activeSpace, setActiveSpace]       = useState('home')
-  const [activePanel, setActivePanel]       = useState('home')
-  const [authUser, setAuthUser]             = useState(null)
-  const [allowedSpaces, setAllowedSpaces]   = useState([])
-
-  // Au chargement : récupère l'utilisateur et oriente vers le bon espace
+export default function LandingPage() {
   useEffect(() => {
-    async function loadUser() {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
-        router.push('/login')
-        return
-      }
-      setAuthUser(user)
-      const role  = user.user_metadata?.role
-      const space = ROLE_TO_SPACE[role]
-      setAllowedSpaces(ROLE_TO_ALLOWED_SPACES[role] ?? [])
-      if (space) {
-        setActiveSpace(space)
-        setActivePanel(SPACES[space].firstPanel)
-      }
-    }
-    loadUser()
+    document.body.style.overflow = 'auto'
+    return () => { document.body.style.overflow = '' }
   }, [])
 
-  async function handleLogout() {
-    await supabase.auth.signOut()
-    router.push('/login')
-    router.refresh()
-  }
-
-  const space = SPACES[activeSpace]
-  const isHome = activeSpace === 'home'
-
-  function switchSpace(name) {
-    setActiveSpace(name)
-    setActivePanel(SPACES[name].firstPanel)
-  }
-
-  function renderPanel() {
-    switch (activePanel) {
-      case 'home':                  return <PanelHome onSwitch={switchSpace} />
-      case 'candidat-profil':       return <PanelCandidatProfil />
-      case 'candidat-ecoles':       return <PanelCandidatEcoles />
-      case 'candidat-candidatures': return <PanelCandidatCandidatures />
-      case 'candidat-badges':       return <PanelCandidatBadges />
-      case 'entreprise-siret':      return <PanelEntrepriseSiret />
-      case 'entreprise-recherche':  return <PanelEntrepriseRecherche onNavigate={setActivePanel} />
-      case 'entreprise-ecoles':     return <PanelEntrepriseEcoles />
-      case 'entreprise-offres':     return <PanelEntrepriseOffres />
-      case 'entreprise-simulateur': return <PanelEntrepriseSimulateur />
-      case 'ecole-page':            return <PanelEcolePage />
-      case 'ecole-apprentis':       return <PanelEcoleApprentis />
-      case 'ecole-dashboard':       return <PanelEcoleDashboard />
-      case 'back-overview':         return <PanelBackOverview onNavigate={setActivePanel} />
-      case 'back-apprentis':        return <PanelBackApprentis />
-      case 'back-ecoles':           return <PanelBackEcoles />
-      case 'back-entreprises':      return <PanelBackEntreprises />
-      case 'back-logs':             return <PanelBackLogs />
-      default:
-        return (
-          <div style={{ padding: '2rem', textAlign: 'center' }}>
-            <p style={{ fontFamily: 'Syne, sans-serif', fontSize: 20, fontWeight: 800, color: 'var(--navy)', marginBottom: 8 }}>
-              Panel : <code style={{ color: 'var(--accent)' }}>{activePanel}</code>
-            </p>
-            <p style={{ fontSize: 13, color: 'var(--muted)' }}>À venir !</p>
-          </div>
-        )
-    }
-  }
-
   return (
-    <>
-      <TopNav activeSpace={activeSpace} onSwitch={switchSpace} user={space?.user} onLogout={handleLogout} allowedSpaces={allowedSpaces} />
-      <div className={`workspace ${isHome ? 'home-mode' : ''}`}>
-        {!isHome && (
-          <Sidebar space={space} activePanel={activePanel} onNavigate={setActivePanel} />
-        )}
-        <main className="main" id="main-content">
-          {renderPanel()}
-        </main>
-      </div>
-    </>
+    <div style={{ minHeight: '100vh', background: 'var(--light)', display: 'flex', flexDirection: 'column' }}>
+
+      {/* NAV */}
+      <nav style={{
+        background: 'var(--navy)', height: 52,
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '0 2rem', position: 'sticky', top: 0, zIndex: 50,
+        borderBottom: '0.5px solid rgba(255,255,255,0.06)',
+      }}>
+        <span style={{ fontFamily: 'Syne, sans-serif', fontWeight: 800, fontSize: 20, color: 'white', letterSpacing: '-0.5px' }}>
+          All<span style={{ color: 'var(--accent)' }}>school</span>
+        </span>
+        <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', fontWeight: 500 }}>
+          Bientôt disponible
+        </span>
+      </nav>
+
+      {/* HERO */}
+      <section style={{
+        background: 'var(--navy)',
+        padding: '5rem 2rem 5rem',
+        textAlign: 'center',
+        flex: 'none',
+      }}>
+        {/* Badge "en construction" */}
+        <div style={{
+          display: 'inline-flex', alignItems: 'center', gap: 8,
+          background: 'rgba(255,255,255,0.07)',
+          border: '0.5px solid rgba(255,255,255,0.12)',
+          borderRadius: 100, padding: '7px 18px 7px 12px',
+          fontSize: 13, color: 'rgba(255,255,255,0.65)',
+          marginBottom: '2.5rem',
+        }}>
+          <span style={{
+            width: 8, height: 8, borderRadius: '50%',
+            background: 'var(--accent)', display: 'inline-block',
+            animation: 'pulse 2s infinite',
+          }} />
+          En construction — quelque chose arrive
+        </div>
+
+        <h1 style={{
+          fontFamily: 'Syne, sans-serif', fontWeight: 800,
+          fontSize: 'clamp(36px, 6vw, 68px)', lineHeight: 1.02,
+          color: 'white', letterSpacing: '-2.5px',
+          maxWidth: 820, margin: '0 auto 1.75rem',
+        }}>
+          L&rsquo;alternance,<br /><em style={{ fontStyle: 'normal', color: 'var(--accent)' }}>enfin démocratisée.</em>
+        </h1>
+
+        <p style={{
+          fontSize: 18, color: 'rgba(255,255,255,0.45)',
+          maxWidth: 520, margin: '0 auto',
+          lineHeight: 1.7, fontWeight: 300,
+        }}>
+          Ici on construit quelque chose de grand.<br />
+          Patience, ça va arriver — et ça va changer les choses.
+        </p>
+      </section>
+
+      {/* MISSION */}
+      <section style={{ padding: '4rem 2rem', background: 'white' }}>
+        <div style={{ maxWidth: 900, margin: '0 auto' }}>
+          <p style={{
+            fontSize: 11, fontWeight: 500, letterSpacing: '2px',
+            textTransform: 'uppercase', color: 'var(--accent)',
+            textAlign: 'center', marginBottom: '0.75rem',
+          }}>
+            Notre mission
+          </p>
+          <h2 style={{
+            fontFamily: 'Syne, sans-serif', fontSize: 'clamp(24px, 3.5vw, 38px)',
+            fontWeight: 800, letterSpacing: '-1px', textAlign: 'center',
+            color: 'var(--navy)', marginBottom: '3rem',
+          }}>
+            Trois acteurs. Un seul objectif.
+          </h2>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 16 }}>
+
+            {/* Candidats */}
+            <div style={cardStyle}>
+              <div style={{ ...iconStyle, background: 'var(--teal-soft)' }}>
+                <i className="ti ti-user-circle" style={{ fontSize: 22, color: 'var(--teal)' }} />
+              </div>
+              <div style={{ width: 3, height: 48, background: 'var(--teal)', borderRadius: 100, flexShrink: 0 }} />
+              <div>
+                <h3 style={cardTitle}>Candidats</h3>
+                <p style={cardText}>
+                  Plus de visibilité pour ceux qui cherchent une alternance.
+                  Ton profil mis en avant, tes candidatures organisées,
+                  et les bons plans pour décrocher le contrat idéal.
+                </p>
+              </div>
+            </div>
+
+            {/* Entreprises */}
+            <div style={cardStyle}>
+              <div style={{ ...iconStyle, background: 'var(--accent-soft)' }}>
+                <i className="ti ti-building" style={{ fontSize: 22, color: 'var(--accent)' }} />
+              </div>
+              <div style={{ width: 3, height: 48, background: 'var(--accent)', borderRadius: 100, flexShrink: 0 }} />
+              <div>
+                <h3 style={cardTitle}>Entreprises</h3>
+                <p style={cardText}>
+                  Un accélérateur pour recruter vite et bien.
+                  Trouvez les profils qui matchent, gérez vos offres,
+                  et connectez-vous aux bonnes écoles près de chez vous.
+                </p>
+              </div>
+            </div>
+
+            {/* Écoles */}
+            <div style={cardStyle}>
+              <div style={{ ...iconStyle, background: 'var(--purple-soft)' }}>
+                <i className="ti ti-school" style={{ fontSize: 22, color: 'var(--purple)' }} />
+              </div>
+              <div style={{ width: 3, height: 48, background: 'var(--purple)', borderRadius: 100, flexShrink: 0 }} />
+              <div>
+                <h3 style={cardTitle}>Écoles</h3>
+                <p style={cardText}>
+                  Une vitrine pour se démarquer.
+                  Valorisez vos formations, vos apprentis,
+                  et développez vos partenariats entreprises sur une seule plateforme.
+                </p>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      {/* SPACER */}
+      <div style={{ flex: 1 }} />
+
+      {/* FOOTER */}
+      <footer style={{
+        background: 'var(--navy)',
+        borderTop: '0.5px solid rgba(255,255,255,0.06)',
+        padding: '2rem',
+        textAlign: 'center',
+      }}>
+        <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.25)', marginBottom: '1rem' }}>
+          All<span style={{ color: 'var(--accent)' }}>school</span> — Démocratiser l&rsquo;alternance
+        </p>
+        <Link href="/login" style={{
+          fontSize: 12, color: 'rgba(255,255,255,0.2)',
+          textDecoration: 'none', borderBottom: '0.5px solid rgba(255,255,255,0.15)',
+          paddingBottom: 2, transition: 'color 0.2s',
+        }}
+          onMouseEnter={e => e.currentTarget.style.color = 'rgba(255,255,255,0.5)'}
+          onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.2)'}
+        >
+          Accès plateforme
+        </Link>
+      </footer>
+    </div>
   )
+}
+
+const cardStyle = {
+  background: 'var(--light)',
+  borderRadius: 16,
+  border: '0.5px solid var(--border)',
+  padding: '1.5rem',
+  display: 'flex',
+  alignItems: 'flex-start',
+  gap: 16,
+}
+
+const iconStyle = {
+  width: 44, height: 44, borderRadius: 12,
+  display: 'flex', alignItems: 'center', justifyContent: 'center',
+  flexShrink: 0,
+}
+
+const cardTitle = {
+  fontFamily: 'Syne, sans-serif',
+  fontSize: 16, fontWeight: 800,
+  color: 'var(--navy)', letterSpacing: '-0.3px',
+  marginBottom: 6,
+}
+
+const cardText = {
+  fontSize: 13, color: 'var(--muted)',
+  lineHeight: 1.65,
 }
