@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { getAllPosts } from '../../lib/blog'
+import Footer from '../../components/Footer'
 
 const TAG_COLORS = {
   teal:   { bg: 'var(--teal-soft)',   color: 'var(--teal-mid)' },
@@ -86,11 +87,7 @@ export default function BlogPage() {
 
       {/* FOOTER */}
       <div style={{ marginTop: 'auto' }}>
-        <footer style={{ background: 'var(--navy)', borderTop: '0.5px solid rgba(255,255,255,0.06)', padding: '1.5rem 2rem', textAlign: 'center' }}>
-          <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.25)' }}>
-            All<span style={{ color: 'var(--accent)' }}>school</span> — Démocratiser l&rsquo;alternance
-          </p>
-        </footer>
+        <Footer />
       </div>
     </div>
   )

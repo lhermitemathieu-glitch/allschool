@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import Footer from '../components/Footer'
 
 export default function LandingPage() {
 
@@ -139,19 +140,10 @@ export default function LandingPage() {
       <div style={{ flex: 1 }} />
 
       {/* FOOTER */}
-      <footer style={{
-        background: 'var(--navy)',
-        borderTop: '0.5px solid rgba(255,255,255,0.06)',
-        padding: '2rem',
-        textAlign: 'center',
-      }}>
-        <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.25)', marginBottom: '1rem' }}>
-          All<span style={{ color: 'var(--accent)' }}>school</span> — Démocratiser l&rsquo;alternance
-        </p>
-        <Link href="/login" className="lp-access-link">
-          Accès plateforme
-        </Link>
-      </footer>
+      <div style={{ textAlign: 'center', padding: '1rem 0 0' }}>
+        <Link href="/login" className="lp-access-link">Accès plateforme</Link>
+      </div>
+      <Footer />
     </div>
   )
 }
