@@ -28,6 +28,7 @@ export default function Footer() {
           <div style={linkList}>
             <Link href="/" style={linkStyle}>Accueil</Link>
             <Link href="/blog" style={linkStyle}>Blog</Link>
+            <Link href="/login" style={{ ...linkStyle, color: 'rgba(255,255,255,0.25)' }}>Accès plateforme</Link>
           </div>
         </div>
 
