@@ -100,8 +100,8 @@ export default function LandingPage() {
                 <h3 style={cardTitle}>Candidats</h3>
                 <p style={cardText}>
                   Plus de visibilité pour ceux qui cherchent une alternance.
-                  Ton profil mis en avant, tes candidatures organisées,
-                  et les bons plans pour décrocher le contrat idéal.
+                  Un profil mis en avant, des candidatures organisées,
+                  et des bons plans pour décrocher le contrat idéal.
                 </p>
               </div>
             </div>
