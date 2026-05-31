@@ -14,7 +14,7 @@ export default function LoginPage() {
   const router = useRouter()
   const supabase = createClient()
 
-  const [mode, setMode]       = useState('login')   // 'login' | 'signup'
+  const [mode, setMode]       = useState('login')   // 'login' only
   const [role, setRole]       = useState('candidat')
   const [email, setEmail]     = useState('')
   const [password, setPassword] = useState('')
@@ -76,47 +76,11 @@ export default function LoginPage() {
       {/* Panneau droit — formulaire */}
       <div style={styles.right}>
         <div style={styles.card}>
-          {/* Tabs login / signup */}
-          <div style={styles.tabs}>
-            <button
-              style={{ ...styles.tab, ...(mode === 'login' ? styles.tabActive : {}) }}
-              onClick={() => { setMode('login'); setError('') }}
-            >
-              Se connecter
-            </button>
-            <button
-              style={{ ...styles.tab, ...(mode === 'signup' ? styles.tabActive : {}) }}
-              onClick={() => { setMode('signup'); setError('') }}
-            >
-              Créer un compte
-            </button>
-          </div>
+          <p style={{ fontFamily: 'Syne, sans-serif', fontWeight: 800, fontSize: 18, color: 'var(--navy)', marginBottom: '1.5rem', letterSpacing: '-0.3px' }}>
+            Connexion
+          </p>
 
           <form onSubmit={handleSubmit} style={styles.form}>
-            {/* Choix du rôle (signup uniquement) */}
-            {mode === 'signup' && (
-              <div style={styles.field}>
-                <label style={styles.label}>Je suis…</label>
-                <div style={styles.roleRow}>
-                  {ROLES.map((r) => (
-                    <button
-                      key={r.value}
-                      type="button"
-                      onClick={() => setRole(r.value)}
-                      style={{
-                        ...styles.roleBtn,
-                        ...(role === r.value
-                          ? { background: r.soft, borderColor: r.color, color: r.color }
-                          : {}),
-                      }}
-                    >
-                      <i className={`ti ${r.icon}`} style={{ fontSize: 20 }} />
-                      <span style={{ fontSize: 13, fontWeight: 500 }}>{r.label}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
 
             {/* Email */}
             <div style={styles.field}>
