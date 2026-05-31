@@ -4,8 +4,8 @@ import { createServerClient } from '@supabase/ssr'
 export async function proxy(request) {
   const { pathname } = request.nextUrl
 
-  // La page /login est toujours accessible
-  if (pathname.startsWith('/login')) {
+  // Pages publiques toujours accessibles
+  if (pathname === '/' || pathname.startsWith('/login')) {
     return NextResponse.next()
   }
 
