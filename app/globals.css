@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;700;800&family=DM+Sans:wght@300;400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;700;800&family=DM+Sans:wght@300;400;500&display=swap');
 /* ── RESET ── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 /* ── VARIABLES ── */
@@ -47,7 +47,7 @@ body.app-mode {
   border-bottom: 0.5px solid rgba(255, 255, 255, 0.06);
 }
 .topnav-logo {
-  font-family: 'Syne', sans-serif;
+  font-family: 'Plus Jakarta Sans', sans-serif;
   font-weight: 800;
   font-size: 20px;
   color: white;
@@ -92,7 +92,7 @@ body.app-mode {
   width: 26px; height: 26px;
   border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
-  font-family: 'Syne', sans-serif;
+  font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 10px; font-weight: 800; color: white;
 }
 .user-name { font-size: 12px; font-weight: 500; color: rgba(255, 255, 255, 0.8); }
@@ -112,7 +112,7 @@ body.app-mode {
   background: white;
 }
 .sidebar-space-label {
-  font-family: 'Syne', sans-serif;
+  font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 13px; font-weight: 800; letter-spacing: -0.3px;
   padding: 0 8px;
   margin-bottom: 0.75rem;
@@ -146,7 +146,7 @@ body.app-mode {
 .user-card-avatar {
   width: 30px; height: 30px; border-radius: 8px;
   display: flex; align-items: center; justify-content: center;
-  font-family: 'Syne', sans-serif;
+  font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 10px; font-weight: 800; color: white; flex-shrink: 0;
 }
 .user-card-name  { font-size: 12px; font-weight: 500; color: var(--navy); }
@@ -154,14 +154,14 @@ body.app-mode {
 
 /* ── MAIN ── */
 .main { flex: 1; overflow-y: auto; padding: 1.75rem; }
-.page-title { font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 800; color: var(--navy); letter-spacing: -0.5px; }
+.page-title { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 20px; font-weight: 800; color: var(--navy); letter-spacing: -0.5px; }
 .page-sub   { font-size: 13px; color: var(--muted); margin-top: 2px; }
 .topbar     { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; }
 
 /* ── CARDS ── */
 .s-card { background: white; border: 0.5px solid var(--border); border-radius: 13px; padding: 1.25rem; margin-bottom: 1.25rem; }
 .s-card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
-.s-card-title { font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700; color: var(--navy); display: flex; align-items: center; gap: 7px; }
+.s-card-title { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; font-weight: 700; color: var(--navy); display: flex; align-items: center; gap: 7px; }
 .s-card-title i { font-size: 15px; color: var(--muted); }
 
 /* ── GRIDS ── */
@@ -171,7 +171,7 @@ body.app-mode {
 
 /* ── STATS ── */
 .stat-mini { background: var(--light); border-radius: 10px; padding: 1rem; text-align: center; }
-.stat-num  { font-family: 'Syne', sans-serif; font-size: 24px; font-weight: 800; color: var(--navy); display: block; letter-spacing: -1px; }
+.stat-num  { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 24px; font-weight: 800; color: var(--navy); display: block; letter-spacing: -1px; }
 .stat-label { font-size: 11px; color: var(--muted); }
 
 /* ── BUTTONS ── */
@@ -199,7 +199,7 @@ body.app-mode {
 .e-av {
   width: 34px; height: 34px; border-radius: 8px;
   display: flex; align-items: center; justify-content: center;
-  font-family: 'Syne', sans-serif; font-size: 11px; font-weight: 800; flex-shrink: 0;
+  font-family: 'Plus Jakarta Sans', sans-serif; font-size: 11px; font-weight: 800; flex-shrink: 0;
 }
 .e-av.teal   { background: var(--teal-soft);   color: var(--teal-mid); }
 .e-av.purple { background: var(--purple-soft); color: var(--purple-mid); }
@@ -286,7 +286,7 @@ body.app-mode {
 .event-item { display: flex; gap: 12px; padding: 10px 0; border-bottom: 0.5px solid var(--border); align-items: flex-start; }
 .event-item:last-child { border-bottom: none; }
 .event-date { min-width: 44px; text-align: center; background: var(--purple-soft); border-radius: 10px; padding: 6px 4px; }
-.event-day   { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 800; color: var(--purple); line-height: 1; }
+.event-day   { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 18px; font-weight: 800; color: var(--purple); line-height: 1; }
 .event-month { font-size: 10px; color: var(--purple-mid); text-transform: uppercase; letter-spacing: 0.5px; }
 
 /* ── BLOG ── */
@@ -306,12 +306,12 @@ body.app-mode {
 .lp-hero { background: var(--navy); padding: 5rem 2rem 3rem; text-align: center; }
 .lp-badge { display: inline-flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.08); border: 0.5px solid rgba(255,255,255,0.12); border-radius: 100px; padding: 6px 16px 6px 10px; font-size: 13px; color: rgba(255,255,255,0.6); margin-bottom: 2rem; }
 .lp-badge-dot { width: 8px; height: 8px; background: var(--teal); border-radius: 50%; animation: pulse 2s infinite; }
-.lp-hero h1 { font-family: 'Syne', sans-serif; font-weight: 800; font-size: clamp(34px, 5vw, 62px); line-height: 1.03; color: white; letter-spacing: -2.5px; max-width: 780px; margin: 0 auto 1.5rem; }
+.lp-hero h1 { font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 800; font-size: clamp(34px, 5vw, 62px); line-height: 1.03; color: white; letter-spacing: -2.5px; max-width: 780px; margin: 0 auto 1.5rem; }
 .lp-hero h1 em { font-style: normal; color: var(--accent); }
 .lp-hero-sub { font-size: 17px; color: rgba(255,255,255,0.5); max-width: 480px; margin: 0 auto 3rem; line-height: 1.7; font-weight: 300; }
 .lp-stats { display: flex; gap: 3rem; justify-content: center; flex-wrap: wrap; margin-bottom: 3.5rem; }
 .lp-stat { text-align: center; }
-.lp-stat-num { font-family: 'Syne', sans-serif; font-size: 28px; font-weight: 800; color: white; display: block; letter-spacing: -1px; }
+.lp-stat-num { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 28px; font-weight: 800; color: white; display: block; letter-spacing: -1px; }
 .lp-stat-lbl { font-size: 13px; color: rgba(255,255,255,0.4); }
 .lp-stat-sep { width: 1px; background: rgba(255,255,255,0.1); align-self: center; height: 36px; }
 .lp-cta-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; max-width: 860px; margin: 0 auto 1rem; }
@@ -325,7 +325,7 @@ body.app-mode {
 .lp-cta-card.eco .lp-cta-icon  { background: var(--purple-soft); color: var(--purple); }
 .lp-cta-card.cand .lp-cta-icon { background: var(--teal-soft);   color: var(--teal); }
 .lp-cta-card.ent .lp-cta-icon  { background: var(--accent-soft); color: var(--accent); }
-.lp-cta-card h3 { font-family: 'Syne', sans-serif; font-size: 17px; font-weight: 700; color: var(--navy); margin-bottom: 0.4rem; letter-spacing: -0.3px; }
+.lp-cta-card h3 { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 17px; font-weight: 700; color: var(--navy); margin-bottom: 0.4rem; letter-spacing: -0.3px; }
 .lp-cta-card > p { font-size: 13px; color: var(--muted); line-height: 1.55; margin-bottom: 1.25rem; flex: 1; }
 .lp-pill-btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 100px; font-size: 13px; font-weight: 500; border: none; cursor: pointer; transition: all 0.2s; width: 100%; justify-content: center; font-family: 'DM Sans', sans-serif; }
 .lp-cta-card.eco .lp-pill-btn  { background: var(--purple-soft); color: var(--purple); }
@@ -337,13 +337,13 @@ body.app-mode {
 .lp-section { padding: 4rem 2rem; }
 .lp-inner   { max-width: 960px; margin: 0 auto; }
 .lp-label   { font-size: 11px; font-weight: 500; letter-spacing: 2px; text-transform: uppercase; color: var(--accent); margin-bottom: 0.75rem; text-align: center; }
-.lp-title   { font-family: 'Syne', sans-serif; font-size: clamp(24px, 3.5vw, 38px); font-weight: 800; letter-spacing: -1px; line-height: 1.1; text-align: center; margin-bottom: 2.5rem; }
+.lp-title   { font-family: 'Plus Jakarta Sans', sans-serif; font-size: clamp(24px, 3.5vw, 38px); font-weight: 800; letter-spacing: -1px; line-height: 1.1; text-align: center; margin-bottom: 2.5rem; }
 .lp-title.on-dark  { color: white; }
 .lp-title.on-light { color: var(--navy); }
 .lp-steps-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
 .lp-step { background: rgba(255,255,255,0.05); border: 0.5px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 1.75rem; }
-.lp-step-num { font-family: 'Syne', sans-serif; font-size: 40px; font-weight: 800; color: var(--accent); opacity: 0.35; margin-bottom: 0.75rem; line-height: 1; }
-.lp-step h3  { font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 700; color: white; margin-bottom: 0.5rem; }
+.lp-step-num { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 40px; font-weight: 800; color: var(--accent); opacity: 0.35; margin-bottom: 0.75rem; line-height: 1; }
+.lp-step h3  { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 16px; font-weight: 700; color: white; margin-bottom: 0.5rem; }
 .lp-step p   { font-size: 13px; color: rgba(255,255,255,0.5); line-height: 1.65; }
 .lp-step-tag { display: inline-block; margin-bottom: 1rem; padding: 4px 10px; border-radius: 100px; font-size: 11px; font-weight: 500; }
 .lp-step-tag.eco  { background: var(--purple-soft); color: var(--purple-mid); }
@@ -355,7 +355,7 @@ body.app-mode {
 .lp-actor-icon.cand { background: var(--teal-soft);   color: var(--teal); }
 .lp-actor-icon.ent  { background: var(--accent-soft); color: var(--accent); }
 .lp-actor-icon.eco  { background: var(--purple-soft); color: var(--purple); }
-.lp-actor-header h2 { font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 800; color: var(--navy); letter-spacing: -0.5px; }
+.lp-actor-header h2 { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 20px; font-weight: 800; color: var(--navy); letter-spacing: -0.5px; }
 .lp-actor-header p  { font-size: 13px; color: var(--muted); margin-top: 2px; }
 .lp-feat-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
 .lp-feat { background: white; border: 0.5px solid var(--border); border-radius: 12px; padding: 1rem 1.25rem; display: flex; align-items: flex-start; gap: 10px; }
@@ -368,10 +368,10 @@ body.app-mode {
 .lp-why-grid    { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
 .lp-why-card    { background: rgba(255,255,255,0.05); border: 0.5px solid rgba(255,255,255,0.1); border-radius: 14px; padding: 1.25rem 1.5rem; display: flex; align-items: flex-start; gap: 12px; }
 .lp-why-card i  { font-size: 20px; flex-shrink: 0; margin-top: 2px; }
-.lp-why-card h4 { font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700; color: white; margin-bottom: 4px; }
+.lp-why-card h4 { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 14px; font-weight: 700; color: white; margin-bottom: 4px; }
 .lp-why-card p  { font-size: 13px; color: rgba(255,255,255,0.5); line-height: 1.5; }
 .lp-cta-banner  { background: var(--accent); border-radius: 24px; padding: 3rem; text-align: center; max-width: 880px; margin: 0 auto; }
-.lp-cta-banner h2 { font-family: 'Syne', sans-serif; font-size: clamp(22px, 3vw, 34px); font-weight: 800; color: white; letter-spacing: -1px; margin-bottom: 1rem; }
+.lp-cta-banner h2 { font-family: 'Plus Jakarta Sans', sans-serif; font-size: clamp(22px, 3vw, 34px); font-weight: 800; color: white; letter-spacing: -1px; margin-bottom: 1rem; }
 .lp-cta-banner p  { color: rgba(255,255,255,0.8); font-size: 15px; margin-bottom: 2rem; }
 .lp-cta-btns { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
 .lp-cta-w    { background: white; color: var(--accent); padding: 13px 26px; border-radius: 100px; font-size: 14px; font-weight: 500; cursor: pointer; border: none; transition: all 0.2s; font-family: 'DM Sans', sans-serif; }

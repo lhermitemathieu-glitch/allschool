@@ -13,7 +13,7 @@ export default function LandingPage() {
         padding: '0 2rem', position: 'sticky', top: 0, zIndex: 50,
         borderBottom: '0.5px solid rgba(255,255,255,0.06)',
       }}>
-        <span style={{ fontFamily: 'Syne, sans-serif', fontWeight: 800, fontSize: 20, color: 'white', letterSpacing: '-0.5px' }}>
+        <span style={{ fontFamily: 'Plus Jakarta Sans, sans-serif', fontWeight: 800, fontSize: 20, color: 'white', letterSpacing: '-0.5px' }}>
           All<span style={{ color: 'var(--accent)' }}>school</span>
         </span>
         <Link href="/blog" style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', fontWeight: 500, textDecoration: 'none' }}>
@@ -46,9 +46,9 @@ export default function LandingPage() {
         </div>
 
         <h1 style={{
-          fontFamily: 'Syne, sans-serif', fontWeight: 800,
-          fontSize: 'clamp(36px, 6vw, 68px)', lineHeight: 1.02,
-          color: 'white', letterSpacing: '-2.5px',
+          fontFamily: 'Plus Jakarta Sans, sans-serif', fontWeight: 800,
+          fontSize: 'clamp(36px, 6vw, 68px)', lineHeight: 1.05,
+          color: 'white', letterSpacing: '-1px',
           maxWidth: 820, margin: '0 auto 1.75rem',
         }}>
           L&rsquo;alternance,<br /><em style={{ fontStyle: 'normal', color: 'var(--accent)' }}>enfin démocratisée.</em>
@@ -75,7 +75,7 @@ export default function LandingPage() {
             Notre mission
           </p>
           <h2 style={{
-            fontFamily: 'Syne, sans-serif', fontSize: 'clamp(24px, 3.5vw, 38px)',
+            fontFamily: 'Plus Jakarta Sans, sans-serif', fontSize: 'clamp(24px, 3.5vw, 38px)',
             fontWeight: 800, letterSpacing: '-1px', textAlign: 'center',
             color: 'var(--navy)', marginBottom: '3rem',
           }}>
@@ -165,7 +165,7 @@ const iconStyle = {
 }
 
 const cardTitle = {
-  fontFamily: 'Syne, sans-serif',
+  fontFamily: 'Plus Jakarta Sans, sans-serif',
   fontSize: 16, fontWeight: 800,
   color: 'var(--navy)', letterSpacing: '-0.3px',
   marginBottom: 6,
