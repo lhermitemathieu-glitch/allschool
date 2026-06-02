@@ -144,6 +144,7 @@ export default function Home() {
   const isHome = activeSpace === 'home'
 
   function switchSpace(name) {
+    if (!allowedSpaces.includes(name)) return
     setActiveSpace(name)
     setActivePanel(SPACES[name].firstPanel)
   }

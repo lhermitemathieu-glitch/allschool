@@ -43,7 +43,7 @@ export default function LoginPage() {
           setError('Compte créé ! Connecte-toi maintenant.')
           setMode('login')
         } else {
-          router.push('/dashboard')
+          router.push('/app')
           router.refresh()
         }
       }
@@ -52,7 +52,7 @@ export default function LoginPage() {
       if (error) {
         setError('Email ou mot de passe incorrect.')
       } else {
-        router.push('/dashboard')
+        router.push('/app')
         router.refresh()
       }
     }
