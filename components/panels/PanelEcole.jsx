@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { createClient } from '../../lib/supabase/client'
 
 // ── PAGE PUBLIQUE ─────────────────────────────────────────────────────────────
-export function PanelEcolePage() {
+export function PanelEcolePage({ onVoirPage }) {
   const supabase = createClient()
   const [ecole, setEcole]             = useState(null)
   const [formations, setFormations]   = useState([])
@@ -91,7 +91,14 @@ export function PanelEcolePage() {
           {msg && <span style={{ fontSize: 13, color: 'var(--teal)', fontWeight: 500 }}>{msg}</span>}
           {editing
             ? <button className="btn-sm purple" onClick={handleSave} disabled={saving}><i className="ti ti-device-floppy" /> {saving ? 'Enregistrement…' : 'Enregistrer'}</button>
-            : <button className="btn-sm purple" onClick={() => setEditing(true)}><i className="ti ti-edit" /> Modifier</button>
+            : <>
+                <button className="btn-sm purple" onClick={() => setEditing(true)}><i className="ti ti-edit" /> Modifier</button>
+                {ecoleId && onVoirPage && (
+                  <button className="btn-sm" onClick={() => onVoirPage(ecoleId)} style={{ fontSize: 12 }}>
+                    <i className="ti ti-eye" /> Voir ma page
+                  </button>
+                )}
+              </>
           }
         </div>
       </div>

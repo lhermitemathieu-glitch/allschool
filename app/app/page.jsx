@@ -14,6 +14,7 @@ import { PanelEntrepriseSiret, PanelEntrepriseRecherche, PanelEntrepriseEcoles, 
 import { PanelEcolePage, PanelEcoleApprentis, PanelEcoleDashboard } from '../../components/panels/PanelEcole'
 import { PanelBackOverview, PanelBackApprentis, PanelBackEcoles, PanelBackEntreprises, PanelBackLogs } from '../../components/panels/PanelBackoffice'
 import { PanelBackDetailEcoles, PanelBackDetailCandidats, PanelBackDetailEntreprises } from '../../components/panels/PanelBackDetail'
+import PanelEcolePublique from '../../components/panels/PanelEcolePublique'
 
 const SPACES = {
   home: {
@@ -110,6 +111,7 @@ export default function Home() {
 
   const [activeSpace, setActiveSpace]       = useState('home')
   const [activePanel, setActivePanel]       = useState('home')
+  const [activePanelData, setActivePanelData] = useState(null)
   const [authUser, setAuthUser]             = useState(null)
   const [allowedSpaces, setAllowedSpaces]   = useState([])
 
@@ -147,31 +149,46 @@ export default function Home() {
     if (!allowedSpaces.includes(name)) return
     setActiveSpace(name)
     setActivePanel(SPACES[name].firstPanel)
+    setActivePanelData(null)
   }
+
+  function navigateTo(panel, data = null) {
+    setActivePanel(panel)
+    setActivePanelData(data)
+  }
+
+  const isAdmin = authUser?.user_metadata?.role === 'admin'
 
   function renderPanel() {
     switch (activePanel) {
       case 'home':                  return <PanelHome onSwitch={switchSpace} />
       case 'candidat-profil':       return <PanelCandidatProfil />
-      case 'candidat-ecoles':       return <PanelCandidatEcoles />
+      case 'candidat-ecoles':       return <PanelCandidatEcoles onNavigateEcole={id => navigateTo('ecole-publique', { ecoleId: id, from: 'candidat-ecoles' })} />
       case 'candidat-candidatures': return <PanelCandidatCandidatures />
       case 'candidat-badges':       return <PanelCandidatBadges />
       case 'entreprise-siret':      return <PanelEntrepriseSiret />
       case 'entreprise-recherche':  return <PanelEntrepriseRecherche onNavigate={setActivePanel} />
-      case 'entreprise-ecoles':     return <PanelEntrepriseEcoles />
+      case 'entreprise-ecoles':     return <PanelEntrepriseEcoles onNavigateEcole={id => navigateTo('ecole-publique', { ecoleId: id, from: 'entreprise-ecoles' })} />
       case 'entreprise-offres':     return <PanelEntrepriseOffres />
       case 'entreprise-simulateur': return <PanelEntrepriseSimulateur />
-      case 'ecole-page':            return <PanelEcolePage />
+      case 'ecole-page':            return <PanelEcolePage onVoirPage={id => navigateTo('ecole-publique', { ecoleId: id, from: 'ecole-page' })} />
       case 'ecole-apprentis':       return <PanelEcoleApprentis />
       case 'ecole-dashboard':       return <PanelEcoleDashboard />
       case 'back-overview':         return <PanelBackOverview onNavigate={setActivePanel} />
       case 'back-apprentis':        return <PanelBackApprentis    onImported={() => setActivePanel('back-logs')} />
       case 'back-ecoles':           return <PanelBackEcoles       onImported={() => setActivePanel('back-logs')} />
       case 'back-entreprises':      return <PanelBackEntreprises  onImported={() => setActivePanel('back-logs')} />
-      case 'back-logs':                  return <PanelBackLogs />
+      case 'back-logs':             return <PanelBackLogs />
       case 'back-detail-candidats':   return <PanelBackDetailCandidats />
-      case 'back-detail-ecoles':      return <PanelBackDetailEcoles />
+      case 'back-detail-ecoles':      return <PanelBackDetailEcoles onNavigateEcole={id => navigateTo('ecole-publique', { ecoleId: id, from: 'back-detail-ecoles' })} />
       case 'back-detail-entreprises': return <PanelBackDetailEntreprises />
+      case 'ecole-publique':        return (
+        <PanelEcolePublique
+          ecoleId={activePanelData?.ecoleId}
+          isAdmin={isAdmin}
+          onBack={() => navigateTo(activePanelData?.from || 'home', null)}
+        />
+      )
       default:
         return (
           <div style={{ padding: '2rem', textAlign: 'center' }}>

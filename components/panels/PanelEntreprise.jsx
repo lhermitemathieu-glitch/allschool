@@ -245,7 +245,7 @@ export function PanelEntrepriseRecherche({ onNavigate }) {
 }
 
 // ── ÉCOLES ────────────────────────────────────────────────────────────────────
-export function PanelEntrepriseEcoles() {
+export function PanelEntrepriseEcoles({ onNavigateEcole }) {
   const ecoles = [
     { initiales: 'CFA', nom: 'CFA des Métiers du Rhône', lieu: 'Lyon 7e · 3km', type: 'CFA public', typeCls: 'teal', reussite: '94%', apprentis: '320', avis: '4.2' },
     { initiales: 'ISEG', nom: 'ISEG Marketing Lyon', lieu: 'Lyon 2e · 4km', type: 'CFA privé', typeCls: 'purple', reussite: '91%', apprentis: '480', avis: '4.0' },
@@ -298,7 +298,7 @@ export function PanelEntrepriseEcoles() {
               ))}
             </div>
             <div style={{ display: 'flex', gap: 5 }}>
-              <button className="btn-sm"><i className="ti ti-eye" /> Voir</button>
+              <button className="btn-sm" onClick={() => onNavigateEcole?.(e.id)}><i className="ti ti-eye" /> Voir</button>
               <button className="btn-sm accent"><i className="ti ti-send" /> Contacter</button>
             </div>
           </div>

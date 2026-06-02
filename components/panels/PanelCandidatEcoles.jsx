@@ -7,7 +7,7 @@ function sigle(nom) {
   return (nom || '').split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 3) || '?'
 }
 
-export default function PanelCandidatEcoles() {
+export default function PanelCandidatEcoles({ onNavigateEcole }) {
   const supabase = createClient()
 
   const [onglet, setOnglet]         = useState('recherche')
@@ -152,7 +152,14 @@ export default function PanelCandidatEcoles() {
           <div className="s-card" style={{ marginBottom: 0 }}>
             <div className="s-card-header">
               <div className="s-card-title"><i className="ti ti-info-circle" /> {selected.nom}</div>
-              <button className="btn-sm" style={{ fontSize: 11 }} onClick={() => setSelected(null)}><i className="ti ti-x" /></button>
+              <div style={{ display: 'flex', gap: 5 }}>
+                {onNavigateEcole && (
+                  <button className="btn-sm teal" style={{ fontSize: 11 }} onClick={() => onNavigateEcole(selected.id)}>
+                    <i className="ti ti-external-link" /> Page publique
+                  </button>
+                )}
+                <button className="btn-sm" style={{ fontSize: 11 }} onClick={() => setSelected(null)}><i className="ti ti-x" /></button>
+              </div>
             </div>
 
             {/* Infos école */}

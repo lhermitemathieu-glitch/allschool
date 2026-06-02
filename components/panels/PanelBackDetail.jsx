@@ -57,7 +57,7 @@ function Pager({ page, hasMore, total, onPrev, onNext }) {
 // ══════════════════════════════════════════════════════════════════════════════
 // PANEL — ÉCOLES
 // ══════════════════════════════════════════════════════════════════════════════
-export function PanelBackDetailEcoles() {
+export function PanelBackDetailEcoles({ onNavigateEcole }) {
   const supabase = createClient()
 
   const [stats, setStats]     = useState({ ecoles: 0, formations: 0 })
@@ -242,7 +242,7 @@ export function PanelBackDetailEcoles() {
               <button
                 className="btn-sm"
                 style={{ fontSize: 11, color: 'var(--teal)', background: 'var(--teal-soft, #e0fdf4)' }}
-                onClick={() => alert(`Page publique à construire pour : ${e.nom}`)}
+                onClick={() => onNavigateEcole?.(e.id)}
               >
                 <i className="ti ti-external-link" /> Voir
               </button>
