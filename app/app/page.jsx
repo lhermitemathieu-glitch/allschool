@@ -93,10 +93,10 @@ const ROLE_TO_SPACE = {
 
 // Espaces visibles dans la TopNav selon le rôle
 const ROLE_TO_ALLOWED_SPACES = {
-  candidat:   ['candidat'],
-  entreprise: ['entreprise'],
-  ecole:      ['ecole'],
-  admin:      ['candidat', 'entreprise', 'ecole', 'backoffice'],
+  candidat:   ['home', 'candidat'],
+  entreprise: ['home', 'entreprise'],
+  ecole:      ['home', 'ecole'],
+  admin:      ['home', 'candidat', 'entreprise', 'ecole', 'backoffice'],
 }
 
 export default function Home() {
