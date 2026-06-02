@@ -185,6 +185,14 @@ export function PanelBackOverview({ onNavigate }) {
   const [recent, setRecent]   = useState({ candidats: [], ecoles: [], entreprises: [] })
   const [loading, setLoading] = useState(true)
 
+  // Vue détaillée
+  const [onglet, setOnglet]       = useState('candidats')
+  const [detail, setDetail]       = useState([])
+  const [detailLoading, setDetailLoading] = useState(false)
+  const [search, setSearch]       = useState('')
+  const [page, setPage]           = useState(0)
+  const PAGE_SIZE = 20
+
   async function load() {
     setLoading(true)
     const [
@@ -209,11 +217,47 @@ export function PanelBackOverview({ onNavigate }) {
     setLoading(false)
   }
 
+  async function loadDetail(tab, p, q) {
+    setDetailLoading(true)
+    const from = p * PAGE_SIZE
+    const to   = from + PAGE_SIZE - 1
+
+    let query
+    if (tab === 'candidats') {
+      query = supabase.from('candidats').select('id, prenom, nom, formation, ville, email').order('updated_at', { ascending: false })
+      if (q) query = query.or(`prenom.ilike.%${q}%,nom.ilike.%${q}%,formation.ilike.%${q}%,ville.ilike.%${q}%`)
+    } else if (tab === 'ecoles') {
+      query = supabase.from('ecoles').select('id, nom, type_ecole, ville, region, email').order('nom')
+      if (q) query = query.ilike('nom', `%${q}%`)
+    } else {
+      query = supabase.from('entreprises').select('id, raison_sociale, secteur, ville, source').order('raison_sociale')
+      if (q) query = query.ilike('raison_sociale', `%${q}%`)
+    }
+
+    const { data } = await query.range(from, to)
+    setDetail(data || [])
+    setDetailLoading(false)
+  }
+
   useEffect(() => { load() }, [])
+  useEffect(() => { setPage(0); loadDetail(onglet, 0, search) }, [onglet])
+  useEffect(() => { loadDetail(onglet, page, search) }, [page])
+
+  function handleSearch(e) {
+    setSearch(e.target.value)
+    setPage(0)
+    loadDetail(onglet, 0, e.target.value)
+  }
 
   function initiales(str) {
     return (str || '').split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 3) || '?'
   }
+
+  const ONGLETS = [
+    { key: 'candidats',   label: 'Candidats',   icon: 'ti-users',    color: 'teal',   count: counts.candidats   },
+    { key: 'ecoles',      label: 'Écoles',       icon: 'ti-school',   color: 'purple', count: counts.ecoles      },
+    { key: 'entreprises', label: 'Entreprises',  icon: 'ti-building', color: 'accent', count: counts.entreprises },
+  ]
 
   return (
     <>
@@ -227,10 +271,10 @@ export function PanelBackOverview({ onNavigate }) {
 
       <div className="grid4" style={{ marginBottom: '1.25rem' }}>
         {[
-          { num: loading ? '…' : counts.candidats.toLocaleString('fr-FR'),   label: 'Candidats',          color: 'var(--teal)'   },
-          { num: loading ? '…' : counts.ecoles.toLocaleString('fr-FR'),      label: 'Écoles',             color: 'var(--purple)' },
-          { num: loading ? '…' : counts.entreprises.toLocaleString('fr-FR'), label: 'Entreprises',        color: 'var(--accent)' },
-          { num: loading ? '…' : counts.logsEnAttente,                       label: 'Derniers imports',   color: 'var(--gold)'   },
+          { num: loading ? '…' : counts.candidats.toLocaleString('fr-FR'),   label: 'Candidats',        color: 'var(--teal)'   },
+          { num: loading ? '…' : counts.ecoles.toLocaleString('fr-FR'),      label: 'Écoles',           color: 'var(--purple)' },
+          { num: loading ? '…' : counts.entreprises.toLocaleString('fr-FR'), label: 'Entreprises',      color: 'var(--accent)' },
+          { num: loading ? '…' : counts.logsEnAttente,                       label: 'Derniers imports', color: 'var(--gold)'   },
         ].map((s, i) => (
           <div key={i} className="s-card" style={{ marginBottom: 0, textAlign: 'center' }}>
             <span className="stat-num" style={{ color: s.color }}>{s.num}</span>
@@ -239,66 +283,152 @@ export function PanelBackOverview({ onNavigate }) {
         ))}
       </div>
 
-      <div className="grid3">
-        {/* Candidats */}
-        <div className="s-card" style={{ marginBottom: 0 }}>
-          <div className="s-card-header">
-            <div className="s-card-title"><i className="ti ti-users" /> Derniers candidats</div>
-            <button className="btn-sm teal" style={{ fontSize: 11 }} onClick={() => onNavigate('back-apprentis')}>Importer</button>
-          </div>
-          {recent.candidats.length === 0
-            ? <div style={{ fontSize: 12, color: 'var(--muted)' }}>Aucun candidat.</div>
-            : recent.candidats.map((c, i) => (
-              <div key={i} className="entry-row">
-                <div className="e-av teal">{initiales(`${c.prenom} ${c.nom}`)}</div>
-                <div style={{ flex: 1 }}>
-                  <div className="e-name">{c.prenom} {c.nom}</div>
-                  <div className="e-meta">{[c.formation, c.ville].filter(Boolean).join(' · ')}</div>
+      {/* Layout deux colonnes : résumé + vue détaillée */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.6fr', gap: '1rem', alignItems: 'start' }}>
+
+        {/* Colonne gauche — derniers ajouts */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          {/* Candidats */}
+          <div className="s-card" style={{ marginBottom: 0 }}>
+            <div className="s-card-header">
+              <div className="s-card-title"><i className="ti ti-users" /> Derniers candidats</div>
+              <button className="btn-sm teal" style={{ fontSize: 11 }} onClick={() => onNavigate('back-apprentis')}>Importer</button>
+            </div>
+            {recent.candidats.length === 0
+              ? <div style={{ fontSize: 12, color: 'var(--muted)' }}>Aucun candidat.</div>
+              : recent.candidats.map((c, i) => (
+                <div key={i} className="entry-row">
+                  <div className="e-av teal">{initiales(`${c.prenom} ${c.nom}`)}</div>
+                  <div style={{ flex: 1 }}>
+                    <div className="e-name">{c.prenom} {c.nom}</div>
+                    <div className="e-meta">{[c.formation, c.ville].filter(Boolean).join(' · ')}</div>
+                  </div>
                 </div>
-              </div>
-            ))
-          }
+              ))
+            }
+          </div>
+
+          {/* Écoles */}
+          <div className="s-card" style={{ marginBottom: 0 }}>
+            <div className="s-card-header">
+              <div className="s-card-title"><i className="ti ti-school" /> Dernières écoles</div>
+              <button className="btn-sm purple" style={{ fontSize: 11 }} onClick={() => onNavigate('back-ecoles')}>Importer</button>
+            </div>
+            {recent.ecoles.length === 0
+              ? <div style={{ fontSize: 12, color: 'var(--muted)' }}>Aucune école.</div>
+              : recent.ecoles.map((e, i) => (
+                <div key={i} className="entry-row">
+                  <div className="e-av purple">{initiales(e.nom)}</div>
+                  <div style={{ flex: 1 }}>
+                    <div className="e-name">{e.nom}</div>
+                    <div className="e-meta">{[e.type_ecole, e.ville].filter(Boolean).join(' · ')}</div>
+                  </div>
+                </div>
+              ))
+            }
+          </div>
+
+          {/* Entreprises */}
+          <div className="s-card" style={{ marginBottom: 0 }}>
+            <div className="s-card-header">
+              <div className="s-card-title"><i className="ti ti-building" /> Dernières entreprises</div>
+              <button className="btn-sm accent" style={{ fontSize: 11 }} onClick={() => onNavigate('back-entreprises')}>Importer</button>
+            </div>
+            {recent.entreprises.length === 0
+              ? <div style={{ fontSize: 12, color: 'var(--muted)' }}>Aucune entreprise.</div>
+              : recent.entreprises.map((e, i) => (
+                <div key={i} className="entry-row">
+                  <div className="e-av accent">{initiales(e.raison_sociale)}</div>
+                  <div style={{ flex: 1 }}>
+                    <div className="e-name">{e.raison_sociale}</div>
+                    <div className="e-meta">{[e.secteur, e.ville].filter(Boolean).join(' · ')}</div>
+                  </div>
+                  {e.source === 'csv' && <span className="pill gold" style={{ fontSize: 10 }}>CSV</span>}
+                </div>
+              ))
+            }
+          </div>
         </div>
 
-        {/* Écoles */}
+        {/* Colonne droite — vue détaillée */}
         <div className="s-card" style={{ marginBottom: 0 }}>
-          <div className="s-card-header">
-            <div className="s-card-title"><i className="ti ti-school" /> Dernières écoles</div>
-            <button className="btn-sm purple" style={{ fontSize: 11 }} onClick={() => onNavigate('back-ecoles')}>Importer</button>
+          <div className="s-card-header" style={{ marginBottom: 10 }}>
+            <div className="s-card-title"><i className="ti ti-list-details" /> Vue détaillée</div>
           </div>
-          {recent.ecoles.length === 0
-            ? <div style={{ fontSize: 12, color: 'var(--muted)' }}>Aucune école.</div>
-            : recent.ecoles.map((e, i) => (
-              <div key={i} className="entry-row">
-                <div className="e-av purple">{initiales(e.nom)}</div>
-                <div style={{ flex: 1 }}>
-                  <div className="e-name">{e.nom}</div>
-                  <div className="e-meta">{[e.type_ecole, e.ville].filter(Boolean).join(' · ')}</div>
-                </div>
-              </div>
-            ))
-          }
-        </div>
 
-        {/* Entreprises */}
-        <div className="s-card" style={{ marginBottom: 0 }}>
-          <div className="s-card-header">
-            <div className="s-card-title"><i className="ti ti-building" /> Dernières entreprises</div>
-            <button className="btn-sm accent" style={{ fontSize: 11 }} onClick={() => onNavigate('back-entreprises')}>Importer</button>
+          {/* Onglets */}
+          <div style={{ display: 'flex', gap: 4, marginBottom: 12 }}>
+            {ONGLETS.map(o => (
+              <button
+                key={o.key}
+                className={`btn-sm ${onglet === o.key ? o.color : ''}`}
+                style={{ fontSize: 12 }}
+                onClick={() => setOnglet(o.key)}
+              >
+                <i className={`ti ${o.icon}`} /> {o.label}
+                <span style={{ marginLeft: 4, opacity: 0.7 }}>({loading ? '…' : o.count.toLocaleString('fr-FR')})</span>
+              </button>
+            ))}
           </div>
-          {recent.entreprises.length === 0
-            ? <div style={{ fontSize: 12, color: 'var(--muted)' }}>Aucune entreprise.</div>
-            : recent.entreprises.map((e, i) => (
-              <div key={i} className="entry-row">
-                <div className="e-av accent">{initiales(e.raison_sociale)}</div>
-                <div style={{ flex: 1 }}>
-                  <div className="e-name">{e.raison_sociale}</div>
-                  <div className="e-meta">{[e.secteur, e.ville].filter(Boolean).join(' · ')}</div>
+
+          {/* Recherche */}
+          <input
+            placeholder={`Rechercher un${onglet === 'candidats' ? ' candidat' : onglet === 'ecoles' ? 'e école' : 'e entreprise'}…`}
+            value={search}
+            onChange={handleSearch}
+            style={{ width: '100%', padding: '7px 10px', borderRadius: 8, border: '0.5px solid var(--border)', background: 'var(--light)', fontSize: 12, fontFamily: 'DM Sans, sans-serif', color: 'var(--navy)', outline: 'none', boxSizing: 'border-box', marginBottom: 10 }}
+          />
+
+          {/* Liste */}
+          <div style={{ minHeight: 300 }}>
+            {detailLoading ? (
+              <div style={{ fontSize: 13, color: 'var(--muted)', padding: '1rem 0' }}>Chargement…</div>
+            ) : detail.length === 0 ? (
+              <div style={{ fontSize: 13, color: 'var(--muted)', padding: '1rem 0' }}>Aucun résultat.</div>
+            ) : detail.map((row, i) => {
+              if (onglet === 'candidats') return (
+                <div key={row.id} className="entry-row" style={{ padding: '6px 0', borderBottom: i < detail.length - 1 ? '0.5px solid var(--border)' : 'none' }}>
+                  <div className="e-av teal">{initiales(`${row.prenom} ${row.nom}`)}</div>
+                  <div style={{ flex: 1 }}>
+                    <div className="e-name">{row.prenom} {row.nom}</div>
+                    <div className="e-meta">{[row.formation, row.ville].filter(Boolean).join(' · ')}</div>
+                  </div>
+                  {row.email && <div style={{ fontSize: 11, color: 'var(--muted)' }}>{row.email}</div>}
                 </div>
-                {e.source === 'csv' && <span className="pill gold" style={{ fontSize: 10 }}>CSV</span>}
-              </div>
-            ))
-          }
+              )
+              if (onglet === 'ecoles') return (
+                <div key={row.id} className="entry-row" style={{ padding: '6px 0', borderBottom: i < detail.length - 1 ? '0.5px solid var(--border)' : 'none' }}>
+                  <div className="e-av purple">{initiales(row.nom)}</div>
+                  <div style={{ flex: 1 }}>
+                    <div className="e-name">{row.nom}</div>
+                    <div className="e-meta">{[row.type_ecole, row.ville, row.region].filter(Boolean).join(' · ')}</div>
+                  </div>
+                  {row.email && <div style={{ fontSize: 11, color: 'var(--muted)' }}>{row.email}</div>}
+                </div>
+              )
+              return (
+                <div key={row.id} className="entry-row" style={{ padding: '6px 0', borderBottom: i < detail.length - 1 ? '0.5px solid var(--border)' : 'none' }}>
+                  <div className="e-av accent">{initiales(row.raison_sociale)}</div>
+                  <div style={{ flex: 1 }}>
+                    <div className="e-name">{row.raison_sociale}</div>
+                    <div className="e-meta">{[row.secteur, row.ville].filter(Boolean).join(' · ')}</div>
+                  </div>
+                  {row.source === 'csv' && <span className="pill gold" style={{ fontSize: 10 }}>CSV</span>}
+                </div>
+              )
+            })}
+          </div>
+
+          {/* Pagination */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 12 }}>
+            <button className="btn-sm" disabled={page === 0} onClick={() => setPage(p => p - 1)}>
+              <i className="ti ti-chevron-left" /> Précédent
+            </button>
+            <span style={{ fontSize: 12, color: 'var(--muted)' }}>Page {page + 1}</span>
+            <button className="btn-sm" disabled={detail.length < PAGE_SIZE} onClick={() => setPage(p => p + 1)}>
+              Suivant <i className="ti ti-chevron-right" />
+            </button>
+          </div>
         </div>
       </div>
     </>

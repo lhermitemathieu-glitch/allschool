@@ -13,6 +13,7 @@ import PanelCandidatBadges from '../../components/panels/PanelCandidatBadges'
 import { PanelEntrepriseSiret, PanelEntrepriseRecherche, PanelEntrepriseEcoles, PanelEntrepriseOffres, PanelEntrepriseSimulateur } from '../../components/panels/PanelEntreprise'
 import { PanelEcolePage, PanelEcoleApprentis, PanelEcoleDashboard } from '../../components/panels/PanelEcole'
 import { PanelBackOverview, PanelBackApprentis, PanelBackEcoles, PanelBackEntreprises, PanelBackLogs } from '../../components/panels/PanelBackoffice'
+import { PanelBackDetailEcoles, PanelBackDetailCandidats, PanelBackDetailEntreprises } from '../../components/panels/PanelBackDetail'
 
 const SPACES = {
   home: {
@@ -76,6 +77,10 @@ const SPACES = {
       { icon: 'ti-users',    label: 'Apprentis',          panel: 'back-apprentis',   cls: 'back' },
       { icon: 'ti-school',   label: 'Écoles',             panel: 'back-ecoles',      cls: 'back' },
       { icon: 'ti-building', label: 'Entreprises',        panel: 'back-entreprises', cls: 'back' },
+      { section: 'Vue détaillée' },
+      { icon: 'ti-users',    label: 'Candidats',   panel: 'back-detail-candidats',   cls: 'back' },
+      { icon: 'ti-school',   label: 'Écoles',       panel: 'back-detail-ecoles',      cls: 'back' },
+      { icon: 'ti-building', label: 'Entreprises',  panel: 'back-detail-entreprises', cls: 'back' },
       { section: 'Gestion' },
       { icon: 'ti-list', label: 'Toutes les entrées', panel: null, cls: 'back' },
     ],
@@ -163,7 +168,10 @@ export default function Home() {
       case 'back-apprentis':        return <PanelBackApprentis    onImported={() => setActivePanel('back-logs')} />
       case 'back-ecoles':           return <PanelBackEcoles       onImported={() => setActivePanel('back-logs')} />
       case 'back-entreprises':      return <PanelBackEntreprises  onImported={() => setActivePanel('back-logs')} />
-      case 'back-logs':             return <PanelBackLogs />
+      case 'back-logs':                  return <PanelBackLogs />
+      case 'back-detail-candidats':   return <PanelBackDetailCandidats />
+      case 'back-detail-ecoles':      return <PanelBackDetailEcoles />
+      case 'back-detail-entreprises': return <PanelBackDetailEntreprises />
       default:
         return (
           <div style={{ padding: '2rem', textAlign: 'center' }}>
