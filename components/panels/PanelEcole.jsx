@@ -225,14 +225,14 @@ export function PanelEcolePage({ onVoirPage, ecoleIdOverride = null, onBack = nu
             </div>
           )}
         </div>
-        <div className="school-body">
+        <div className="school-body" style={{ padding: '24px 28px' }}>
           {editing ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
 
               {/* Identité */}
               <div>
                 <div style={sectionLabel}>Identité</div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                   <div>
                     <label style={fieldLabel}>Nom de l'école</label>
                     <input value={form.nom || ''} onChange={ev => setForm(f => ({ ...f, nom: ev.target.value }))} style={inputStyle} />
@@ -750,8 +750,8 @@ const sectionLabel = {
   color: 'var(--muted)',
   textTransform: 'uppercase',
   letterSpacing: '0.6px',
-  marginBottom: 8,
-  paddingBottom: 6,
+  marginBottom: 14,
+  paddingBottom: 8,
   borderBottom: '0.5px solid var(--border)',
 }
 
@@ -760,7 +760,7 @@ const fieldLabel = {
   fontSize: 11,
   fontWeight: 500,
   color: 'var(--muted)',
-  marginBottom: 4,
+  marginBottom: 5,
 }
 
 const uploadBtnStyle = {
