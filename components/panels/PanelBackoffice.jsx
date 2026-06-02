@@ -3,13 +3,32 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '../../lib/supabase/client'
 
-// ── Parseur CSV léger ─────────────────────────────────────────────────────────
+// ── Parseur CSV (gère les champs entre guillemets avec virgules internes) ─────
 function parseCSV(text) {
   const lines = text.trim().split(/\r?\n/)
   if (lines.length < 2) return { headers: [], rows: [] }
-  const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''))
+
+  function splitLine(line) {
+    const fields = []
+    let cur = '', inQuote = false
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i]
+      if (ch === '"') {
+        if (inQuote && line[i + 1] === '"') { cur += '"'; i++ }
+        else inQuote = !inQuote
+      } else if (ch === ',' && !inQuote) {
+        fields.push(cur.trim()); cur = ''
+      } else {
+        cur += ch
+      }
+    }
+    fields.push(cur.trim())
+    return fields
+  }
+
+  const headers = splitLine(lines[0])
   const rows = lines.slice(1).map(line => {
-    const vals = line.split(',').map(v => v.trim().replace(/^"|"$/g, ''))
+    const vals = splitLine(line)
     return Object.fromEntries(headers.map((h, i) => [h, vals[i] ?? '']))
   })
   return { headers, rows }
@@ -307,22 +326,25 @@ export function PanelBackApprentis({ onImported }) {
   )
 }
 
-// ── IMPORT ÉCOLES ─────────────────────────────────────────────────────────────
+// ── IMPORT ÉCOLES & FORMATIONS (catalogue) ────────────────────────────────────
 export function PanelBackEcoles({ onImported }) {
   return (
     <ImportCSV
-      titre="Import — Écoles"
-      sub="Importez des établissements en masse via CSV"
-      type="ecoles"
+      titre="Import — Catalogue formations"
+      sub="Importez le catalogue national (écoles + formations) via CSV"
+      type="catalogue"
       btnCls="purple"
       barColor="var(--purple)"
       onImported={onImported}
       colonnes={[
-        { label: 'nom_ecole', req: true }, { label: 'type', req: true },
-        { label: 'ville', req: true }, { label: 'email_contact', req: true },
-        { label: 'siret', req: false }, { label: 'site_web', req: false },
-        { label: 'linkedin', req: false }, { label: 'formations', req: false },
-        { label: 'qualiopi', req: false }, { label: 'plan', req: false },
+        { label: 'Ecole', req: true }, { label: 'UAI', req: true },
+        { label: 'Adresse', req: false }, { label: 'Code postal', req: false },
+        { label: 'Localité', req: false }, { label: 'Raison sociale', req: false },
+        { label: 'Nom de la formation', req: true }, { label: 'Diplôme', req: false },
+        { label: 'Niveau', req: false }, { label: 'URL ONISEP', req: false },
+        { label: 'Site web', req: false }, { label: 'Localité formation', req: false },
+        { label: 'Téléphone vérifié', req: false }, { label: 'Email', req: false },
+        { label: 'académie', req: false }, { label: 'région', req: false },
       ]}
     />
   )

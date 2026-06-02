@@ -1,199 +1,206 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '../../lib/supabase/client'
 
-const STATUTS = [
-  { value: 'admis',           label: 'Admis !',         cls: 'teal' },
-  { value: 'en_process',      label: 'En process',      cls: 'accent' },
-  { value: 'dossier_envoye',  label: 'Dossier envoyé',  cls: 'gold' },
-  { value: 'a_contacter',     label: 'À contacter',     cls: '' },
-]
-
-const ETAPES = [
-  'Dossier de candidature envoyé',
-  'Entretien de motivation passé',
-  'En attente de réponse école',
-  'Trouver une entreprise',
-  'Signature du contrat',
-]
-
-const ETAPE_PAR_STATUT = {
-  a_contacter:    0,
-  dossier_envoye: 1,
-  en_process:     2,
-  admis:          4,
-}
-
 function sigle(nom) {
-  return nom.split(' ').map((w) => w[0]).join('').toUpperCase().slice(0, 3) || '?'
+  return (nom || '').split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 3) || '?'
 }
 
 export default function PanelCandidatEcoles() {
   const supabase = createClient()
 
-  const [ecoles, setEcoles]       = useState([])
-  const [selected, setSelected]   = useState(null)
-  const [adding, setAdding]       = useState(false)
-  const [form, setForm]           = useState({ nom: '', formation: '', statut: 'a_contacter' })
-  const [saving, setSaving]       = useState(false)
+  const [onglet, setOnglet]         = useState('recherche')
+  const [ecoles, setEcoles]         = useState([])
+  const [loading, setLoading]       = useState(false)
+  const [selected, setSelected]     = useState(null)
+  const [formations, setFormations] = useState([])
+  const [loadingF, setLoadingF]     = useState(false)
 
-  useEffect(() => { load() }, [])
+  // Filtres
+  const [q, setQ]           = useState('')
+  const [region, setRegion] = useState('')
+  const [diplome, setDiplome] = useState('')
+  const [regions, setRegions] = useState([])
+  const [diplomes, setDiplomes] = useState([])
 
-  async function load() {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
+  useEffect(() => {
+    loadFiltres()
+  }, [])
+
+  async function loadFiltres() {
+    const [{ data: r }, { data: d }] = await Promise.all([
+      supabase.from('ecoles').select('region').not('region', 'is', null),
+      supabase.from('formations').select('diplome').not('diplome', 'is', null),
+    ])
+    const uniqRegions = [...new Set((r || []).map(x => x.region).filter(Boolean))].sort()
+    const uniqDiplomes = [...new Set((d || []).map(x => x.diplome).filter(Boolean))].sort()
+    setRegions(uniqRegions)
+    setDiplomes(uniqDiplomes)
+  }
+
+  const search = useCallback(async () => {
+    setLoading(true)
+    setSelected(null)
+    setFormations([])
+
+    let query = supabase
+      .from('ecoles')
+      .select('id, nom, ville, region, academie, type_ecole, site_web, email, telephone, adresse, code_postal')
+      .order('nom')
+      .limit(50)
+
+    if (q.trim())     query = query.ilike('nom', `%${q.trim()}%`)
+    if (region)       query = query.eq('region', region)
+
+    if (diplome) {
+      const { data: fIds } = await supabase
+        .from('formations')
+        .select('ecole_id')
+        .eq('diplome', diplome)
+      const ids = [...new Set((fIds || []).map(f => f.ecole_id))]
+      if (ids.length === 0) { setEcoles([]); setLoading(false); return }
+      query = query.in('id', ids)
+    }
+
+    const { data } = await query
+    setEcoles(data || [])
+    setLoading(false)
+  }, [q, region, diplome])
+
+  useEffect(() => {
+    search()
+  }, [region, diplome])
+
+  async function selectEcole(ecole) {
+    setSelected(ecole)
+    setLoadingF(true)
     const { data } = await supabase
-      .from('candidat_ecoles')
-      .select('*')
-      .eq('candidat_id', user.id)
-      .order('created_at', { ascending: true })
-    if (data) {
-      setEcoles(data)
-      if (data.length) setSelected(data[0].id)
-    }
+      .from('formations')
+      .select('id, nom, diplome, niveau, url_onisep, localite_formation')
+      .eq('ecole_id', ecole.id)
+      .order('nom')
+    setFormations(data || [])
+    setLoadingF(false)
   }
 
-  async function handleAdd() {
-    if (!form.nom.trim()) return
-    setSaving(true)
-    const { data: { user } } = await supabase.auth.getUser()
-    const { data, error } = await supabase
-      .from('candidat_ecoles')
-      .insert({ candidat_id: user.id, nom: form.nom, formation: form.formation, statut: form.statut })
-      .select()
-      .single()
-    if (!error && data) {
-      setEcoles((prev) => [...prev, data])
-      setSelected(data.id)
-      setAdding(false)
-      setForm({ nom: '', formation: '', statut: 'a_contacter' })
-    }
-    setSaving(false)
-  }
-
-  async function handleStatut(id, statut) {
-    await supabase.from('candidat_ecoles').update({ statut }).eq('id', id)
-    setEcoles((prev) => prev.map((e) => e.id === id ? { ...e, statut } : e))
-  }
-
-  async function handleDelete(id) {
-    await supabase.from('candidat_ecoles').delete().eq('id', id)
-    setEcoles((prev) => prev.filter((e) => e.id !== id))
-    setSelected((s) => s === id ? null : s)
-  }
-
-  const ecoleSelectionnee = ecoles.find((e) => e.id === selected)
-  const etapeActuelle = ecoleSelectionnee ? (ETAPE_PAR_STATUT[ecoleSelectionnee.statut] ?? 0) : 0
+  const NIVEAU_LABEL = { cap: 'CAP / Bac pro', bts: 'BTS / DEUST', bach: 'Bachelor', master: 'Master', autre: 'Autre' }
 
   return (
     <>
       <div className="topbar">
         <div>
-          <div className="page-title">Mes écoles</div>
-          <div className="page-sub">Suivi de vos candidatures scolaires</div>
+          <div className="page-title">Écoles & formations</div>
+          <div className="page-sub">Trouvez une école par région, ville ou diplôme</div>
         </div>
-        <button className="btn-sm teal" onClick={() => setAdding(true)}>
-          <i className="ti ti-plus" /> Ajouter une école
-        </button>
       </div>
 
-      {/* Formulaire ajout */}
-      {adding && (
-        <div className="s-card" style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'flex-end' }}>
-          <input
-            placeholder="Nom de l'école"
-            value={form.nom}
-            onChange={(e) => setForm((f) => ({ ...f, nom: e.target.value }))}
-            style={inputStyle}
-          />
-          <input
-            placeholder="Formation visée"
-            value={form.formation}
-            onChange={(e) => setForm((f) => ({ ...f, formation: e.target.value }))}
-            style={inputStyle}
-          />
-          <select
-            value={form.statut}
-            onChange={(e) => setForm((f) => ({ ...f, statut: e.target.value }))}
-            style={{ ...inputStyle, width: 'auto' }}
-          >
-            {STATUTS.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
-          </select>
-          <button className="btn-sm teal" onClick={handleAdd} disabled={saving}>
-            {saving ? 'Ajout…' : 'Confirmer'}
-          </button>
-          <button className="btn-sm" onClick={() => setAdding(false)}>Annuler</button>
-        </div>
-      )}
+      {/* Barre de recherche */}
+      <div className="s-card" style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'flex-end', marginBottom: 0 }}>
+        <input
+          placeholder="Nom de l'école…"
+          value={q}
+          onChange={e => setQ(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && search()}
+          style={inputStyle}
+        />
+        <select value={region} onChange={e => setRegion(e.target.value)} style={{ ...inputStyle, flex: 'none', width: 'auto', minWidth: 160 }}>
+          <option value="">Toutes les régions</option>
+          {regions.map(r => <option key={r} value={r}>{r}</option>)}
+        </select>
+        <select value={diplome} onChange={e => setDiplome(e.target.value)} style={{ ...inputStyle, flex: 'none', width: 'auto', minWidth: 200 }}>
+          <option value="">Tous les diplômes</option>
+          {diplomes.map(d => <option key={d} value={d}>{d}</option>)}
+        </select>
+        <button className="btn-sm teal" onClick={search}><i className="ti ti-search" /> Rechercher</button>
+      </div>
 
-      {/* Liste écoles */}
-      <div className="s-card">
-        <div className="s-card-header">
-          <div className="s-card-title"><i className="ti ti-school" /> Écoles cibles & avancement</div>
-        </div>
-        {ecoles.length === 0 && (
-          <p style={{ fontSize: 13, color: 'var(--muted)', padding: '0.5rem 0' }}>Aucune école ajoutée pour l'instant.</p>
-        )}
-        {ecoles.map((e) => {
-          const s = STATUTS.find((st) => st.value === e.statut) || STATUTS[3]
-          return (
+      <div style={{ display: 'grid', gridTemplateColumns: selected ? '1fr 1fr' : '1fr', gap: '1rem', marginTop: '1rem' }}>
+        {/* Liste des écoles */}
+        <div className="s-card" style={{ marginBottom: 0 }}>
+          <div className="s-card-header">
+            <div className="s-card-title"><i className="ti ti-school" /> Écoles ({ecoles.length})</div>
+          </div>
+          {loading ? (
+            <div style={{ fontSize: 13, color: 'var(--muted)' }}>Recherche en cours…</div>
+          ) : ecoles.length === 0 ? (
+            <div style={{ fontSize: 13, color: 'var(--muted)' }}>Aucun résultat. Essayez d'autres filtres.</div>
+          ) : ecoles.map(e => (
             <div
               key={e.id}
               className="entry-row"
-              style={{ cursor: 'pointer', background: selected === e.id ? 'var(--light)' : 'transparent', borderRadius: 8, padding: '6px 4px' }}
-              onClick={() => setSelected(e.id)}
+              style={{ cursor: 'pointer', background: selected?.id === e.id ? 'var(--light)' : 'transparent', borderRadius: 8, padding: '6px 4px' }}
+              onClick={() => selectEcole(e)}
             >
               <div className="e-av purple">{sigle(e.nom)}</div>
               <div style={{ flex: 1 }}>
                 <div className="e-name">{e.nom}</div>
-                <div className="e-meta">{e.formation}</div>
+                <div className="e-meta">{[e.ville, e.region].filter(Boolean).join(' · ')}</div>
               </div>
-              <select
-                value={e.statut}
-                onChange={(ev) => { ev.stopPropagation(); handleStatut(e.id, ev.target.value) }}
-                onClick={(ev) => ev.stopPropagation()}
-                style={{ fontSize: 12, border: 'none', background: 'transparent', color: 'var(--navy)', cursor: 'pointer' }}
-              >
-                {STATUTS.map((st) => <option key={st.value} value={st.value}>{st.label}</option>)}
-              </select>
-              <button
-                className="btn-sm"
-                style={{ fontSize: 11, color: 'var(--red)' }}
-                onClick={(ev) => { ev.stopPropagation(); handleDelete(e.id) }}
-              >
-                <i className="ti ti-trash" />
-              </button>
+              <i className="ti ti-chevron-right" style={{ fontSize: 14, color: 'var(--muted)' }} />
             </div>
-          )
-        })}
-      </div>
+          ))}
+        </div>
 
-      {/* Avancement école sélectionnée */}
-      {ecoleSelectionnee && (
-        <div className="s-card">
-          <div className="s-card-header">
-            <div className="s-card-title"><i className="ti ti-list-check" /> Avancement — {ecoleSelectionnee.nom}</div>
-          </div>
-          {ETAPES.map((etape, i) => {
-            const done    = i < etapeActuelle
-            const current = i === etapeActuelle
-            return (
-              <div key={i}>
-                {i > 0 && <div className="step-line" />}
-                <div className="step-row">
-                  <div className={`step-dot ${done ? 'done' : current ? 'current' : 'todo'}`}>
-                    <i className={`ti ${done ? 'ti-check' : current ? 'ti-clock' : 'ti-circle'}`} />
-                  </div>
-                  <span style={{ fontSize: 13, color: done ? 'var(--navy)' : current ? 'var(--accent)' : 'var(--muted)', fontWeight: current ? 500 : 400 }}>
-                    {etape}
-                  </span>
+        {/* Détail école sélectionnée */}
+        {selected && (
+          <div className="s-card" style={{ marginBottom: 0 }}>
+            <div className="s-card-header">
+              <div className="s-card-title"><i className="ti ti-info-circle" /> {selected.nom}</div>
+              <button className="btn-sm" style={{ fontSize: 11 }} onClick={() => setSelected(null)}><i className="ti ti-x" /></button>
+            </div>
+
+            {/* Infos école */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 12 }}>
+              {selected.ville      && <span className="pill"><i className="ti ti-map-pin" style={{ fontSize: 10 }} /> {selected.ville}</span>}
+              {selected.region     && <span className="pill">{selected.region}</span>}
+              {selected.academie   && <span className="pill">Acad. {selected.academie}</span>}
+              {selected.type_ecole && <span className="pill">{selected.type_ecole}</span>}
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 8, display: 'flex', flexDirection: 'column', gap: 3 }}>
+              {selected.adresse    && <span><i className="ti ti-map" style={{ fontSize: 11 }} /> {selected.adresse}{selected.code_postal ? ', ' + selected.code_postal : ''}</span>}
+              {selected.telephone  && <span><i className="ti ti-phone" style={{ fontSize: 11 }} /> {selected.telephone}</span>}
+              {selected.email      && <span><i className="ti ti-mail" style={{ fontSize: 11 }} /> {selected.email}</span>}
+              {selected.site_web   && (
+                <span
+                  style={{ color: 'var(--teal)', cursor: 'pointer' }}
+                  onClick={() => window.open(selected.site_web.startsWith('http') ? selected.site_web : 'https://' + selected.site_web, '_blank')}
+                >
+                  <i className="ti ti-world" style={{ fontSize: 11 }} /> {selected.site_web}
+                </span>
+              )}
+            </div>
+
+            {/* Formations */}
+            <div style={{ fontWeight: 600, fontSize: 12, color: 'var(--navy)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              <i className="ti ti-certificate" /> Formations ({formations.length})
+            </div>
+            {loadingF ? (
+              <div style={{ fontSize: 13, color: 'var(--muted)' }}>Chargement…</div>
+            ) : formations.length === 0 ? (
+              <div style={{ fontSize: 13, color: 'var(--muted)' }}>Aucune formation enregistrée.</div>
+            ) : formations.map(f => (
+              <div key={f.id} style={{ padding: '8px 0', borderBottom: '0.5px solid var(--border)' }}>
+                <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--navy)', marginBottom: 2 }}>{f.nom}</div>
+                <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+                  {f.diplome   && <span className="pill" style={{ background: 'var(--purple-soft)', color: 'var(--purple)' }}>{f.diplome}</span>}
+                  {f.niveau    && f.niveau !== 'autre' && <span className="pill">{NIVEAU_LABEL[f.niveau] || f.niveau}</span>}
+                  {f.localite_formation && <span className="pill"><i className="ti ti-map-pin" style={{ fontSize: 10 }} /> {f.localite_formation}</span>}
+                  {f.url_onisep && (
+                    <span
+                      className="pill teal"
+                      style={{ cursor: 'pointer' }}
+                      onClick={() => window.open(f.url_onisep, '_blank')}
+                    >
+                      <i className="ti ti-external-link" style={{ fontSize: 10 }} /> ONISEP
+                    </span>
+                  )}
                 </div>
               </div>
-            )
-          })}
-        </div>
-      )}
+            ))}
+          </div>
+        )}
+      </div>
     </>
   )
 }
