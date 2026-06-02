@@ -66,41 +66,41 @@ export function PanelBackDetailEcoles() {
   const [page, setPage]       = useState(0)
   const [total, setTotal]     = useState(0)
 
+  const NIVEAUX = [
+    { value: 'cap',    label: 'CAP / Bac Pro' },
+    { value: 'bts',    label: 'BTS / DEUST' },
+    { value: 'bach',   label: 'Bachelor / Licence' },
+    { value: 'master', label: 'Master / Ingénieur' },
+    { value: 'autre',  label: 'Autre' },
+  ]
+
   const [q, setQ]           = useState('')
   const [region, setRegion] = useState('')
-  const [diplome, setDiplome] = useState('')
-  const [regions, setRegions]   = useState([])
-  const [diplomes, setDiplomes] = useState([])
+  const [niveau, setNiveau] = useState('')
+  const [regions, setRegions] = useState([])
 
   // Chargement stats + filtres
   useEffect(() => {
     async function init() {
-      const [
-        { count: ce },
-        { count: cf },
-        { data: dr },
-        { data: dd },
-      ] = await Promise.all([
+      const [{ count: ce }, { count: cf }, { data: dr }] = await Promise.all([
         supabase.from('ecoles').select('*', { count: 'exact', head: true }),
         supabase.from('formations').select('*', { count: 'exact', head: true }),
         supabase.from('ecoles').select('region').not('region', 'is', null),
-        supabase.from('formations').select('diplome').not('diplome', 'is', null),
       ])
       setStats({ ecoles: ce ?? 0, formations: cf ?? 0 })
       setRegions([...new Set((dr || []).map(x => x.region).filter(Boolean))].sort())
-      setDiplomes([...new Set((dd || []).map(x => x.diplome).filter(Boolean))].sort())
     }
     init()
   }, [])
 
-  const fetchRows = useCallback(async (p, q, region, diplome) => {
+  const fetchRows = useCallback(async (p, q, region, niveau) => {
     setLoading(true)
     const from = p * PAGE_SIZE, to = from + PAGE_SIZE - 1
 
-    // Si filtre diplôme, on récupère d'abord les ecole_ids concernés
+    // Si filtre niveau, on récupère d'abord les ecole_ids concernés
     let ecoleIds = null
-    if (diplome) {
-      const { data: fIds } = await supabase.from('formations').select('ecole_id').eq('diplome', diplome)
+    if (niveau) {
+      const { data: fIds } = await supabase.from('formations').select('ecole_id').eq('niveau', niveau)
       ecoleIds = [...new Set((fIds || []).map(f => f.ecole_id))]
       if (ecoleIds.length === 0) { setRows([]); setTotal(0); setLoading(false); return }
     }
@@ -118,25 +118,25 @@ export function PanelBackDetailEcoles() {
     const { data, count } = await query
     const ecoles = data || []
 
-    // Pour chaque école, récupérer les diplômes distincts et le nb de formations
+    // Pour chaque école, récupérer les niveaux distincts et le nb de formations
     const ids = ecoles.map(e => e.id)
     let formationsMap = {}
     if (ids.length > 0) {
       const { data: fData } = await supabase
         .from('formations')
-        .select('ecole_id, diplome')
+        .select('ecole_id, niveau')
         .in('ecole_id', ids)
 
       for (const f of (fData || [])) {
-        if (!formationsMap[f.ecole_id]) formationsMap[f.ecole_id] = { diplomes: new Set(), count: 0 }
+        if (!formationsMap[f.ecole_id]) formationsMap[f.ecole_id] = { niveaux: new Set(), count: 0 }
         formationsMap[f.ecole_id].count++
-        if (f.diplome) formationsMap[f.ecole_id].diplomes.add(f.diplome)
+        if (f.niveau) formationsMap[f.ecole_id].niveaux.add(f.niveau)
       }
     }
 
     setRows(ecoles.map(e => ({
       ...e,
-      diplomes: formationsMap[e.id] ? [...formationsMap[e.id].diplomes] : [],
+      niveaux: formationsMap[e.id] ? [...formationsMap[e.id].niveaux] : [],
       nbFormations: formationsMap[e.id]?.count ?? 0,
     })))
     setTotal(count ?? 0)
@@ -145,9 +145,9 @@ export function PanelBackDetailEcoles() {
 
   useEffect(() => { fetchRows(0, '', '', '') }, [])
 
-  function handleSearch() { setPage(0); fetchRows(0, q, region, diplome) }
-  function handlePrev()   { const p = page - 1; setPage(p); fetchRows(p, q, region, diplome) }
-  function handleNext()   { const p = page + 1; setPage(p); fetchRows(p, q, region, diplome) }
+  function handleSearch() { setPage(0); fetchRows(0, q, region, niveau) }
+  function handlePrev()   { const p = page - 1; setPage(p); fetchRows(p, q, region, niveau) }
+  function handleNext()   { const p = page + 1; setPage(p); fetchRows(p, q, region, niveau) }
 
   return (
     <>
@@ -173,13 +173,13 @@ export function PanelBackDetailEcoles() {
       <div className="s-card">
         {/* Filtres */}
         <SearchBar placeholder="Rechercher une école…" value={q} onChange={e => setQ(e.target.value)} onSearch={handleSearch}>
-          <select value={region} onChange={e => { setRegion(e.target.value) }} style={selectStyle}>
+          <select value={region} onChange={e => setRegion(e.target.value)} style={selectStyle}>
             <option value="">Toutes les régions</option>
             {regions.map(r => <option key={r} value={r}>{r}</option>)}
           </select>
-          <select value={diplome} onChange={e => { setDiplome(e.target.value) }} style={selectStyle}>
-            <option value="">Tous les diplômes</option>
-            {diplomes.map(d => <option key={d} value={d}>{d}</option>)}
+          <select value={niveau} onChange={e => setNiveau(e.target.value)} style={selectStyle}>
+            <option value="">Tous les niveaux</option>
+            {NIVEAUX.map(n => <option key={n.value} value={n.value}>{n.label}</option>)}
           </select>
         </SearchBar>
 
@@ -208,13 +208,15 @@ export function PanelBackDetailEcoles() {
               </div>
             </div>
 
-            {/* Diplômes */}
+            {/* Niveaux */}
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-              {e.diplomes.length === 0
+              {e.niveaux.length === 0
                 ? <span style={{ fontSize: 11, color: 'var(--muted)' }}>—</span>
-                : e.diplomes.slice(0, 4).map(d => <DiploTag key={d} label={d} />)
+                : e.niveaux.map(n => {
+                    const found = NIVEAUX.find(x => x.value === n)
+                    return <DiploTag key={n} label={found?.label || n} />
+                  })
               }
-              {e.diplomes.length > 4 && <span style={{ fontSize: 10, color: 'var(--muted)' }}>+{e.diplomes.length - 4}</span>}
             </div>
 
             {/* Nb formations */}

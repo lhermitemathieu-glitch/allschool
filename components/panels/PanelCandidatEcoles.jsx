@@ -18,26 +18,25 @@ export default function PanelCandidatEcoles() {
   const [loadingF, setLoadingF]     = useState(false)
 
   // Filtres
-  const [q, setQ]           = useState('')
+  const [q, setQ]         = useState('')
   const [region, setRegion] = useState('')
-  const [diplome, setDiplome] = useState('')
+  const [niveau, setNiveau] = useState('')
   const [regions, setRegions] = useState([])
-  const [diplomes, setDiplomes] = useState([])
+
+  const NIVEAUX = [
+    { value: 'cap',    label: 'CAP / Bac Pro' },
+    { value: 'bts',    label: 'BTS / DEUST' },
+    { value: 'bach',   label: 'Bachelor / Licence' },
+    { value: 'master', label: 'Master / Ingénieur' },
+    { value: 'autre',  label: 'Autre' },
+  ]
 
   useEffect(() => {
-    loadFiltres()
+    supabase.from('ecoles').select('region').not('region', 'is', null).then(({ data }) => {
+      setRegions([...new Set((data || []).map(x => x.region).filter(Boolean))].sort())
+    })
+    search()
   }, [])
-
-  async function loadFiltres() {
-    const [{ data: r }, { data: d }] = await Promise.all([
-      supabase.from('ecoles').select('region').not('region', 'is', null),
-      supabase.from('formations').select('diplome').not('diplome', 'is', null),
-    ])
-    const uniqRegions = [...new Set((r || []).map(x => x.region).filter(Boolean))].sort()
-    const uniqDiplomes = [...new Set((d || []).map(x => x.diplome).filter(Boolean))].sort()
-    setRegions(uniqRegions)
-    setDiplomes(uniqDiplomes)
-  }
 
   const search = useCallback(async () => {
     setLoading(true)
@@ -50,14 +49,12 @@ export default function PanelCandidatEcoles() {
       .order('nom')
       .limit(50)
 
-    if (q.trim())     query = query.ilike('nom', `%${q.trim()}%`)
-    if (region)       query = query.eq('region', region)
+    if (q.trim()) query = query.ilike('nom', `%${q.trim()}%`)
+    if (region)   query = query.eq('region', region)
 
-    if (diplome) {
+    if (niveau) {
       const { data: fIds } = await supabase
-        .from('formations')
-        .select('ecole_id')
-        .eq('diplome', diplome)
+        .from('formations').select('ecole_id').eq('niveau', niveau)
       const ids = [...new Set((fIds || []).map(f => f.ecole_id))]
       if (ids.length === 0) { setEcoles([]); setLoading(false); return }
       query = query.in('id', ids)
@@ -66,11 +63,9 @@ export default function PanelCandidatEcoles() {
     const { data } = await query
     setEcoles(data || [])
     setLoading(false)
-  }, [q, region, diplome])
+  }, [q, region, niveau])
 
-  useEffect(() => {
-    search()
-  }, [region, diplome])
+  useEffect(() => { search() }, [region, niveau])
 
   async function selectEcole(ecole) {
     setSelected(ecole)
@@ -108,9 +103,9 @@ export default function PanelCandidatEcoles() {
           <option value="">Toutes les régions</option>
           {regions.map(r => <option key={r} value={r}>{r}</option>)}
         </select>
-        <select value={diplome} onChange={e => setDiplome(e.target.value)} style={{ ...inputStyle, flex: 'none', width: 'auto', minWidth: 200 }}>
-          <option value="">Tous les diplômes</option>
-          {diplomes.map(d => <option key={d} value={d}>{d}</option>)}
+        <select value={niveau} onChange={e => setNiveau(e.target.value)} style={{ ...inputStyle, flex: 'none', width: 'auto', minWidth: 180 }}>
+          <option value="">Tous les niveaux</option>
+          {NIVEAUX.map(n => <option key={n.value} value={n.value}>{n.label}</option>)}
         </select>
         <button className="btn-sm teal" onClick={search}><i className="ti ti-search" /> Rechercher</button>
       </div>
