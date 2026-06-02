@@ -210,20 +210,25 @@ export function PanelEcolePage({ onVoirPage, ecoleIdOverride = null, onBack = nu
               <input placeholder="Nom de l'école" value={form.nom || ''} onChange={ev => setForm(f => ({ ...f, nom: ev.target.value }))} style={inputStyle} />
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                 <input placeholder="Ville" value={form.ville || ''} onChange={ev => setForm(f => ({ ...f, ville: ev.target.value }))} style={inputStyle} />
-                <input placeholder="Type (ex: CFA public)" value={form.type_ecole || ''} onChange={ev => setForm(f => ({ ...f, type_ecole: ev.target.value }))} style={inputStyle} />
+                <input placeholder="Région" value={form.region || ''} onChange={ev => setForm(f => ({ ...f, region: ev.target.value }))} style={inputStyle} />
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                <input placeholder="Type (ex: CFA public)" value={form.type_ecole || ''} onChange={ev => setForm(f => ({ ...f, type_ecole: ev.target.value }))} style={inputStyle} />
                 <input type="number" placeholder="Nb étudiants" value={form.nb_etudiants || ''} onChange={ev => setForm(f => ({ ...f, nb_etudiants: ev.target.value }))} style={inputStyle} />
-                <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--navy)' }}>
-                  <input type="checkbox" checked={form.qualiopi || false} onChange={ev => setForm(f => ({ ...f, qualiopi: ev.target.checked }))} />
-                  Certification Qualiopi
-                </label>
               </div>
-              <textarea placeholder="Description" value={form.description || ''} onChange={ev => setForm(f => ({ ...f, description: ev.target.value }))} rows={3} style={{ ...inputStyle, resize: 'vertical' }} />
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                <input placeholder="Email" type="email" value={form.email || ''} onChange={ev => setForm(f => ({ ...f, email: ev.target.value }))} style={inputStyle} />
+                <input placeholder="Téléphone" value={form.telephone || ''} onChange={ev => setForm(f => ({ ...f, telephone: ev.target.value }))} style={inputStyle} />
+              </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                 <input placeholder="Site web" value={form.site_web || ''} onChange={ev => setForm(f => ({ ...f, site_web: ev.target.value }))} style={inputStyle} />
                 <input placeholder="LinkedIn" value={form.linkedin || ''} onChange={ev => setForm(f => ({ ...f, linkedin: ev.target.value }))} style={inputStyle} />
               </div>
+              <textarea placeholder="Description" value={form.description || ''} onChange={ev => setForm(f => ({ ...f, description: ev.target.value }))} rows={3} style={{ ...inputStyle, resize: 'vertical' }} />
+              <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--navy)' }}>
+                <input type="checkbox" checked={form.qualiopi || false} onChange={ev => setForm(f => ({ ...f, qualiopi: ev.target.checked }))} />
+                Certification Qualiopi
+              </label>
             </div>
           ) : (
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '1rem' }}>
