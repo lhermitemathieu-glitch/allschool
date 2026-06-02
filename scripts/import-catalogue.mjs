@@ -6,8 +6,8 @@ import { dirname, join } from 'path'
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const CSV_PATH  = '/Users/mathieulhermite/Downloads/catalogue_formations_apprentissage - Pour import.csv'
 
-const SUPABASE_URL      = 'https://vijlgxbxvpvrutbefupb.supabase.co'
-const SUPABASE_SECRET   = 'sb_secret_kEhD0-TMxsBhW5n47znwfw_Q3ndZDM7'
+const SUPABASE_URL      = process.env.SUPABASE_URL    || 'https://vijlgxbxvpvrutbefupb.supabase.co'
+const SUPABASE_SECRET   = process.env.SUPABASE_SECRET || ''
 const BATCH             = 200
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SECRET)
