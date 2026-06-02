@@ -3,6 +3,27 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '../../lib/supabase/client'
 
+const REGIONS_FR = [
+  'Auvergne-Rhône-Alpes',
+  'Bourgogne-Franche-Comté',
+  'Bretagne',
+  'Centre-Val de Loire',
+  'Corse',
+  'Grand Est',
+  'Guadeloupe',
+  'Guyane',
+  'Hauts-de-France',
+  'Île-de-France',
+  'La Réunion',
+  'Martinique',
+  'Mayotte',
+  'Normandie',
+  'Nouvelle-Aquitaine',
+  'Occitanie',
+  'Pays de la Loire',
+  "Provence-Alpes-Côte d'Azur",
+]
+
 // ── PAGE PUBLIQUE ─────────────────────────────────────────────────────────────
 export function PanelEcolePage({ onVoirPage, ecoleIdOverride = null, onBack = null }) {
   const supabase = createClient()
@@ -210,7 +231,10 @@ export function PanelEcolePage({ onVoirPage, ecoleIdOverride = null, onBack = nu
               <input placeholder="Nom de l'école" value={form.nom || ''} onChange={ev => setForm(f => ({ ...f, nom: ev.target.value }))} style={inputStyle} />
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                 <input placeholder="Ville" value={form.ville || ''} onChange={ev => setForm(f => ({ ...f, ville: ev.target.value }))} style={inputStyle} />
-                <input placeholder="Région" value={form.region || ''} onChange={ev => setForm(f => ({ ...f, region: ev.target.value }))} style={inputStyle} />
+                <select value={form.region || ''} onChange={ev => setForm(f => ({ ...f, region: ev.target.value }))} style={inputStyle}>
+                  <option value="">— Région —</option>
+                  {REGIONS_FR.map(r => <option key={r} value={r}>{r}</option>)}
+                </select>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                 <input placeholder="Type (ex: CFA public)" value={form.type_ecole || ''} onChange={ev => setForm(f => ({ ...f, type_ecole: ev.target.value }))} style={inputStyle} />
