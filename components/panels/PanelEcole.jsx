@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { createClient } from '../../lib/supabase/client'
 
 // ── PAGE PUBLIQUE ─────────────────────────────────────────────────────────────
-export function PanelEcolePage({ onVoirPage }) {
+export function PanelEcolePage({ onVoirPage, ecoleIdOverride = null, onBack = null }) {
   const supabase = createClient()
   const [ecole, setEcole]             = useState(null)
   const [formations, setFormations]   = useState([])
@@ -30,9 +30,18 @@ export function PanelEcolePage({ onVoirPage }) {
 
   useEffect(() => {
     async function load() {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
-      const { data: e } = await supabase.from('ecoles').select('*').eq('user_id', user.id).maybeSingle()
+      let e = null
+      if (ecoleIdOverride) {
+        // Admin : on charge directement par l'id
+        const { data } = await supabase.from('ecoles').select('*').eq('id', ecoleIdOverride).maybeSingle()
+        e = data
+      } else {
+        // École connectée : on charge par user_id
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return
+        const { data } = await supabase.from('ecoles').select('*').eq('user_id', user.id).maybeSingle()
+        e = data
+      }
       if (e) {
         setEcole(e); setForm(e); setEcoleId(e.id)
         const [{ data: f }, { data: ev }, { data: ac }] = await Promise.all([
@@ -155,6 +164,11 @@ export function PanelEcolePage({ onVoirPage }) {
                 {ecoleId && onVoirPage && (
                   <button className="btn-sm" onClick={() => onVoirPage(ecoleId)} style={{ fontSize: 12 }}>
                     <i className="ti ti-eye" /> Voir ma page
+                  </button>
+                )}
+                {onBack && (
+                  <button className="btn-sm" onClick={onBack} style={{ fontSize: 12 }}>
+                    <i className="ti ti-arrow-left" /> Retour
                   </button>
                 )}
               </>

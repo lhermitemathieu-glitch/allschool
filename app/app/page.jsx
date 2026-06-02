@@ -188,6 +188,14 @@ export default function Home() {
           isAdmin={isAdmin}
           isEntreprise={authUser?.user_metadata?.role === 'entreprise'}
           onBack={() => navigateTo(activePanelData?.from || 'home', null)}
+          onEdit={isAdmin ? () => navigateTo('ecole-edit', { ecoleId: activePanelData?.ecoleId, from: 'ecole-publique' }) : undefined}
+        />
+      )
+      case 'ecole-edit':            return (
+        <PanelEcolePage
+          ecoleIdOverride={activePanelData?.ecoleId}
+          onBack={() => navigateTo('ecole-publique', { ecoleId: activePanelData?.ecoleId, from: activePanelData?.from || 'back-detail-ecoles' })}
+          onVoirPage={id => navigateTo('ecole-publique', { ecoleId: id, from: 'ecole-edit' })}
         />
       )
       default:

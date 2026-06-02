@@ -31,7 +31,7 @@ function formatDate(iso) {
 }
 
 // ── composant principal ───────────────────────────────────────────────────────
-export default function PanelEcolePublique({ ecoleId, onBack, isAdmin = false, isEntreprise = false }) {
+export default function PanelEcolePublique({ ecoleId, onBack, onEdit, isAdmin = false, isEntreprise = false }) {
   const supabase = createClient()
 
   const [ecole, setEcole]           = useState(null)
@@ -107,8 +107,14 @@ export default function PanelEcolePublique({ ecoleId, onBack, isAdmin = false, i
         </div>
 
         {isAdmin && (
-          <button
-            onClick={handleToggle}
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            {onEdit && (
+              <button className="btn-sm purple" onClick={onEdit} style={{ fontSize: 12 }}>
+                <i className="ti ti-edit" /> Éditer
+              </button>
+            )}
+            <button
+              onClick={handleToggle}
             disabled={toggling}
             style={{
               display: 'flex', alignItems: 'center', gap: 7,
@@ -122,6 +128,7 @@ export default function PanelEcolePublique({ ecoleId, onBack, isAdmin = false, i
             <span style={{ width: 8, height: 8, borderRadius: '50%', background: enLigne ? 'var(--teal)' : '#9ca3af', display: 'inline-block', flexShrink: 0 }} />
             {toggling ? '…' : enLigne ? 'En ligne' : 'Hors ligne'}
           </button>
+          </div>
         )}
       </div>
 
