@@ -32,9 +32,19 @@ export default function PanelCandidatEcoles() {
   ]
 
   useEffect(() => {
-    supabase.from('ecoles').select('region').not('region', 'is', null).then(({ data }) => {
-      setRegions([...new Set((data || []).map(x => x.region).filter(Boolean))].sort())
-    })
+    async function loadRegions() {
+      const all = new Set()
+      let from = 0
+      while (true) {
+        const { data } = await supabase.from('ecoles').select('region').not('region', 'is', null).range(from, from + 999)
+        if (!data || data.length === 0) break
+        data.forEach(x => x.region && all.add(x.region))
+        if (data.length < 1000) break
+        from += 1000
+      }
+      setRegions([...all].sort())
+    }
+    loadRegions()
     search()
   }, [])
 

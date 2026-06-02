@@ -82,13 +82,23 @@ export function PanelBackDetailEcoles() {
   // Chargement stats + filtres
   useEffect(() => {
     async function init() {
-      const [{ count: ce }, { count: cf }, { data: dr }] = await Promise.all([
+      const [{ count: ce }, { count: cf }] = await Promise.all([
         supabase.from('ecoles').select('*', { count: 'exact', head: true }),
         supabase.from('formations').select('*', { count: 'exact', head: true }),
-        supabase.from('ecoles').select('region').not('region', 'is', null),
       ])
       setStats({ ecoles: ce ?? 0, formations: cf ?? 0 })
-      setRegions([...new Set((dr || []).map(x => x.region).filter(Boolean))].sort())
+
+      // Charger toutes les régions avec pagination
+      const all = new Set()
+      let from = 0
+      while (true) {
+        const { data } = await supabase.from('ecoles').select('region').not('region', 'is', null).range(from, from + 999)
+        if (!data || data.length === 0) break
+        data.forEach(x => x.region && all.add(x.region))
+        if (data.length < 1000) break
+        from += 1000
+      }
+      setRegions([...all].sort())
     }
     init()
   }, [])
