@@ -186,6 +186,7 @@ export default function Home() {
         <PanelEcolePublique
           ecoleId={activePanelData?.ecoleId}
           isAdmin={isAdmin}
+          isEntreprise={authUser?.user_metadata?.role === 'entreprise'}
           onBack={() => navigateTo(activePanelData?.from || 'home', null)}
         />
       )

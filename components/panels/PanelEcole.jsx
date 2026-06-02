@@ -20,6 +20,14 @@ export function PanelEcolePage({ onVoirPage }) {
   const [newEvt, setNewEvt]             = useState({ titre: '', date_event: '', lieu: '', meta: '' })
   const [ecoleId, setEcoleId]           = useState(null)
 
+  // Nouveaux états — media, initiatives, actus
+  const [uploadingCover,  setUploadingCover]  = useState(false)
+  const [uploadingAvatar, setUploadingAvatar] = useState(false)
+  const [newInitiative,   setNewInitiative]   = useState('')
+  const [actus,           setActus]           = useState([])
+  const [showActuForm,    setShowActuForm]    = useState(false)
+  const [newActu,         setNewActu]         = useState({ titre: '', contenu: '' })
+
   useEffect(() => {
     async function load() {
       const { data: { user } } = await supabase.auth.getUser()
@@ -27,12 +35,14 @@ export function PanelEcolePage({ onVoirPage }) {
       const { data: e } = await supabase.from('ecoles').select('*').eq('user_id', user.id).maybeSingle()
       if (e) {
         setEcole(e); setForm(e); setEcoleId(e.id)
-        const [{ data: f }, { data: ev }] = await Promise.all([
+        const [{ data: f }, { data: ev }, { data: ac }] = await Promise.all([
           supabase.from('formations').select('*').eq('ecole_id', e.id).order('created_at'),
           supabase.from('evenements').select('*').eq('ecole_id', e.id).order('date_event'),
+          supabase.from('ecole_actus').select('*').eq('ecole_id', e.id).order('created_at', { ascending: false }),
         ])
         setFormations(f || [])
         setEvenements(ev || [])
+        setActus(ac || [])
       } else {
         setEditing(true)
       }
@@ -40,6 +50,55 @@ export function PanelEcolePage({ onVoirPage }) {
     }
     load()
   }, [])
+
+  // ── Upload image (cover ou avatar) ──────────────────────────────────────────
+  async function handleUpload(file, type) {
+    if (!ecoleId || !file) return
+    const setter = type === 'cover' ? setUploadingCover : setUploadingAvatar
+    setter(true)
+    const ext  = file.name.split('.').pop()
+    const path = `${ecoleId}/${type}.${ext}`
+    const { error: upErr } = await supabase.storage.from('ecoles-media').upload(path, file, { upsert: true })
+    if (upErr) { setMsg('Erreur upload : ' + upErr.message); setter(false); return }
+    const { data: { publicUrl } } = supabase.storage.from('ecoles-media').getPublicUrl(path)
+    const col = type === 'cover' ? 'cover_url' : 'avatar_url'
+    const { data } = await supabase.from('ecoles').update({ [col]: publicUrl }).eq('id', ecoleId).select().single()
+    if (data) { setEcole(data); setForm(data) }
+    setter(false)
+    setMsg('Image mise à jour !')
+    setTimeout(() => setMsg(''), 3000)
+  }
+
+  // ── Initiatives ──────────────────────────────────────────────────────────────
+  async function handleAddInitiative() {
+    const val = newInitiative.trim()
+    if (!val || !ecoleId) return
+    const current = ecole.initiatives || []
+    if (current.includes(val)) return
+    const updated = [...current, val]
+    const { data } = await supabase.from('ecoles').update({ initiatives: updated }).eq('id', ecoleId).select().single()
+    if (data) { setEcole(data); setForm(data) }
+    setNewInitiative('')
+  }
+
+  async function handleRemoveInitiative(init) {
+    if (!ecoleId) return
+    const updated = (ecole.initiatives || []).filter(x => x !== init)
+    const { data } = await supabase.from('ecoles').update({ initiatives: updated }).eq('id', ecoleId).select().single()
+    if (data) { setEcole(data); setForm(data) }
+  }
+
+  // ── Actualités ───────────────────────────────────────────────────────────────
+  async function handleAddActu() {
+    if (!ecoleId || !newActu.titre.trim()) return
+    const { data, error } = await supabase.from('ecole_actus').insert({ ecole_id: ecoleId, titre: newActu.titre.trim(), contenu: newActu.contenu.trim() || null }).select().single()
+    if (!error) { setActus(prev => [data, ...prev]); setNewActu({ titre: '', contenu: '' }); setShowActuForm(false) }
+  }
+
+  async function handleDeleteActu(id) {
+    await supabase.from('ecole_actus').delete().eq('id', id)
+    setActus(prev => prev.filter(a => a.id !== id))
+  }
 
   async function handleSave() {
     setSaving(true)
@@ -105,8 +164,31 @@ export function PanelEcolePage({ onVoirPage }) {
 
       {/* Carte école */}
       <div className="s-card" style={{ padding: 0, overflow: 'hidden' }}>
-        <div className="school-cover">
-          <div className="school-logo-abs">{(e?.nom || 'É')[0]}</div>
+        <div className="school-cover" style={{
+          background: ecole?.cover_url ? `url(${ecole.cover_url}) center/cover no-repeat` : undefined,
+          position: 'relative',
+        }}>
+          {/* Avatar */}
+          <div className="school-logo-abs" style={{
+            background: ecole?.avatar_url ? `url(${ecole.avatar_url}) center/cover no-repeat` : undefined,
+            overflow: 'hidden',
+          }}>
+            {!ecole?.avatar_url && (e?.nom || 'É')[0]}
+          </div>
+
+          {/* Boutons upload (mode édition) */}
+          {editing && (
+            <div style={{ position: 'absolute', top: 8, right: 8, display: 'flex', gap: 6 }}>
+              <label style={{ ...uploadBtnStyle, cursor: 'pointer' }}>
+                {uploadingCover ? '…' : <><i className="ti ti-photo" /> Couverture</>}
+                <input type="file" accept="image/*" style={{ display: 'none' }} onChange={e => e.target.files[0] && handleUpload(e.target.files[0], 'cover')} />
+              </label>
+              <label style={{ ...uploadBtnStyle, cursor: 'pointer' }}>
+                {uploadingAvatar ? '…' : <><i className="ti ti-user-circle" /> Logo</>}
+                <input type="file" accept="image/*" style={{ display: 'none' }} onChange={e => e.target.files[0] && handleUpload(e.target.files[0], 'avatar')} />
+              </label>
+            </div>
+          )}
         </div>
         <div className="school-body">
           {editing ? (
@@ -240,6 +322,76 @@ export function PanelEcolePage({ onVoirPage }) {
             )
           })}
         </div>
+      </div>
+
+      {/* ── Initiatives ─────────────────────────────────────────────────────── */}
+      <div className="s-card">
+        <div className="s-card-header">
+          <div className="s-card-title"><i className="ti ti-stars" /> Initiatives & engagements</div>
+          <button className="btn-sm" style={{ fontSize: 11 }} onClick={() => document.getElementById('init-input')?.focus()}>+ Ajouter</button>
+        </div>
+
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, marginBottom: 10 }}>
+          {(ecole?.initiatives || []).length === 0
+            ? <span style={{ fontSize: 13, color: 'var(--muted)' }}>Aucune initiative ajoutée.</span>
+            : (ecole.initiatives).map((init, i) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'var(--light)', border: '0.5px solid var(--border)', borderRadius: 20, padding: '4px 10px 4px 12px', fontSize: 13 }}>
+                {init}
+                <button onClick={() => handleRemoveInitiative(init)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: 'var(--muted)', lineHeight: 1 }}>
+                  <i className="ti ti-x" style={{ fontSize: 11 }} />
+                </button>
+              </div>
+            ))
+          }
+        </div>
+
+        <div style={{ display: 'flex', gap: 6 }}>
+          <input
+            id="init-input"
+            placeholder="Ex : Programme RSE, Campus inclusif, Qualiopi…"
+            value={newInitiative}
+            onChange={e => setNewInitiative(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handleAddInitiative()}
+            style={{ flex: 1, padding: '7px 11px', borderRadius: 8, border: '0.5px solid var(--border)', background: 'var(--light)', fontSize: 12.5, fontFamily: 'DM Sans, sans-serif', color: 'var(--navy)', outline: 'none' }}
+          />
+          <button className="btn-sm purple" onClick={handleAddInitiative}><i className="ti ti-plus" /> Ajouter</button>
+        </div>
+      </div>
+
+      {/* ── Actualités ──────────────────────────────────────────────────────── */}
+      <div className="s-card">
+        <div className="s-card-header">
+          <div className="s-card-title"><i className="ti ti-news" /> Actualités</div>
+          <button className="btn-sm" style={{ fontSize: 11 }} onClick={() => setShowActuForm(v => !v)}>+ Ajouter</button>
+        </div>
+
+        {showActuForm && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 12, padding: 10, background: 'var(--light)', borderRadius: 8 }}>
+            <input placeholder="Titre de l'actu" value={newActu.titre} onChange={e => setNewActu(a => ({ ...a, titre: e.target.value }))} style={inputStyle} />
+            <textarea placeholder="Contenu (optionnel)" value={newActu.contenu} onChange={e => setNewActu(a => ({ ...a, contenu: e.target.value }))} rows={3} style={{ ...inputStyle, resize: 'vertical' }} />
+            <div style={{ display: 'flex', gap: 6 }}>
+              <button className="btn-sm purple" onClick={handleAddActu}><i className="ti ti-check" /> Publier</button>
+              <button className="btn-sm" onClick={() => setShowActuForm(false)}>Annuler</button>
+            </div>
+          </div>
+        )}
+
+        {actus.length === 0 ? (
+          <div style={{ fontSize: 13, color: 'var(--muted)' }}>Aucune actualité publiée.</div>
+        ) : actus.map((a, i) => (
+          <div key={a.id} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', padding: '10px 0', borderBottom: i < actus.length - 1 ? '0.5px solid var(--border)' : 'none' }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--navy)', marginBottom: 2 }}>{a.titre}</div>
+              {a.contenu && <div style={{ fontSize: 12, color: 'var(--muted)', lineHeight: 1.5 }}>{a.contenu}</div>}
+              <div style={{ fontSize: 10, color: 'var(--muted)', marginTop: 3 }}>
+                {new Date(a.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
+              </div>
+            </div>
+            <button className="btn-sm" style={{ fontSize: 11, color: 'var(--muted)', flexShrink: 0 }} onClick={() => handleDeleteActu(a.id)}>
+              <i className="ti ti-trash" />
+            </button>
+          </div>
+        ))}
       </div>
     </>
   )
@@ -497,4 +649,19 @@ const inputStyle = {
   outline: 'none',
   width: '100%',
   boxSizing: 'border-box',
+}
+
+const uploadBtnStyle = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 5,
+  padding: '5px 12px',
+  borderRadius: 8,
+  border: 'none',
+  background: 'rgba(255,255,255,0.85)',
+  color: 'var(--navy)',
+  fontSize: 12,
+  fontFamily: 'DM Sans, sans-serif',
+  fontWeight: 500,
+  backdropFilter: 'blur(4px)',
 }
