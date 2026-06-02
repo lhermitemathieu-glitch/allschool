@@ -123,13 +123,8 @@ export default function Home() {
         return
       }
       setAuthUser(user)
-      const role  = user.user_metadata?.role
-      const space = ROLE_TO_SPACE[role]
+      const role = user.user_metadata?.role
       setAllowedSpaces(ROLE_TO_ALLOWED_SPACES[role] ?? [])
-      if (space) {
-        setActiveSpace(space)
-        setActivePanel(SPACES[space].firstPanel)
-      }
     }
     loadUser()
   }, [])
