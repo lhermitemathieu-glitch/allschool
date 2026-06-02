@@ -36,11 +36,17 @@ export default function PanelCandidatEcoles({ onNavigateEcole }) {
   const [loadingF, setLoadingF]     = useState(false)
 
   // Filtres
-  const [q, setQ]           = useState('')
-  const [region, setRegion] = useState('')
-  const [niveau, setNiveau] = useState('')
+  const [q, setQ]             = useState('')
+  const [region, setRegion]   = useState('')
+  const [niveau, setNiveau]   = useState('')
   const [secteur, setSecteur] = useState('')
   const [regions, setRegions] = useState([])
+
+  // Filtres géographiques
+  const [ville,  setVille]  = useState('')
+  const [rayon,  setRayon]  = useState('')
+  const [geoErr, setGeoErr] = useState('')
+  const [geoLoading, setGeoLoading] = useState(false)
 
   const NIVEAUX = [
     { value: 'cap',    label: 'CAP / Bac Pro' },
@@ -67,33 +73,69 @@ export default function PanelCandidatEcoles({ onNavigateEcole }) {
     search()
   }, [])
 
+  // Géocode une ville via l'API adresse du gouvernement
+  async function geocodeVille(nom) {
+    const url = `https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(nom)}&type=municipality&limit=1`
+    const res = await fetch(url)
+    if (!res.ok) return null
+    const json = await res.json()
+    const feat = json.features?.[0]
+    if (!feat) return null
+    const [lng, lat] = feat.geometry.coordinates
+    return { lat, lng, label: feat.properties.label }
+  }
+
   const search = useCallback(async () => {
     setLoading(true)
     setSelected(null)
     setFormations([])
+    setGeoErr('')
 
+    // ── Filtre géographique ──────────────────────────────────────────────────
+    let geoIds = null
+    if (ville.trim() && rayon) {
+      setGeoLoading(true)
+      const coords = await geocodeVille(ville.trim())
+      setGeoLoading(false)
+      if (!coords) {
+        setGeoErr(`Ville "${ville}" introuvable`)
+        setEcoles([])
+        setLoading(false)
+        return
+      }
+      const { data: nearby } = await supabase.rpc('ecoles_dans_rayon', {
+        lat: coords.lat, lng: coords.lng, rayon_km: parseFloat(rayon),
+      })
+      geoIds = (nearby || []).map(r => r.id)
+      if (geoIds.length === 0) { setEcoles([]); setLoading(false); return }
+    }
+
+    // ── Filtre niveau ────────────────────────────────────────────────────────
+    let niveauIds = null
+    if (niveau) {
+      const { data: fIds } = await supabase
+        .from('formations').select('ecole_id').eq('niveau', niveau)
+      niveauIds = [...new Set((fIds || []).map(f => f.ecole_id))]
+      if (niveauIds.length === 0) { setEcoles([]); setLoading(false); return }
+    }
+
+    // ── Requête principale ───────────────────────────────────────────────────
     let query = supabase
       .from('ecoles')
       .select('id, nom, ville, region, academie, type_ecole, site_web, email, telephone, adresse, code_postal, secteurs')
       .order('nom')
-      .limit(50)
+      .limit(100)
 
-    if (q.trim()) query = query.ilike('nom', `%${q.trim()}%`)
-    if (region)   query = query.eq('region', region)
-    if (secteur)  query = query.contains('secteurs', [secteur])
-
-    if (niveau) {
-      const { data: fIds } = await supabase
-        .from('formations').select('ecole_id').eq('niveau', niveau)
-      const ids = [...new Set((fIds || []).map(f => f.ecole_id))]
-      if (ids.length === 0) { setEcoles([]); setLoading(false); return }
-      query = query.in('id', ids)
-    }
+    if (q.trim())    query = query.ilike('nom', `%${q.trim()}%`)
+    if (region)      query = query.eq('region', region)
+    if (secteur)     query = query.contains('secteurs', [secteur])
+    if (geoIds)      query = query.in('id', geoIds)
+    if (niveauIds)   query = query.in('id', niveauIds)
 
     const { data } = await query
     setEcoles(data || [])
     setLoading(false)
-  }, [q, region, niveau, secteur])
+  }, [q, region, niveau, secteur, ville, rayon])
 
   useEffect(() => { search() }, [region, niveau, secteur])
 
@@ -121,27 +163,61 @@ export default function PanelCandidatEcoles({ onNavigateEcole }) {
       </div>
 
       {/* Barre de recherche */}
-      <div className="s-card" style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'flex-end', marginBottom: 0 }}>
-        <input
-          placeholder="Nom de l'école…"
-          value={q}
-          onChange={e => setQ(e.target.value)}
-          onKeyDown={e => e.key === 'Enter' && search()}
-          style={inputStyle}
-        />
-        <select value={region} onChange={e => setRegion(e.target.value)} style={{ ...inputStyle, flex: 'none', width: 'auto', minWidth: 160 }}>
-          <option value="">Toutes les régions</option>
-          {regions.map(r => <option key={r} value={r}>{r}</option>)}
-        </select>
-        <select value={secteur} onChange={e => setSecteur(e.target.value)} style={{ ...inputStyle, flex: 'none', width: 'auto', minWidth: 200 }}>
-          <option value="">Tous les secteurs</option>
-          {SECTEURS.map(s => <option key={s} value={s}>{s}</option>)}
-        </select>
-        <select value={niveau} onChange={e => setNiveau(e.target.value)} style={{ ...inputStyle, flex: 'none', width: 'auto', minWidth: 180 }}>
-          <option value="">Tous les niveaux</option>
-          {NIVEAUX.map(n => <option key={n.value} value={n.value}>{n.label}</option>)}
-        </select>
-        <button className="btn-sm teal" onClick={search}><i className="ti ti-search" /> Rechercher</button>
+      <div className="s-card" style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 0 }}>
+
+        {/* Ligne 1 : nom + secteur + niveau */}
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+          <input
+            placeholder="Nom de l'école…"
+            value={q}
+            onChange={e => setQ(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && search()}
+            style={inputStyle}
+          />
+          <select value={secteur} onChange={e => setSecteur(e.target.value)} style={{ ...inputStyle, flex: 'none', width: 'auto', minWidth: 200 }}>
+            <option value="">Tous les secteurs</option>
+            {SECTEURS.map(s => <option key={s} value={s}>{s}</option>)}
+          </select>
+          <select value={niveau} onChange={e => setNiveau(e.target.value)} style={{ ...inputStyle, flex: 'none', width: 'auto', minWidth: 180 }}>
+            <option value="">Tous les niveaux</option>
+            {NIVEAUX.map(n => <option key={n.value} value={n.value}>{n.label}</option>)}
+          </select>
+          <select value={region} onChange={e => setRegion(e.target.value)} style={{ ...inputStyle, flex: 'none', width: 'auto', minWidth: 160 }}>
+            <option value="">Toutes les régions</option>
+            {regions.map(r => <option key={r} value={r}>{r}</option>)}
+          </select>
+        </div>
+
+        {/* Ligne 2 : recherche géographique */}
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 0, flex: 1, minWidth: 200, border: '1.5px solid var(--border)', borderRadius: 8, overflow: 'hidden', background: 'white' }}>
+            <i className="ti ti-map-pin" style={{ padding: '0 10px', color: 'var(--muted)', fontSize: 15 }} />
+            <input
+              placeholder="Votre ville…"
+              value={ville}
+              onChange={e => { setVille(e.target.value); setGeoErr('') }}
+              onKeyDown={e => e.key === 'Enter' && search()}
+              style={{ ...inputStyle, border: 'none', borderRadius: 0, flex: 1, padding: '8px 8px 8px 0' }}
+            />
+          </div>
+          <select
+            value={rayon}
+            onChange={e => setRayon(e.target.value)}
+            style={{ ...inputStyle, flex: 'none', width: 'auto', minWidth: 130 }}
+          >
+            <option value="">— Rayon —</option>
+            <option value="5">5 km</option>
+            <option value="10">10 km</option>
+            <option value="20">20 km</option>
+            <option value="50">50 km</option>
+            <option value="100">100 km</option>
+          </select>
+          {geoErr && <span style={{ fontSize: 12, color: 'var(--accent)' }}><i className="ti ti-alert-circle" /> {geoErr}</span>}
+          {geoLoading && <span style={{ fontSize: 12, color: 'var(--muted)' }}>Géolocalisation…</span>}
+          <button className="btn-sm teal" onClick={search} style={{ marginLeft: 'auto' }}>
+            {geoLoading ? <><i className="ti ti-loader" /> …</> : <><i className="ti ti-search" /> Rechercher</>}
+          </button>
+        </div>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: selected ? '1fr 1fr' : '1fr', gap: '1rem', marginTop: '1rem' }}>
