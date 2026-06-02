@@ -227,32 +227,82 @@ export function PanelEcolePage({ onVoirPage, ecoleIdOverride = null, onBack = nu
         </div>
         <div className="school-body">
           {editing ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              <input placeholder="Nom de l'école" value={form.nom || ''} onChange={ev => setForm(f => ({ ...f, nom: ev.target.value }))} style={inputStyle} />
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                <input placeholder="Ville" value={form.ville || ''} onChange={ev => setForm(f => ({ ...f, ville: ev.target.value }))} style={inputStyle} />
-                <select value={form.region || ''} onChange={ev => setForm(f => ({ ...f, region: ev.target.value }))} style={inputStyle}>
-                  <option value="">— Région —</option>
-                  {REGIONS_FR.map(r => <option key={r} value={r}>{r}</option>)}
-                </select>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+
+              {/* Identité */}
+              <div>
+                <div style={sectionLabel}>Identité</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <div>
+                    <label style={fieldLabel}>Nom de l'école</label>
+                    <input value={form.nom || ''} onChange={ev => setForm(f => ({ ...f, nom: ev.target.value }))} style={inputStyle} />
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                    <div>
+                      <label style={fieldLabel}>Type</label>
+                      <input placeholder="ex: CFA public" value={form.type_ecole || ''} onChange={ev => setForm(f => ({ ...f, type_ecole: ev.target.value }))} style={inputStyle} />
+                    </div>
+                    <div>
+                      <label style={fieldLabel}>Nb étudiants</label>
+                      <input type="number" value={form.nb_etudiants || ''} onChange={ev => setForm(f => ({ ...f, nb_etudiants: ev.target.value }))} style={inputStyle} />
+                    </div>
+                  </div>
+                  <div>
+                    <label style={fieldLabel}>Description</label>
+                    <textarea value={form.description || ''} onChange={ev => setForm(f => ({ ...f, description: ev.target.value }))} rows={3} style={{ ...inputStyle, resize: 'vertical' }} />
+                  </div>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 13, color: 'var(--navy)', cursor: 'pointer' }}>
+                    <input type="checkbox" checked={form.qualiopi || false} onChange={ev => setForm(f => ({ ...f, qualiopi: ev.target.checked }))} />
+                    Certification Qualiopi
+                  </label>
+                </div>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                <input placeholder="Type (ex: CFA public)" value={form.type_ecole || ''} onChange={ev => setForm(f => ({ ...f, type_ecole: ev.target.value }))} style={inputStyle} />
-                <input type="number" placeholder="Nb étudiants" value={form.nb_etudiants || ''} onChange={ev => setForm(f => ({ ...f, nb_etudiants: ev.target.value }))} style={inputStyle} />
+
+              {/* Localisation */}
+              <div>
+                <div style={sectionLabel}>Localisation</div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                  <div>
+                    <label style={fieldLabel}>Ville</label>
+                    <input value={form.ville || ''} onChange={ev => setForm(f => ({ ...f, ville: ev.target.value }))} style={inputStyle} />
+                  </div>
+                  <div>
+                    <label style={fieldLabel}>Région</label>
+                    <select value={form.region || ''} onChange={ev => setForm(f => ({ ...f, region: ev.target.value }))} style={inputStyle}>
+                      <option value="">— Sélectionner —</option>
+                      {REGIONS_FR.map(r => <option key={r} value={r}>{r}</option>)}
+                    </select>
+                  </div>
+                </div>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                <input placeholder="Email" type="email" value={form.email || ''} onChange={ev => setForm(f => ({ ...f, email: ev.target.value }))} style={inputStyle} />
-                <input placeholder="Téléphone" value={form.telephone || ''} onChange={ev => setForm(f => ({ ...f, telephone: ev.target.value }))} style={inputStyle} />
+
+              {/* Contact */}
+              <div>
+                <div style={sectionLabel}>Contact</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                    <div>
+                      <label style={fieldLabel}>Email</label>
+                      <input type="email" value={form.email || ''} onChange={ev => setForm(f => ({ ...f, email: ev.target.value }))} style={inputStyle} />
+                    </div>
+                    <div>
+                      <label style={fieldLabel}>Téléphone</label>
+                      <input value={form.telephone || ''} onChange={ev => setForm(f => ({ ...f, telephone: ev.target.value }))} style={inputStyle} />
+                    </div>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                    <div>
+                      <label style={fieldLabel}>Site web</label>
+                      <input value={form.site_web || ''} onChange={ev => setForm(f => ({ ...f, site_web: ev.target.value }))} style={inputStyle} />
+                    </div>
+                    <div>
+                      <label style={fieldLabel}>LinkedIn</label>
+                      <input value={form.linkedin || ''} onChange={ev => setForm(f => ({ ...f, linkedin: ev.target.value }))} style={inputStyle} />
+                    </div>
+                  </div>
+                </div>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                <input placeholder="Site web" value={form.site_web || ''} onChange={ev => setForm(f => ({ ...f, site_web: ev.target.value }))} style={inputStyle} />
-                <input placeholder="LinkedIn" value={form.linkedin || ''} onChange={ev => setForm(f => ({ ...f, linkedin: ev.target.value }))} style={inputStyle} />
-              </div>
-              <textarea placeholder="Description" value={form.description || ''} onChange={ev => setForm(f => ({ ...f, description: ev.target.value }))} rows={3} style={{ ...inputStyle, resize: 'vertical' }} />
-              <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--navy)' }}>
-                <input type="checkbox" checked={form.qualiopi || false} onChange={ev => setForm(f => ({ ...f, qualiopi: ev.target.checked }))} />
-                Certification Qualiopi
-              </label>
+
             </div>
           ) : (
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '1rem' }}>
@@ -692,6 +742,25 @@ const inputStyle = {
   outline: 'none',
   width: '100%',
   boxSizing: 'border-box',
+}
+
+const sectionLabel = {
+  fontSize: 10.5,
+  fontWeight: 700,
+  color: 'var(--muted)',
+  textTransform: 'uppercase',
+  letterSpacing: '0.6px',
+  marginBottom: 8,
+  paddingBottom: 6,
+  borderBottom: '0.5px solid var(--border)',
+}
+
+const fieldLabel = {
+  display: 'block',
+  fontSize: 11,
+  fontWeight: 500,
+  color: 'var(--muted)',
+  marginBottom: 4,
 }
 
 const uploadBtnStyle = {
