@@ -3,6 +3,24 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '../../lib/supabase/client'
 
+const SECTEURS = [
+  'Agriculture & Environnement',
+  'Alimentation & Restauration',
+  'Arts & Culture',
+  'BTP & Immobilier',
+  'Commerce & Vente',
+  'Communication & Marketing',
+  'Finance & Comptabilité',
+  'Hôtellerie & Tourisme',
+  'Industrie & Production',
+  'Informatique & Numérique',
+  'Juridique & Droit',
+  'Logistique & Transport',
+  'Ressources Humaines',
+  'Santé & Social',
+  'Sport & Animation',
+]
+
 const REGIONS_FR = [
   'Auvergne-Rhône-Alpes',
   'Bourgogne-Franche-Comté',
@@ -300,6 +318,29 @@ export function PanelEcolePage({ onVoirPage, ecoleIdOverride = null, onBack = nu
                       <input value={form.linkedin || ''} onChange={ev => setForm(f => ({ ...f, linkedin: ev.target.value }))} style={inputStyle} />
                     </div>
                   </div>
+                </div>
+              </div>
+
+              {/* Secteurs */}
+              <div>
+                <div style={sectionLabel}>Secteurs d'activité</div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px 16px' }}>
+                  {SECTEURS.map(s => {
+                    const checked = (form.secteurs || []).includes(s)
+                    return (
+                      <label key={s} style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 12.5, color: 'var(--navy)', cursor: 'pointer', padding: '5px 8px', borderRadius: 8, background: checked ? 'var(--purple-soft)' : 'transparent', transition: 'background 0.15s' }}>
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() => {
+                            const current = form.secteurs || []
+                            setForm(f => ({ ...f, secteurs: checked ? current.filter(x => x !== s) : [...current, s] }))
+                          }}
+                        />
+                        {s}
+                      </label>
+                    )
+                  })}
                 </div>
               </div>
 

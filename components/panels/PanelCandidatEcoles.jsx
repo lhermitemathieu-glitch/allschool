@@ -7,6 +7,24 @@ function sigle(nom) {
   return (nom || '').split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 3) || '?'
 }
 
+const SECTEURS = [
+  'Agriculture & Environnement',
+  'Alimentation & Restauration',
+  'Arts & Culture',
+  'BTP & Immobilier',
+  'Commerce & Vente',
+  'Communication & Marketing',
+  'Finance & Comptabilité',
+  'Hôtellerie & Tourisme',
+  'Industrie & Production',
+  'Informatique & Numérique',
+  'Juridique & Droit',
+  'Logistique & Transport',
+  'Ressources Humaines',
+  'Santé & Social',
+  'Sport & Animation',
+]
+
 export default function PanelCandidatEcoles({ onNavigateEcole }) {
   const supabase = createClient()
 
@@ -18,9 +36,10 @@ export default function PanelCandidatEcoles({ onNavigateEcole }) {
   const [loadingF, setLoadingF]     = useState(false)
 
   // Filtres
-  const [q, setQ]         = useState('')
+  const [q, setQ]           = useState('')
   const [region, setRegion] = useState('')
   const [niveau, setNiveau] = useState('')
+  const [secteur, setSecteur] = useState('')
   const [regions, setRegions] = useState([])
 
   const NIVEAUX = [
@@ -55,12 +74,13 @@ export default function PanelCandidatEcoles({ onNavigateEcole }) {
 
     let query = supabase
       .from('ecoles')
-      .select('id, nom, ville, region, academie, type_ecole, site_web, email, telephone, adresse, code_postal')
+      .select('id, nom, ville, region, academie, type_ecole, site_web, email, telephone, adresse, code_postal, secteurs')
       .order('nom')
       .limit(50)
 
     if (q.trim()) query = query.ilike('nom', `%${q.trim()}%`)
     if (region)   query = query.eq('region', region)
+    if (secteur)  query = query.contains('secteurs', [secteur])
 
     if (niveau) {
       const { data: fIds } = await supabase
@@ -73,9 +93,9 @@ export default function PanelCandidatEcoles({ onNavigateEcole }) {
     const { data } = await query
     setEcoles(data || [])
     setLoading(false)
-  }, [q, region, niveau])
+  }, [q, region, niveau, secteur])
 
-  useEffect(() => { search() }, [region, niveau])
+  useEffect(() => { search() }, [region, niveau, secteur])
 
   async function selectEcole(ecole) {
     setSelected(ecole)
@@ -112,6 +132,10 @@ export default function PanelCandidatEcoles({ onNavigateEcole }) {
         <select value={region} onChange={e => setRegion(e.target.value)} style={{ ...inputStyle, flex: 'none', width: 'auto', minWidth: 160 }}>
           <option value="">Toutes les régions</option>
           {regions.map(r => <option key={r} value={r}>{r}</option>)}
+        </select>
+        <select value={secteur} onChange={e => setSecteur(e.target.value)} style={{ ...inputStyle, flex: 'none', width: 'auto', minWidth: 200 }}>
+          <option value="">Tous les secteurs</option>
+          {SECTEURS.map(s => <option key={s} value={s}>{s}</option>)}
         </select>
         <select value={niveau} onChange={e => setNiveau(e.target.value)} style={{ ...inputStyle, flex: 'none', width: 'auto', minWidth: 180 }}>
           <option value="">Tous les niveaux</option>
@@ -168,6 +192,9 @@ export default function PanelCandidatEcoles({ onNavigateEcole }) {
               {selected.region     && <span className="pill">{selected.region}</span>}
               {selected.academie   && <span className="pill">Acad. {selected.academie}</span>}
               {selected.type_ecole && <span className="pill">{selected.type_ecole}</span>}
+              {(selected.secteurs || []).map(s => (
+                <span key={s} className="pill purple" style={{ fontSize: 10 }}>{s}</span>
+              ))}
             </div>
             <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 8, display: 'flex', flexDirection: 'column', gap: 3 }}>
               {selected.adresse    && <span><i className="ti ti-map" style={{ fontSize: 11 }} /> {selected.adresse}{selected.code_postal ? ', ' + selected.code_postal : ''}</span>}
