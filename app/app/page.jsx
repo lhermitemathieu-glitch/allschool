@@ -160,9 +160,9 @@ export default function Home() {
       case 'ecole-apprentis':       return <PanelEcoleApprentis />
       case 'ecole-dashboard':       return <PanelEcoleDashboard />
       case 'back-overview':         return <PanelBackOverview onNavigate={setActivePanel} />
-      case 'back-apprentis':        return <PanelBackApprentis />
-      case 'back-ecoles':           return <PanelBackEcoles />
-      case 'back-entreprises':      return <PanelBackEntreprises />
+      case 'back-apprentis':        return <PanelBackApprentis    onImported={() => setActivePanel('back-logs')} />
+      case 'back-ecoles':           return <PanelBackEcoles       onImported={() => setActivePanel('back-logs')} />
+      case 'back-entreprises':      return <PanelBackEntreprises  onImported={() => setActivePanel('back-logs')} />
       case 'back-logs':             return <PanelBackLogs />
       default:
         return (
