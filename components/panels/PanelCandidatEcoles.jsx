@@ -28,12 +28,14 @@ const SECTEURS = [
 export default function PanelCandidatEcoles({ onNavigateEcole }) {
   const supabase = createClient()
 
-  const [onglet, setOnglet]         = useState('recherche')
+  const [vue, setVue]               = useState('ecoles') // 'ecoles' | 'formations'
   const [ecoles, setEcoles]         = useState([])
   const [loading, setLoading]       = useState(false)
   const [selected, setSelected]     = useState(null)
-  const [formations, setFormations] = useState([])
+  const [formations, setFormations] = useState([])       // formations de l'école sélectionnée
   const [loadingF, setLoadingF]     = useState(false)
+  const [formationsSearch, setFormationsSearch] = useState([]) // résultats onglet formations
+  const [loadingFS, setLoadingFS]   = useState(false)
 
   // Filtres
   const [q, setQ]             = useState('')
@@ -119,22 +121,45 @@ export default function PanelCandidatEcoles({ onNavigateEcole }) {
       if (niveauIds.length === 0) { setEcoles([]); setLoading(false); return }
     }
 
-    // ── Requête principale ───────────────────────────────────────────────────
-    let query = supabase
+    // ── Requête écoles ───────────────────────────────────────────────────────
+    let ecolesQuery = supabase
       .from('ecoles')
       .select('id, nom, ville, region, academie, type_ecole, site_web, email, telephone, adresse, code_postal, secteurs')
       .order('nom')
       .limit(100)
 
-    if (q.trim())    query = query.ilike('nom', `%${q.trim()}%`)
-    if (region)      query = query.eq('region', region)
-    if (secteur)     query = query.contains('secteurs', [secteur])
-    if (geoIds)      query = query.in('id', geoIds)
-    if (niveauIds)   query = query.in('id', niveauIds)
+    if (q.trim())    ecolesQuery = ecolesQuery.ilike('nom', `%${q.trim()}%`)
+    if (region)      ecolesQuery = ecolesQuery.eq('region', region)
+    if (secteur)     ecolesQuery = ecolesQuery.contains('secteurs', [secteur])
+    if (geoIds)      ecolesQuery = ecolesQuery.in('id', geoIds)
+    if (niveauIds)   ecolesQuery = ecolesQuery.in('id', niveauIds)
 
-    const { data } = await query
-    setEcoles(data || [])
+    const { data: ecolesData } = await ecolesQuery
+    const ecolesResult = ecolesData || []
+    setEcoles(ecolesResult)
     setLoading(false)
+
+    // ── Requête formations ───────────────────────────────────────────────────
+    setLoadingFS(true)
+    const ecoleIdsResult = ecolesResult.map(e => e.id)
+    if (ecoleIdsResult.length === 0) { setFormationsSearch([]); setLoadingFS(false); return }
+
+    let fQuery = supabase
+      .from('formations')
+      .select('id, nom, diplome, niveau, url_onisep, localite_formation, ecole_id')
+      .in('ecole_id', ecoleIdsResult)
+      .order('nom')
+      .limit(200)
+
+    if (niveau) fQuery = fQuery.eq('niveau', niveau)
+    if (q.trim()) fQuery = fQuery.ilike('nom', `%${q.trim()}%`)
+
+    const { data: fData } = await fQuery
+
+    // Enrichit avec le nom de l'école
+    const ecoleMap = Object.fromEntries(ecolesResult.map(e => [e.id, e]))
+    setFormationsSearch((fData || []).map(f => ({ ...f, ecole: ecoleMap[f.ecole_id] })))
+    setLoadingFS(false)
   }, [q, region, niveau, secteur, ville, rayon])
 
   useEffect(() => { search() }, [region, niveau, secteur])
@@ -220,104 +245,171 @@ export default function PanelCandidatEcoles({ onNavigateEcole }) {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: selected ? '1fr 1fr' : '1fr', gap: '1rem', marginTop: '1rem' }}>
-        {/* Liste des écoles */}
-        <div className="s-card" style={{ marginBottom: 0 }}>
-          <div className="s-card-header">
-            <div className="s-card-title"><i className="ti ti-school" /> Écoles ({ecoles.length})</div>
-          </div>
-          {loading ? (
-            <div style={{ fontSize: 13, color: 'var(--muted)' }}>Recherche en cours…</div>
-          ) : ecoles.length === 0 ? (
-            <div style={{ fontSize: 13, color: 'var(--muted)' }}>Aucun résultat. Essayez d'autres filtres.</div>
-          ) : ecoles.map(e => (
-            <div
-              key={e.id}
-              className="entry-row"
-              style={{ cursor: 'pointer', background: selected?.id === e.id ? 'var(--light)' : 'transparent', borderRadius: 8, padding: '6px 4px' }}
-              onClick={() => selectEcole(e)}
-            >
-              <div className="e-av purple">{sigle(e.nom)}</div>
-              <div style={{ flex: 1 }}>
-                <div className="e-name">{e.nom}</div>
-                <div className="e-meta">{[e.ville, e.region].filter(Boolean).join(' · ')}</div>
-              </div>
-              <i className="ti ti-chevron-right" style={{ fontSize: 14, color: 'var(--muted)' }} />
-            </div>
-          ))}
-        </div>
+      {/* Onglets */}
+      <div style={{ display: 'flex', gap: 4, marginTop: '1rem', marginBottom: 0 }}>
+        {[
+          { id: 'ecoles',     icon: 'ti-school',      label: 'Écoles',     count: ecoles.length },
+          { id: 'formations', icon: 'ti-certificate', label: 'Formations', count: formationsSearch.length },
+        ].map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => { setVue(tab.id); setSelected(null) }}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              padding: '8px 16px', borderRadius: '10px 10px 0 0',
+              border: 'none', cursor: 'pointer',
+              fontFamily: 'DM Sans, sans-serif', fontSize: 13, fontWeight: 600,
+              background: vue === tab.id ? 'white' : 'transparent',
+              color: vue === tab.id ? 'var(--navy)' : 'var(--muted)',
+              boxShadow: vue === tab.id ? '0 -1px 0 0 var(--border), -1px 0 0 0 var(--border), 1px 0 0 0 var(--border)' : 'none',
+            }}
+          >
+            <i className={`ti ${tab.icon}`} style={{ fontSize: 14 }} />
+            {tab.label}
+            {!loading && !loadingFS && (
+              <span style={{
+                background: vue === tab.id ? 'var(--purple-soft)' : 'var(--light)',
+                color: vue === tab.id ? 'var(--purple)' : 'var(--muted)',
+                fontSize: 11, fontWeight: 700, padding: '1px 7px', borderRadius: 20,
+              }}>{tab.count}</span>
+            )}
+          </button>
+        ))}
+      </div>
 
-        {/* Détail école sélectionnée */}
-        {selected && (
-          <div className="s-card" style={{ marginBottom: 0 }}>
-            <div className="s-card-header">
-              <div className="s-card-title"><i className="ti ti-info-circle" /> {selected.nom}</div>
-              <div style={{ display: 'flex', gap: 5 }}>
-                {onNavigateEcole && (
-                  <button className="btn-sm teal" style={{ fontSize: 11 }} onClick={() => onNavigateEcole(selected.id)}>
-                    <i className="ti ti-external-link" /> Page publique
-                  </button>
-                )}
-                <button className="btn-sm" style={{ fontSize: 11 }} onClick={() => setSelected(null)}><i className="ti ti-x" /></button>
-              </div>
-            </div>
-
-            {/* Infos école */}
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 12 }}>
-              {selected.ville      && <span className="pill"><i className="ti ti-map-pin" style={{ fontSize: 10 }} /> {selected.ville}</span>}
-              {selected.region     && <span className="pill">{selected.region}</span>}
-              {selected.academie   && <span className="pill">Acad. {selected.academie}</span>}
-              {selected.type_ecole && <span className="pill">{selected.type_ecole}</span>}
-              {(selected.secteurs || []).map(s => (
-                <span key={s} className="pill purple" style={{ fontSize: 10 }}>{s}</span>
-              ))}
-            </div>
-            <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 8, display: 'flex', flexDirection: 'column', gap: 3 }}>
-              {selected.adresse    && <span><i className="ti ti-map" style={{ fontSize: 11 }} /> {selected.adresse}{selected.code_postal ? ', ' + selected.code_postal : ''}</span>}
-              {selected.telephone  && <span><i className="ti ti-phone" style={{ fontSize: 11 }} /> {selected.telephone}</span>}
-              {selected.email      && <span><i className="ti ti-mail" style={{ fontSize: 11 }} /> {selected.email}</span>}
-              {selected.site_web   && (
-                <span
-                  style={{ color: 'var(--teal)', cursor: 'pointer' }}
-                  onClick={() => window.open(selected.site_web.startsWith('http') ? selected.site_web : 'https://' + selected.site_web, '_blank')}
-                >
-                  <i className="ti ti-world" style={{ fontSize: 11 }} /> {selected.site_web}
-                </span>
-              )}
-            </div>
-
-            {/* Formations */}
-            <div style={{ fontWeight: 600, fontSize: 12, color: 'var(--navy)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-              <i className="ti ti-certificate" /> Formations ({formations.length})
-            </div>
-            {loadingF ? (
-              <div style={{ fontSize: 13, color: 'var(--muted)' }}>Chargement…</div>
-            ) : formations.length === 0 ? (
-              <div style={{ fontSize: 13, color: 'var(--muted)' }}>Aucune formation enregistrée.</div>
-            ) : formations.map(f => (
-              <div key={f.id} style={{ padding: '8px 0', borderBottom: '0.5px solid var(--border)' }}>
-                <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--navy)', marginBottom: 2 }}>{f.nom}</div>
-                <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
-                  {f.diplome   && <span className="pill" style={{ background: 'var(--purple-soft)', color: 'var(--purple)' }}>{f.diplome}</span>}
-                  {f.niveau    && f.niveau !== 'autre' && <span className="pill">{NIVEAU_LABEL[f.niveau] || f.niveau}</span>}
-                  {f.localite_formation && <span className="pill"><i className="ti ti-map-pin" style={{ fontSize: 10 }} /> {f.localite_formation}</span>}
-                  {f.url_onisep && (
-                    <span
-                      className="pill teal"
-                      style={{ cursor: 'pointer' }}
-                      onClick={() => window.open(f.url_onisep, '_blank')}
-                    >
-                      <i className="ti ti-external-link" style={{ fontSize: 10 }} /> ONISEP
-                    </span>
-                  )}
+      {/* ── VUE ÉCOLES ── */}
+      {vue === 'ecoles' && (
+        <div style={{ display: 'grid', gridTemplateColumns: selected ? '1fr 1fr' : '1fr', gap: '1rem' }}>
+          <div className="s-card" style={{ marginBottom: 0, borderTopLeftRadius: 0 }}>
+            {loading ? (
+              <div style={{ fontSize: 13, color: 'var(--muted)' }}>Recherche en cours…</div>
+            ) : ecoles.length === 0 ? (
+              <div style={{ fontSize: 13, color: 'var(--muted)' }}>Aucun résultat. Essayez d'autres filtres.</div>
+            ) : ecoles.map(e => (
+              <div
+                key={e.id}
+                className="entry-row"
+                style={{ cursor: 'pointer', background: selected?.id === e.id ? 'var(--light)' : 'transparent', borderRadius: 8, padding: '6px 4px' }}
+                onClick={() => selectEcole(e)}
+              >
+                <div className="e-av purple">{sigle(e.nom)}</div>
+                <div style={{ flex: 1 }}>
+                  <div className="e-name">{e.nom}</div>
+                  <div className="e-meta">{[e.ville, e.region].filter(Boolean).join(' · ')}</div>
                 </div>
+                <i className="ti ti-chevron-right" style={{ fontSize: 14, color: 'var(--muted)' }} />
               </div>
             ))}
           </div>
-        )}
-      </div>
+
+          {/* Détail école */}
+          {selected && (
+            <div className="s-card" style={{ marginBottom: 0 }}>
+              <div className="s-card-header">
+                <div className="s-card-title"><i className="ti ti-info-circle" /> {selected.nom}</div>
+                <div style={{ display: 'flex', gap: 5 }}>
+                  {onNavigateEcole && (
+                    <button className="btn-sm teal" style={{ fontSize: 11 }} onClick={() => onNavigateEcole(selected.id)}>
+                      <i className="ti ti-external-link" /> Page publique
+                    </button>
+                  )}
+                  <button className="btn-sm" style={{ fontSize: 11 }} onClick={() => setSelected(null)}><i className="ti ti-x" /></button>
+                </div>
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 12 }}>
+                {selected.ville      && <span className="pill"><i className="ti ti-map-pin" style={{ fontSize: 10 }} /> {selected.ville}</span>}
+                {selected.region     && <span className="pill">{selected.region}</span>}
+                {selected.academie   && <span className="pill">Acad. {selected.academie}</span>}
+                {selected.type_ecole && <span className="pill">{selected.type_ecole}</span>}
+                {(selected.secteurs || []).map(s => <span key={s} className="pill purple" style={{ fontSize: 10 }}>{s}</span>)}
+              </div>
+              <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 8, display: 'flex', flexDirection: 'column', gap: 3 }}>
+                {selected.adresse   && <span><i className="ti ti-map" style={{ fontSize: 11 }} /> {selected.adresse}{selected.code_postal ? ', ' + selected.code_postal : ''}</span>}
+                {selected.telephone && <span><i className="ti ti-phone" style={{ fontSize: 11 }} /> {selected.telephone}</span>}
+                {selected.email     && <span><i className="ti ti-mail" style={{ fontSize: 11 }} /> {selected.email}</span>}
+                {selected.site_web  && <span style={{ color: 'var(--teal)', cursor: 'pointer' }} onClick={() => window.open(selected.site_web.startsWith('http') ? selected.site_web : 'https://' + selected.site_web, '_blank')}><i className="ti ti-world" style={{ fontSize: 11 }} /> {selected.site_web}</span>}
+              </div>
+              <div style={{ fontWeight: 600, fontSize: 12, color: 'var(--navy)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                <i className="ti ti-certificate" /> Formations ({formations.length})
+              </div>
+              {loadingF ? (
+                <div style={{ fontSize: 13, color: 'var(--muted)' }}>Chargement…</div>
+              ) : formations.length === 0 ? (
+                <div style={{ fontSize: 13, color: 'var(--muted)' }}>Aucune formation enregistrée.</div>
+              ) : formations.map(f => (
+                <div key={f.id} style={{ padding: '8px 0', borderBottom: '0.5px solid var(--border)' }}>
+                  <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--navy)', marginBottom: 2 }}>{f.nom}</div>
+                  <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+                    {f.diplome && <span className="pill" style={{ background: 'var(--purple-soft)', color: 'var(--purple)' }}>{f.diplome}</span>}
+                    {f.niveau && f.niveau !== 'autre' && <span className="pill">{NIVEAU_LABEL[f.niveau] || f.niveau}</span>}
+                    {f.localite_formation && <span className="pill"><i className="ti ti-map-pin" style={{ fontSize: 10 }} /> {f.localite_formation}</span>}
+                    {f.url_onisep && <span className="pill teal" style={{ cursor: 'pointer' }} onClick={() => window.open(f.url_onisep, '_blank')}><i className="ti ti-external-link" style={{ fontSize: 10 }} /> ONISEP</span>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── VUE FORMATIONS ── */}
+      {vue === 'formations' && (
+        <div className="s-card" style={{ marginBottom: 0, borderTopLeftRadius: 0, borderTopRightRadius: 0 }}>
+          {loadingFS ? (
+            <div style={{ fontSize: 13, color: 'var(--muted)' }}>Recherche en cours…</div>
+          ) : formationsSearch.length === 0 ? (
+            <div style={{ fontSize: 13, color: 'var(--muted)' }}>Aucune formation trouvée. Essayez d'autres filtres.</div>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 10 }}>
+              {formationsSearch.map(f => (
+                <div key={f.id} style={{ border: '0.5px solid var(--border)', borderRadius: 10, padding: '12px 14px', background: 'white' }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--navy)', marginBottom: 6, lineHeight: 1.4 }}>{f.nom}</div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 8 }}>
+                    {f.niveau && f.niveau !== 'autre' && (
+                      <span style={{ ...niveauStyle(f.niveau), fontSize: 10, padding: '2px 8px', borderRadius: 20 }}>{NIVEAU_LABEL[f.niveau] || f.niveau}</span>
+                    )}
+                    {f.diplome && <span style={{ background: 'var(--purple-soft)', color: 'var(--purple)', fontSize: 10, padding: '2px 8px', borderRadius: 20 }}>{f.diplome}</span>}
+                    {f.localite_formation && <span style={{ background: 'var(--light)', color: 'var(--muted)', fontSize: 10, padding: '2px 8px', borderRadius: 20 }}><i className="ti ti-map-pin" style={{ fontSize: 9 }} /> {f.localite_formation}</span>}
+                  </div>
+                  {f.ecole && (
+                    <div
+                      style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '6px 8px', background: 'var(--light)', borderRadius: 8, cursor: onNavigateEcole ? 'pointer' : 'default' }}
+                      onClick={() => onNavigateEcole?.(f.ecole.id)}
+                    >
+                      <div style={{ width: 26, height: 26, borderRadius: 6, background: 'var(--purple-soft)', color: 'var(--purple)', fontSize: 9, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        {sigle(f.ecole.nom)}
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--navy)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{f.ecole.nom}</div>
+                        <div style={{ fontSize: 10, color: 'var(--muted)' }}>{[f.ecole.ville, f.ecole.region].filter(Boolean).join(' · ')}</div>
+                      </div>
+                      {onNavigateEcole && <i className="ti ti-external-link" style={{ fontSize: 11, color: 'var(--teal)', flexShrink: 0 }} />}
+                    </div>
+                  )}
+                  {f.url_onisep && (
+                    <button className="btn-sm teal" style={{ fontSize: 10, marginTop: 6, width: '100%' }} onClick={() => window.open(f.url_onisep, '_blank')}>
+                      <i className="ti ti-external-link" /> Fiche ONISEP
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </>
   )
+}
+
+function niveauStyle(niveau) {
+  const map = {
+    cap:    { background: '#fef9c3', color: '#854d0e' },
+    bts:    { background: '#e0f2fe', color: '#0369a1' },
+    bach:   { background: '#dcfce7', color: '#166534' },
+    master: { background: '#fce7f3', color: '#9d174d' },
+    autre:  { background: '#ede9fe', color: '#7c3aed' },
+  }
+  return map[niveau] || map.autre
 }
 
 const inputStyle = {
