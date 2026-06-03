@@ -186,6 +186,37 @@ export default function PanelCandidatEcoles({ onNavigateEcole, onNavigateFormati
 
     // ── Requête formations ───────────────────────────────────────────────────
     setLoadingFS(true)
+
+    if (diplome.trim()) {
+      // Recherche directe par mot clé diplôme — ignore la limite des 100 écoles
+      let fQuery = supabase
+        .from('formations')
+        .select('id, nom, diplome, niveau, modalite, url_onisep, localite_formation, ecole_id')
+        .ilike('diplome', `%${diplome.trim()}%`)
+        .order('nom')
+        .limit(300)
+
+      if (niveau) fQuery = fQuery.eq('niveau', niveau)
+
+      const { data: fData } = await fQuery
+      const ids = [...new Set((fData || []).map(f => f.ecole_id))]
+      let ecoleMap = Object.fromEntries(ecolesResult.map(e => [e.id, e]))
+
+      // Récupère les écoles manquantes (hors des 100 premières)
+      const missing = ids.filter(id => !ecoleMap[id])
+      if (missing.length > 0) {
+        const { data: extra } = await supabase
+          .from('ecoles')
+          .select('id, nom, ville, region, academie, modalites')
+          .in('id', missing)
+        for (const e of (extra || [])) ecoleMap[e.id] = e
+      }
+
+      setFormationsSearch((fData || []).map(f => ({ ...f, ecole: ecoleMap[f.ecole_id] })))
+      setLoadingFS(false)
+      return
+    }
+
     const ecoleIdsResult = ecolesResult.map(e => e.id)
     if (ecoleIdsResult.length === 0) { setFormationsSearch([]); setLoadingFS(false); return }
 
@@ -196,9 +227,8 @@ export default function PanelCandidatEcoles({ onNavigateEcole, onNavigateFormati
       .order('nom')
       .limit(200)
 
-    if (niveau)         fQuery = fQuery.eq('niveau', niveau)
-    if (q.trim())       fQuery = fQuery.ilike('nom', `%${q.trim()}%`)
-    if (diplome.trim()) fQuery = fQuery.ilike('diplome', `%${diplome.trim()}%`)
+    if (niveau)   fQuery = fQuery.eq('niveau', niveau)
+    if (q.trim()) fQuery = fQuery.ilike('nom', `%${q.trim()}%`)
 
     const { data: fData } = await fQuery
 
