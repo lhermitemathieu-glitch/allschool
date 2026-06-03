@@ -32,7 +32,7 @@ function formatDate(iso) {
 }
 
 // ── composant principal ───────────────────────────────────────────────────────
-export default function PanelEcolePublique({ ecoleId, onBack, onEdit, isAdmin = false, isEntreprise = false }) {
+export default function PanelEcolePublique({ ecoleId, onBack, onEdit, onNavigateFormation, isAdmin = false, isEntreprise = false }) {
   const supabase = createClient()
 
   const [ecole, setEcole]           = useState(null)
@@ -228,12 +228,18 @@ export default function PanelEcolePublique({ ecoleId, onBack, onEdit, isAdmin = 
               ? <div style={{ fontSize: 13, color: 'var(--muted)' }}>Aucune formation.</div>
               : formsFiltrees.map((f, i) => (
                 <div key={f.id} style={{ padding: '8px 0', borderBottom: i < formsFiltrees.length - 1 ? '0.5px solid var(--border)' : 'none' }}>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--navy)', marginBottom: 3 }}>{f.nom}</div>
+                  <div
+                    style={{ fontSize: 13, fontWeight: 600, color: onNavigateFormation ? 'var(--teal)' : 'var(--navy)', marginBottom: 3, cursor: onNavigateFormation ? 'pointer' : 'default' }}
+                    onClick={() => onNavigateFormation?.(f.id)}
+                  >
+                    {f.nom}
+                    {onNavigateFormation && <i className="ti ti-chevron-right" style={{ fontSize: 11, marginLeft: 4 }} />}
+                  </div>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, alignItems: 'center' }}>
                     {f.niveau && <NiveauTag value={f.niveau} />}
                     {f.localite_formation && <span style={{ fontSize: 10, color: 'var(--muted)' }}><i className="ti ti-map-pin" style={{ fontSize: 9 }} /> {f.localite_formation}</span>}
                     {f.url_onisep && (
-                      <span onClick={() => window.open(f.url_onisep, '_blank')}
+                      <span onClick={e => { e.stopPropagation(); window.open(f.url_onisep, '_blank') }}
                         style={{ fontSize: 10, color: 'var(--teal)', cursor: 'pointer', fontWeight: 600 }}>
                         <i className="ti ti-external-link" style={{ fontSize: 9 }} /> ONISEP
                       </span>

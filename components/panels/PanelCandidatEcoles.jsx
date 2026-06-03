@@ -25,7 +25,7 @@ const SECTEURS = [
   'Sport & Animation',
 ]
 
-export default function PanelCandidatEcoles({ onNavigateEcole, initialVue, initialFilters }) {
+export default function PanelCandidatEcoles({ onNavigateEcole, onNavigateFormation, initialVue, initialFilters }) {
   const supabase = createClient()
 
   const [vue, setVue]               = useState(initialVue || 'ecoles') // 'ecoles' | 'formations'
@@ -379,12 +379,17 @@ export default function PanelCandidatEcoles({ onNavigateEcole, initialVue, initi
                 <div style={{ fontSize: 13, color: 'var(--muted)' }}>Aucune formation enregistrée.</div>
               ) : formations.map(f => (
                 <div key={f.id} style={{ padding: '8px 0', borderBottom: '0.5px solid var(--border)' }}>
-                  <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--navy)', marginBottom: 2 }}>{f.nom}</div>
+                  <div
+                    style={{ fontSize: 13, fontWeight: 500, color: onNavigateFormation ? 'var(--teal)' : 'var(--navy)', marginBottom: 2, cursor: onNavigateFormation ? 'pointer' : 'default' }}
+                    onClick={() => onNavigateFormation?.(f.id, vue, { q, region, niveau, secteur, ville, villeCity, rayon })}
+                  >
+                    {f.nom}
+                    {onNavigateFormation && <i className="ti ti-chevron-right" style={{ fontSize: 11, marginLeft: 4 }} />}
+                  </div>
                   <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
-                    {f.diplome && <span className="pill" style={{ background: 'var(--purple-soft)', color: 'var(--purple)' }}>{f.diplome}</span>}
                     {f.niveau && f.niveau !== 'autre' && <span className="pill">{NIVEAU_LABEL[f.niveau] || f.niveau}</span>}
                     {f.localite_formation && <span className="pill"><i className="ti ti-map-pin" style={{ fontSize: 10 }} /> {f.localite_formation}</span>}
-                    {f.url_onisep && <span className="pill teal" style={{ cursor: 'pointer' }} onClick={() => window.open(f.url_onisep, '_blank')}><i className="ti ti-external-link" style={{ fontSize: 10 }} /> ONISEP</span>}
+                    {f.url_onisep && <span className="pill teal" style={{ cursor: 'pointer' }} onClick={e => { e.stopPropagation(); window.open(f.url_onisep, '_blank') }}><i className="ti ti-external-link" style={{ fontSize: 10 }} /> ONISEP</span>}
                   </div>
                 </div>
               ))}
@@ -414,8 +419,11 @@ export default function PanelCandidatEcoles({ onNavigateEcole, initialVue, initi
                   </div>
 
                   {/* Nom + localité */}
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--navy)', lineHeight: 1.4 }}>{f.nom}</div>
+                  <div style={{ flex: 1, minWidth: 0, cursor: onNavigateFormation ? 'pointer' : 'default' }} onClick={() => onNavigateFormation?.(f.id, 'formations', { q, region, niveau, secteur, ville, villeCity, rayon })}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: onNavigateFormation ? 'var(--teal)' : 'var(--navy)', lineHeight: 1.4 }}>
+                      {f.nom}
+                      {onNavigateFormation && <i className="ti ti-chevron-right" style={{ fontSize: 11, marginLeft: 4 }} />}
+                    </div>
                     {f.localite_formation && (
                       <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 1 }}>
                         <i className="ti ti-map-pin" style={{ fontSize: 10 }} /> {f.localite_formation}

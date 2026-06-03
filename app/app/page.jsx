@@ -15,6 +15,7 @@ import { PanelEcolePage, PanelEcoleApprentis, PanelEcoleDashboard } from '../../
 import { PanelBackOverview, PanelBackApprentis, PanelBackEcoles, PanelBackEntreprises, PanelBackLogs } from '../../components/panels/PanelBackoffice'
 import { PanelBackDetailEcoles, PanelBackDetailCandidats, PanelBackDetailEntreprises } from '../../components/panels/PanelBackDetail'
 import PanelEcolePublique from '../../components/panels/PanelEcolePublique'
+import PanelFormationPublique from '../../components/panels/PanelFormationPublique'
 
 const SPACES = {
   home: {
@@ -176,7 +177,12 @@ export default function Home() {
     switch (activePanel) {
       case 'home':                  return <PanelHome onSwitch={switchSpace} />
       case 'candidat-profil':       return <PanelCandidatProfil />
-      case 'candidat-ecoles':       return <PanelCandidatEcoles initialVue={activePanelData?.tab} initialFilters={activePanelData?.filters} onNavigateEcole={(id, tab, filters) => navigateTo('ecole-publique', { ecoleId: id, from: 'candidat-ecoles', fromTab: tab, filters })} />
+      case 'candidat-ecoles':       return <PanelCandidatEcoles
+          initialVue={activePanelData?.tab}
+          initialFilters={activePanelData?.filters}
+          onNavigateEcole={(id, tab, filters) => navigateTo('ecole-publique', { ecoleId: id, from: 'candidat-ecoles', fromTab: tab, filters })}
+          onNavigateFormation={(id, tab, filters) => navigateTo('formation-publique', { formationId: id, from: 'candidat-ecoles', fromTab: tab, filters })}
+        />
       case 'candidat-candidatures': return <PanelCandidatCandidatures />
       case 'candidat-badges':       return <PanelCandidatBadges />
       case 'entreprise-siret':      return <PanelEntrepriseSiret />
@@ -202,6 +208,14 @@ export default function Home() {
           isEntreprise={authUser?.user_metadata?.role === 'entreprise'}
           onBack={() => navigateTo(activePanelData?.from || 'home', { tab: activePanelData?.fromTab, filters: activePanelData?.filters })}
           onEdit={isAdmin ? () => navigateTo('ecole-edit', { ecoleId: activePanelData?.ecoleId, from: 'ecole-publique' }) : undefined}
+          onNavigateFormation={id => navigateTo('formation-publique', { formationId: id, from: 'ecole-publique', ecoleId: activePanelData?.ecoleId, fromTab: activePanelData?.fromTab, filters: activePanelData?.filters })}
+        />
+      )
+      case 'formation-publique':    return (
+        <PanelFormationPublique
+          formationId={activePanelData?.formationId}
+          onBack={() => navigateTo(activePanelData?.from || 'home', { ecoleId: activePanelData?.ecoleId, fromTab: activePanelData?.fromTab, filters: activePanelData?.filters })}
+          onNavigateEcole={id => navigateTo('ecole-publique', { ecoleId: id, from: 'formation-publique', formationId: activePanelData?.formationId, fromTab: activePanelData?.fromTab, filters: activePanelData?.filters })}
         />
       )
       case 'ecole-edit':            return (
