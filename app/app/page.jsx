@@ -117,6 +117,7 @@ export default function Home() {
   const [activePanelData, setActivePanelData] = useState(null)
   const [authUser, setAuthUser]             = useState(null)
   const [allowedSpaces, setAllowedSpaces]   = useState([])
+  const [dynamicUser, setDynamicUser]       = useState(null)
 
   // Verrouille le scroll sur le body (layout fixe du dashboard)
   useEffect(() => {
@@ -135,6 +136,22 @@ export default function Home() {
       setAuthUser(user)
       const role = user.user_metadata?.role
       setAllowedSpaces(ROLE_TO_ALLOWED_SPACES[role] ?? [])
+
+      // Charge le vrai nom selon le rôle
+      if (role === 'entreprise') {
+        const { data: ent } = await supabase.from('entreprises').select('raison_sociale').eq('user_id', user.id).maybeSingle()
+        if (ent?.raison_sociale) {
+          const initiales = ent.raison_sociale.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)
+          setDynamicUser({ name: ent.raison_sociale, av: initiales, role: 'Entreprise', bg: 'var(--accent)' })
+        }
+      } else if (role === 'candidat') {
+        const { data: cand } = await supabase.from('candidats').select('prenom, nom').eq('id', user.id).maybeSingle()
+        if (cand?.prenom || cand?.nom) {
+          const fullName = [cand.prenom, cand.nom].filter(Boolean).join(' ')
+          const initiales = [cand.prenom?.[0], cand.nom?.[0]].filter(Boolean).join('').toUpperCase()
+          setDynamicUser({ name: fullName, av: initiales, role: 'Candidat', bg: 'var(--teal)' })
+        }
+      }
     }
     loadUser()
   }, [])
@@ -246,10 +263,10 @@ export default function Home() {
 
   return (
     <>
-      <TopNav activeSpace={activeSpace} onSwitch={switchSpace} user={space?.user} onLogout={handleLogout} allowedSpaces={allowedSpaces} />
+      <TopNav activeSpace={activeSpace} onSwitch={switchSpace} user={dynamicUser || space?.user} onLogout={handleLogout} allowedSpaces={allowedSpaces} />
       <div className={`workspace ${isHome ? 'home-mode' : ''}`}>
         {!isHome && (
-          <Sidebar space={space} activePanel={activePanel} onNavigate={setActivePanel} />
+          <Sidebar space={space} activePanel={activePanel} onNavigate={setActivePanel} dynamicUser={dynamicUser} />
         )}
         <main className="main" id="main-content">
           {renderPanel()}

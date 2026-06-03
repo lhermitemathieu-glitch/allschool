@@ -6,7 +6,7 @@
 //   activePanel : string — panel actuellement actif
 //   onNavigate  : (panelId: string) => void
 
-export default function Sidebar({ space, activePanel, onNavigate }) {
+export default function Sidebar({ space, activePanel, onNavigate, dynamicUser }) {
   if (!space) return null
 
   return (
@@ -49,13 +49,13 @@ export default function Sidebar({ space, activePanel, onNavigate }) {
         <div className="user-card">
           <div
             className="user-card-avatar"
-            style={{ background: space.user.bg }}
+            style={{ background: (dynamicUser || space.user).bg }}
           >
-            {space.user.av}
+            {(dynamicUser || space.user).av}
           </div>
           <div>
-            <div className="user-card-name">{space.user.name}</div>
-            <div className="user-card-role">{space.user.role}</div>
+            <div className="user-card-name">{(dynamicUser || space.user).name}</div>
+            <div className="user-card-role">{(dynamicUser || space.user).role}</div>
           </div>
         </div>
       </div>
