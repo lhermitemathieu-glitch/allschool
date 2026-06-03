@@ -78,8 +78,9 @@ export default function PanelEcolePublique({ ecoleId, onBack, onEdit, onNavigate
     setToggling(false)
   }
 
-  // diplômes uniques déduits des formations
-  const niveauxUniques = [...new Set(formations.map(f => f.niveau).filter(Boolean))]
+  // niveaux et modalités uniques déduits des formations
+  const niveauxUniques   = [...new Set(formations.map(f => f.niveau).filter(Boolean))]
+  const modalitesUniques = [...new Set(formations.map(f => f.modalite).filter(Boolean))]
   const formsFiltrees  = niveauFilter ? formations.filter(f => f.niveau === niveauFilter) : formations
 
   const BG_COLORS = ['var(--teal-soft)', 'var(--purple-soft)', 'var(--accent-soft)', '#fef9c3']
@@ -190,10 +191,15 @@ export default function PanelEcolePublique({ ecoleId, onBack, onEdit, onNavigate
           )}
         </div>
 
-        {/* Diplômes proposés */}
-        {niveauxUniques.length > 0 && (
+        {/* Diplômes et modalités proposés */}
+        {(niveauxUniques.length > 0 || modalitesUniques.length > 0) && (
           <div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 6 }}>
             {niveauxUniques.map(n => <NiveauTag key={n} value={n} />)}
+            {modalitesUniques.map(m => {
+              const MMAP = { presentiel: { label: 'Présentiel', bg: '#e0f2fe', color: '#0369a1', icon: 'ti-building' }, distanciel: { label: 'Distanciel', bg: '#dcfce7', color: '#166534', icon: 'ti-wifi' }, hybride: { label: 'Hybride', bg: '#fef9c3', color: '#854d0e', icon: 'ti-refresh' } }
+              const md = MMAP[m]; if (!md) return null
+              return <span key={m} style={{ background: md.bg, color: md.color, fontSize: 11, fontWeight: 600, padding: '3px 10px', borderRadius: 20, display: 'inline-flex', alignItems: 'center', gap: 4 }}><i className={`ti ${md.icon}`} style={{ fontSize: 10 }} />{md.label}</span>
+            })}
             {ecole.qualiopi && (
               <span style={{ background: 'var(--teal-soft)', color: 'var(--teal)', fontSize: 11, fontWeight: 600, padding: '3px 10px', borderRadius: 20 }}>
                 <i className="ti ti-rosette" style={{ fontSize: 10 }} /> Qualiopi

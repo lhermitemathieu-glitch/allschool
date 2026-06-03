@@ -159,6 +159,15 @@ export default function PanelCandidatEcoles({ onNavigateEcole, onNavigateFormati
       villeExacte = villeCity || ville.trim()
     }
 
+    // ── Filtre modalité → IDs d'écoles concernées ────────────────────────────
+    let modaliteIds = null
+    if (modalite) {
+      const { data: mIds } = await supabase
+        .from('formations').select('ecole_id').eq('modalite', modalite)
+      modaliteIds = [...new Set((mIds || []).map(f => f.ecole_id))]
+      if (modaliteIds.length === 0) { setEcoles([]); setFormationsSearch([]); setLoading(false); setLoadingFS(false); return }
+    }
+
     // ── Requête écoles ───────────────────────────────────────────────────────
     let ecolesQuery = supabase
       .from('ecoles')
@@ -171,6 +180,7 @@ export default function PanelCandidatEcoles({ onNavigateEcole, onNavigateFormati
     if (secteur)       ecolesQuery = ecolesQuery.contains('secteurs', [secteur])
     if (geoIds)        ecolesQuery = ecolesQuery.in('id', geoIds)
     if (villeExacte)   ecolesQuery = ecolesQuery.ilike('ville', villeExacte)
+    if (modaliteIds)   ecolesQuery = ecolesQuery.in('id', modaliteIds)
 
     const { data: ecolesData } = await ecolesQuery
     const ecolesResult = ecolesData || []
