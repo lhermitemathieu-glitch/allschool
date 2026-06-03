@@ -76,6 +76,8 @@ export default function PanelCandidatFormations({ onNavigateFormation, onNavigat
 
   const [formations, setFormations] = useState([])
   const [loading, setLoading]       = useState(false)
+  const [searched, setSearched]     = useState(false)
+  const [total, setTotal]           = useState(null)
 
   const [q,        setQ]        = useState(initialFilters?.q        || '')
   const [diplome,  setDiplome]  = useState(initialFilters?.diplome  || '')
@@ -121,6 +123,7 @@ export default function PanelCandidatFormations({ onNavigateFormation, onNavigat
 
   const search = useCallback(async () => {
     setLoading(true)
+    setSearched(true)
     setGeoErr('')
 
     // ── Filtre géographique → IDs d'écoles ───────────────────────────────────
@@ -188,8 +191,10 @@ export default function PanelCandidatFormations({ onNavigateFormation, onNavigat
     setLoading(false)
   }, [q, diplome, niveau, modalite, ville, villeCity, rayon])
 
-  useEffect(() => { search() }, [])
-  useEffect(() => { search() }, [niveau, modalite])
+  useEffect(() => {
+    supabase.from('formations').select('id', { count: 'exact', head: true }).then(({ count }) => setTotal(count))
+  }, [])
+  // Plus de déclenchement automatique sur changement de filtre
 
   const filters = { q, diplome, niveau, modalite, ville, villeCity, rayon }
 
@@ -198,7 +203,7 @@ export default function PanelCandidatFormations({ onNavigateFormation, onNavigat
       <div className="topbar">
         <div>
           <div className="page-title">Formations</div>
-          <div className="page-sub">Recherchez une formation par diplôme, niveau ou ville</div>
+          <div className="page-sub">{total !== null ? `${total} formations disponibles — utilisez les filtres pour rechercher` : 'Chargement…'}</div>
         </div>
       </div>
 
@@ -285,7 +290,12 @@ export default function PanelCandidatFormations({ onNavigateFormation, onNavigat
 
       {/* Résultats */}
       <div className="s-card" style={{ marginBottom: 0 }}>
-        {loading ? (
+        {!searched ? (
+          <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--muted)', fontSize: 13 }}>
+            <i className="ti ti-certificate" style={{ fontSize: 28, display: 'block', marginBottom: 10, opacity: 0.3 }} />
+            Utilisez les filtres et cliquez sur <strong>Rechercher</strong>.
+          </div>
+        ) : loading ? (
           <div style={{ fontSize: 13, color: 'var(--muted)' }}>Recherche en cours…</div>
         ) : formations.length === 0 ? (
           <div style={{ fontSize: 13, color: 'var(--muted)' }}>Aucune formation trouvée. Essayez d'autres filtres.</div>

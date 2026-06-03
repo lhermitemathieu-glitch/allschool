@@ -49,6 +49,8 @@ export default function PanelCandidatEcoles({ onNavigateEcole, onNavigateFormati
 
   const [ecoles,    setEcoles]    = useState([])
   const [loading,   setLoading]   = useState(false)
+  const [searched,  setSearched]  = useState(false)
+  const [total,     setTotal]     = useState(null)
   const [selected,  setSelected]  = useState(null)
   const [formations, setFormations] = useState([])
   const [loadingF,  setLoadingF]  = useState(false)
@@ -79,7 +81,8 @@ export default function PanelCandidatEcoles({ onNavigateEcole, onNavigateFormati
       setRegions([...all].sort())
     }
     loadRegions()
-    search()
+    // Compte total sans charger les résultats
+    supabase.from('ecoles').select('id', { count: 'exact', head: true }).then(({ count }) => setTotal(count))
   }, [])
 
   async function fetchSuggestions(val) {
@@ -114,6 +117,7 @@ export default function PanelCandidatEcoles({ onNavigateEcole, onNavigateFormati
 
   const search = useCallback(async () => {
     setLoading(true)
+    setSearched(true)
     setSelected(null)
     setFormations([])
     setGeoErr('')
@@ -158,7 +162,7 @@ export default function PanelCandidatEcoles({ onNavigateEcole, onNavigateFormati
     setLoading(false)
   }, [q, region, secteur, modalite, ville, villeCity, rayon])
 
-  useEffect(() => { search() }, [region, secteur, modalite])
+  // Plus de déclenchement automatique sur changement de filtre
 
   async function selectEcole(ecole) {
     setSelected(ecole)
@@ -179,7 +183,7 @@ export default function PanelCandidatEcoles({ onNavigateEcole, onNavigateFormati
       <div className="topbar">
         <div>
           <div className="page-title">Écoles</div>
-          <div className="page-sub">Trouvez une école par région, ville ou secteur</div>
+          <div className="page-sub">{total !== null ? `${total} écoles disponibles — utilisez les filtres pour rechercher` : 'Chargement…'}</div>
         </div>
       </div>
 
@@ -262,7 +266,12 @@ export default function PanelCandidatEcoles({ onNavigateEcole, onNavigateFormati
       {/* Résultats */}
       <div style={{ display: 'grid', gridTemplateColumns: selected ? '1fr 1fr' : '1fr', gap: '1rem' }}>
         <div className="s-card" style={{ marginBottom: 0 }}>
-          {loading ? (
+          {!searched ? (
+            <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--muted)', fontSize: 13 }}>
+              <i className="ti ti-school" style={{ fontSize: 28, display: 'block', marginBottom: 10, opacity: 0.3 }} />
+              Utilisez les filtres et cliquez sur <strong>Rechercher</strong>.
+            </div>
+          ) : loading ? (
             <div style={{ fontSize: 13, color: 'var(--muted)' }}>Recherche en cours…</div>
           ) : ecoles.length === 0 ? (
             <div style={{ fontSize: 13, color: 'var(--muted)' }}>Aucun résultat. Essayez d'autres filtres.</div>
