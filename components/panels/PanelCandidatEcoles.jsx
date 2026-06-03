@@ -25,10 +25,10 @@ const SECTEURS = [
   'Sport & Animation',
 ]
 
-export default function PanelCandidatEcoles({ onNavigateEcole }) {
+export default function PanelCandidatEcoles({ onNavigateEcole, initialVue }) {
   const supabase = createClient()
 
-  const [vue, setVue]               = useState('ecoles') // 'ecoles' | 'formations'
+  const [vue, setVue]               = useState(initialVue || 'ecoles') // 'ecoles' | 'formations'
   const [ecoles, setEcoles]         = useState([])
   const [loading, setLoading]       = useState(false)
   const [selected, setSelected]     = useState(null)
@@ -360,35 +360,49 @@ export default function PanelCandidatEcoles({ onNavigateEcole }) {
           ) : formationsSearch.length === 0 ? (
             <div style={{ fontSize: 13, color: 'var(--muted)' }}>Aucune formation trouvée. Essayez d'autres filtres.</div>
           ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 10 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
               {formationsSearch.map(f => (
-                <div key={f.id} style={{ border: '0.5px solid var(--border)', borderRadius: 10, padding: '12px 14px', background: 'white' }}>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--navy)', marginBottom: 6, lineHeight: 1.4 }}>{f.nom}</div>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 8 }}>
+                <div key={f.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 4px', borderBottom: '0.5px solid var(--border)' }}>
+                  {/* Niveau badge */}
+                  <div style={{ flexShrink: 0, width: 80, textAlign: 'center' }}>
                     {f.niveau && f.niveau !== 'autre' && (
-                      <span style={{ ...niveauStyle(f.niveau), fontSize: 10, padding: '2px 8px', borderRadius: 20 }}>{NIVEAU_LABEL[f.niveau] || f.niveau}</span>
+                      <span style={{ ...niveauStyle(f.niveau), fontSize: 10, padding: '3px 8px', borderRadius: 20, whiteSpace: 'nowrap' }}>
+                        {NIVEAU_LABEL[f.niveau] || f.niveau}
+                      </span>
                     )}
-                    {f.diplome && <span style={{ background: 'var(--purple-soft)', color: 'var(--purple)', fontSize: 10, padding: '2px 8px', borderRadius: 20 }}>{f.diplome}</span>}
-                    {f.localite_formation && <span style={{ background: 'var(--light)', color: 'var(--muted)', fontSize: 10, padding: '2px 8px', borderRadius: 20 }}><i className="ti ti-map-pin" style={{ fontSize: 9 }} /> {f.localite_formation}</span>}
                   </div>
+
+                  {/* Nom + localité */}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--navy)', lineHeight: 1.4 }}>{f.nom}</div>
+                    {f.localite_formation && (
+                      <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 1 }}>
+                        <i className="ti ti-map-pin" style={{ fontSize: 10 }} /> {f.localite_formation}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* École */}
                   {f.ecole && (
                     <div
-                      style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '6px 8px', background: 'var(--light)', borderRadius: 8, cursor: onNavigateEcole ? 'pointer' : 'default' }}
-                      onClick={() => onNavigateEcole?.(f.ecole.id)}
+                      style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, cursor: onNavigateEcole ? 'pointer' : 'default', padding: '4px 8px', borderRadius: 8, background: 'var(--light)' }}
+                      onClick={() => onNavigateEcole?.(f.ecole.id, 'formations')}
                     >
-                      <div style={{ width: 26, height: 26, borderRadius: 6, background: 'var(--purple-soft)', color: 'var(--purple)', fontSize: 9, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <div style={{ width: 22, height: 22, borderRadius: 5, background: 'var(--purple-soft)', color: 'var(--purple)', fontSize: 8, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                         {sigle(f.ecole.nom)}
                       </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ maxWidth: 160 }}>
                         <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--navy)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{f.ecole.nom}</div>
                         <div style={{ fontSize: 10, color: 'var(--muted)' }}>{[f.ecole.ville, f.ecole.region].filter(Boolean).join(' · ')}</div>
                       </div>
-                      {onNavigateEcole && <i className="ti ti-external-link" style={{ fontSize: 11, color: 'var(--teal)', flexShrink: 0 }} />}
+                      {onNavigateEcole && <i className="ti ti-chevron-right" style={{ fontSize: 11, color: 'var(--teal)' }} />}
                     </div>
                   )}
+
+                  {/* ONISEP */}
                   {f.url_onisep && (
-                    <button className="btn-sm teal" style={{ fontSize: 10, marginTop: 6, width: '100%' }} onClick={() => window.open(f.url_onisep, '_blank')}>
-                      <i className="ti ti-external-link" /> Fiche ONISEP
+                    <button className="btn-sm teal" style={{ fontSize: 11, flexShrink: 0 }} onClick={() => window.open(f.url_onisep, '_blank')}>
+                      <i className="ti ti-external-link" /> ONISEP
                     </button>
                   )}
                 </div>

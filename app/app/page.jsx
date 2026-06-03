@@ -163,7 +163,7 @@ export default function Home() {
     switch (activePanel) {
       case 'home':                  return <PanelHome onSwitch={switchSpace} />
       case 'candidat-profil':       return <PanelCandidatProfil />
-      case 'candidat-ecoles':       return <PanelCandidatEcoles onNavigateEcole={id => navigateTo('ecole-publique', { ecoleId: id, from: 'candidat-ecoles' })} />
+      case 'candidat-ecoles':       return <PanelCandidatEcoles initialVue={activePanelData?.tab} onNavigateEcole={(id, tab) => navigateTo('ecole-publique', { ecoleId: id, from: 'candidat-ecoles', fromTab: tab })} />
       case 'candidat-candidatures': return <PanelCandidatCandidatures />
       case 'candidat-badges':       return <PanelCandidatBadges />
       case 'entreprise-siret':      return <PanelEntrepriseSiret />
@@ -187,7 +187,7 @@ export default function Home() {
           ecoleId={activePanelData?.ecoleId}
           isAdmin={isAdmin}
           isEntreprise={authUser?.user_metadata?.role === 'entreprise'}
-          onBack={() => navigateTo(activePanelData?.from || 'home', null)}
+          onBack={() => navigateTo(activePanelData?.from || 'home', activePanelData?.fromTab ? { tab: activePanelData.fromTab } : null)}
           onEdit={isAdmin ? () => navigateTo('ecole-edit', { ecoleId: activePanelData?.ecoleId, from: 'ecole-publique' }) : undefined}
         />
       )
