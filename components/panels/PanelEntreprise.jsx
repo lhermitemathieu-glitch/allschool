@@ -250,65 +250,208 @@ export function PanelEntrepriseRecherche({ onNavigate }) {
 }
 
 // ── ÉCOLES ────────────────────────────────────────────────────────────────────
+const SECTEURS_ENT = [
+  'Agriculture & Environnement', 'Alimentation & Restauration', 'Arts & Culture',
+  'BTP & Immobilier', 'Commerce & Vente', 'Communication & Marketing',
+  'Finance & Comptabilité', 'Hôtellerie & Tourisme', 'Industrie & Production',
+  'Informatique & Numérique', 'Juridique & Droit', 'Logistique & Transport',
+  'Ressources Humaines', 'Santé & Social', 'Sport & Animation',
+]
+
+async function geocodeVilleEnt(nom) {
+  const res = await fetch(`https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(nom)}&type=municipality&limit=1`)
+  const json = await res.json()
+  const feat = json?.features?.[0]
+  if (!feat) return null
+  const [lng, lat] = feat.geometry.coordinates
+  return { lat, lng }
+}
+
 export function PanelEntrepriseEcoles({ onNavigateEcole }) {
-  const ecoles = [
-    { initiales: 'CFA', nom: 'CFA des Métiers du Rhône', lieu: 'Lyon 7e · 3km', type: 'CFA public', typeCls: 'teal', reussite: '94%', apprentis: '320', avis: '4.2' },
-    { initiales: 'ISEG', nom: 'ISEG Marketing Lyon', lieu: 'Lyon 2e · 4km', type: 'CFA privé', typeCls: 'purple', reussite: '91%', apprentis: '480', avis: '4.0' },
-  ]
+  const supabase = createClient()
+
+  const [ecoles,      setEcoles]      = useState([])
+  const [loading,     setLoading]     = useState(false)
+  const [searched,    setSearched]    = useState(false)
+  const [total,       setTotal]       = useState(null)
+  const [ville,       setVille]       = useState('')
+  const [rayon,       setRayon]       = useState('20')
+  const [secteur,     setSecteur]     = useState('')
+  const [modalite,    setModalite]    = useState('')
+  const [suggestions, setSuggestions] = useState([])
+  const [geoErr,      setGeoErr]      = useState('')
+  const [geoLoading,  setGeoLoading]  = useState(false)
+
+  useEffect(() => {
+    supabase.from('ecoles').select('id', { count: 'exact', head: true }).then(({ count }) => setTotal(count))
+  }, [])
+
+  async function fetchSuggestions(val) {
+    if (val.length < 2) { setSuggestions([]); return }
+    const res  = await fetch(`https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(val)}&type=municipality&limit=6`)
+    const json = await res.json()
+    setSuggestions(json?.features?.map(f => f.properties.label) || [])
+  }
+
+  const search = useCallback(async () => {
+    setLoading(true)
+    setSearched(true)
+    setGeoErr('')
+    setSuggestions([])
+
+    let geoIds = null
+
+    if (ville.trim() && rayon) {
+      setGeoLoading(true)
+      const coords = await geocodeVilleEnt(ville.trim())
+      setGeoLoading(false)
+      if (!coords) {
+        setGeoErr(`Ville "${ville}" introuvable`)
+        setEcoles([])
+        setLoading(false)
+        return
+      }
+      const { data: nearby } = await supabase.rpc('ecoles_dans_rayon', {
+        lat: coords.lat, lng: coords.lng, rayon_km: parseFloat(rayon),
+      })
+      geoIds = (nearby || []).map(r => r.id)
+      if (geoIds.length === 0) { setEcoles([]); setLoading(false); return }
+    }
+
+    let q = supabase
+      .from('ecoles')
+      .select('id, nom, ville, type_ecole, secteurs, modalites, email, telephone, site_web')
+      .order('nom')
+      .limit(100)
+
+    if (geoIds)   q = q.in('id', geoIds)
+    if (secteur)  q = q.contains('secteurs', [secteur])
+    if (modalite) q = q.contains('modalites', [modalite])
+
+    const { data } = await q
+    setEcoles(data || [])
+    setLoading(false)
+  }, [ville, rayon, secteur, modalite])
+
+  function sigleEcole(nom) {
+    return (nom || '').split(' ').filter(w => w.length > 2).map(w => w[0]).join('').toUpperCase().slice(0, 3) || '?'
+  }
 
   return (
     <>
       <div className="topbar">
         <div>
           <div className="page-title">Écoles près de moi</div>
-          <div className="page-sub">18 établissements dans votre zone</div>
-        </div>
-      </div>
-
-      <div className="fbar" style={{ display: 'flex', gap: 8, alignItems: 'flex-end', flexWrap: 'wrap' }}>
-        {[['Ville', 'text', 'Lyon', '140px'], ['Rayon km', 'number', '20', '70px']].map(([label, type, val, w]) => (
-          <div key={label}>
-            <div style={{ fontSize: 11, fontWeight: 500, color: 'var(--muted)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{label}</div>
-            <input type={type} defaultValue={val} style={{ width: w }} />
+          <div className="page-sub">
+            {searched
+              ? loading ? 'Recherche…' : `${ecoles.length} école${ecoles.length !== 1 ? 's' : ''} trouvée${ecoles.length !== 1 ? 's' : ''}`
+              : total !== null ? `${total} écoles disponibles — lancez une recherche` : 'Chargement…'}
           </div>
-        ))}
-        <div>
-          <div style={{ fontSize: 11, fontWeight: 500, color: 'var(--muted)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Secteur</div>
-          <select style={{ width: 180 }}><option>Tous secteurs</option><option>Marketing</option><option>Commerce</option><option>Bâtiment</option></select>
         </div>
-        <div>
-          <div style={{ fontSize: 11, fontWeight: 500, color: 'var(--muted)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Type</div>
-          <select style={{ width: 150 }}><option>Tous types</option><option>CFA public</option><option>CFA privé</option><option>CMA</option></select>
-        </div>
-        <button className="btn-sm accent"><i className="ti ti-search" /> Rechercher</button>
       </div>
 
-      <div className="grid2">
-        {ecoles.map((e, i) => (
-          <div key={i} className="s-card" style={{ marginBottom: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 10 }}>
-              <div style={{ width: 44, height: 44, borderRadius: 10, background: 'var(--light)', border: '0.5px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Syne, sans-serif', fontSize: 10, fontWeight: 800, color: 'var(--navy)', flexShrink: 0 }}>{e.initiales}</div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontFamily: 'Syne, sans-serif', fontSize: 14, fontWeight: 700, color: 'var(--navy)' }}>{e.nom}</div>
-                <div style={{ fontSize: 11, color: 'var(--muted)' }}>{e.lieu}</div>
+      <div className="fbar">
+        <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end', flexWrap: 'wrap' }}>
+          {/* Ville */}
+          <div style={{ position: 'relative', flex: '2 1 140px' }}>
+            <div style={{ fontSize: 11, fontWeight: 500, color: 'var(--muted)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Ville</div>
+            <input
+              type="text" value={ville} placeholder="Lyon, Paris…"
+              onChange={e => { setVille(e.target.value); fetchSuggestions(e.target.value) }}
+              onKeyDown={e => e.key === 'Enter' && search()}
+              style={{ width: '100%' }}
+            />
+            {suggestions.length > 0 && (
+              <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'white', border: '1.5px solid var(--border)', borderRadius: 8, zIndex: 10, boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}>
+                {suggestions.map(s => (
+                  <div key={s} style={{ padding: '8px 12px', fontSize: 13, cursor: 'pointer', color: 'var(--navy)' }}
+                    onMouseDown={() => { setVille(s); setSuggestions([]) }}>
+                    {s}
+                  </div>
+                ))}
               </div>
-              <span className={`pill ${e.typeCls}`}>{e.type}</span>
-            </div>
-            <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
-              {[['Réussite', e.reussite], ['Apprentis', e.apprentis], ['Avis', e.avis]].map(([label, val]) => (
-                <div key={label} className="stat-mini" style={{ flex: 1, padding: 8 }}>
-                  <span className="stat-num" style={{ fontSize: 18 }}>{val}</span>
-                  <div className="stat-label">{label}</div>
-                </div>
-              ))}
-            </div>
-            <div style={{ display: 'flex', gap: 5 }}>
-              <button className="btn-sm" onClick={() => onNavigateEcole?.(e.id)}><i className="ti ti-eye" /> Voir</button>
-              <button className="btn-sm accent"><i className="ti ti-send" /> Contacter</button>
-            </div>
+            )}
           </div>
-        ))}
+          {/* Rayon */}
+          <div style={{ flex: '0 0 80px' }}>
+            <div style={{ fontSize: 11, fontWeight: 500, color: 'var(--muted)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Rayon km</div>
+            <input type="number" value={rayon} min="1" max="200" onChange={e => setRayon(e.target.value)} style={{ width: '100%' }} />
+          </div>
+          {/* Secteur */}
+          <div style={{ flex: '2 1 160px' }}>
+            <div style={{ fontSize: 11, fontWeight: 500, color: 'var(--muted)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Secteur</div>
+            <select value={secteur} onChange={e => setSecteur(e.target.value)} style={{ width: '100%' }}>
+              <option value="">Tous secteurs</option>
+              {SECTEURS_ENT.map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
+          </div>
+          {/* Modalité */}
+          <div style={{ flex: '1 1 130px' }}>
+            <div style={{ fontSize: 11, fontWeight: 500, color: 'var(--muted)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Modalité</div>
+            <select value={modalite} onChange={e => setModalite(e.target.value)} style={{ width: '100%' }}>
+              <option value="">Toutes</option>
+              <option value="présentiel">Présentiel</option>
+              <option value="distanciel">Distanciel</option>
+              <option value="hybride">Hybride</option>
+            </select>
+          </div>
+          <button className="btn-sm accent" onClick={search} style={{ flexShrink: 0 }}>
+            {geoLoading ? <><i className="ti ti-loader" /> …</> : <><i className="ti ti-search" /> Rechercher</>}
+          </button>
+        </div>
+        {geoErr && <div style={{ fontSize: 12, color: 'var(--red)', marginTop: 6 }}>{geoErr}</div>}
       </div>
+
+      {!searched ? (
+        <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--muted)', fontSize: 13 }}>
+          <i className="ti ti-school" style={{ fontSize: 32, display: 'block', marginBottom: 12, opacity: 0.3 }} />
+          Entrez une ville et cliquez sur <strong>Rechercher</strong> pour trouver des écoles.
+        </div>
+      ) : loading ? (
+        <div style={{ padding: '2rem', color: 'var(--muted)', fontSize: 14 }}>Recherche en cours…</div>
+      ) : ecoles.length === 0 ? (
+        <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--muted)', fontSize: 14 }}>Aucune école trouvée. Essayez d'élargir le rayon ou de changer les filtres.</div>
+      ) : (
+        <div className="grid2">
+          {ecoles.map((e) => (
+            <div key={e.id} className="s-card" style={{ marginBottom: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 10 }}>
+                <div style={{ width: 44, height: 44, borderRadius: 10, background: 'var(--light)', border: '0.5px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Syne, sans-serif', fontSize: 10, fontWeight: 800, color: 'var(--navy)', flexShrink: 0 }}>
+                  {sigleEcole(e.nom)}
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontFamily: 'Syne, sans-serif', fontSize: 14, fontWeight: 700, color: 'var(--navy)' }}>{e.nom}</div>
+                  <div style={{ fontSize: 11, color: 'var(--muted)' }}>{e.ville}{e.type_ecole ? ` · ${e.type_ecole}` : ''}</div>
+                </div>
+              </div>
+              {/* Modalités */}
+              {(e.modalites || []).length > 0 && (
+                <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginBottom: 8 }}>
+                  {e.modalites.map(m => (
+                    <span key={m} className="pill teal" style={{ fontSize: 10 }}>{m}</span>
+                  ))}
+                </div>
+              )}
+              {/* Secteurs */}
+              {(e.secteurs || []).length > 0 && (
+                <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginBottom: 10 }}>
+                  {e.secteurs.slice(0, 3).map(s => (
+                    <span key={s} className="tag" style={{ fontSize: 10 }}>{s}</span>
+                  ))}
+                </div>
+              )}
+              <div style={{ display: 'flex', gap: 5 }}>
+                <button className="btn-sm" onClick={() => onNavigateEcole?.(e.id)}><i className="ti ti-eye" /> Voir</button>
+                {e.email && (
+                  <a href={`mailto:${e.email}`} className="btn-sm accent" style={{ textDecoration: 'none', fontSize: 11 }}>
+                    <i className="ti ti-send" /> Contacter
+                  </a>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </>
   )
 }
