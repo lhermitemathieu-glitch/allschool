@@ -139,7 +139,9 @@ function OffreCard({ offre: o }) {
   const [open, setOpen] = useState(false)
 
   return (
-    <div className="s-card" style={{ marginBottom: 0, borderLeft: '3px solid var(--teal)' }}>
+    <div style={{ display: 'flex', gap: 0, overflow: 'hidden', borderRadius: 10, border: '1px solid var(--border)', background: 'white', marginBottom: 0 }}>
+      <div style={{ width: 4, flexShrink: 0, background: 'var(--teal)', borderRadius: '10px 0 0 10px' }} />
+      <div style={{ flex: 1, padding: '16px 18px' }}>
       <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
         <div style={{ flex: 1 }}>
           {/* En-tête */}
@@ -219,6 +221,7 @@ function OffreCard({ offre: o }) {
           )}
         </div>
       )}
+      </div>{/* fin padding wrapper */}
     </div>
   )
 }

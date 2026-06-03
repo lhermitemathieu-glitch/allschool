@@ -696,7 +696,10 @@ export function PanelEntrepriseOffres() {
           const st = STATUT_CONFIG[o.statut] || STATUT_CONFIG.inactive
           const isEditing = editingId === o.id
           return (
-            <div key={o.id} className="offre-card" style={{ borderLeft: `3px solid ${st.dot}` }}>
+            <div key={o.id} className="offre-card" style={{ display: 'flex', gap: 0, padding: 0, overflow: 'hidden', borderRadius: 10, border: '1px solid var(--border)' }}>
+              {/* Barre statut */}
+              <div style={{ width: 4, flexShrink: 0, background: st.dot, borderRadius: '10px 0 0 10px' }} />
+              <div style={{ flex: 1, padding: '14px 16px' }}>
               {isEditing ? (
                 /* ── Mode édition ── */
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -756,6 +759,7 @@ export function PanelEntrepriseOffres() {
                   </div>
                 </div>
               )}
+              </div>{/* fin padding wrapper */}
             </div>
           )
         })}
