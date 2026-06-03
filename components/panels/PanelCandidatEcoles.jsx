@@ -192,7 +192,6 @@ export default function PanelCandidatEcoles({ onNavigateEcole, onNavigateFormati
       .limit(200)
 
     if (niveau)   fQuery = fQuery.eq('niveau', niveau)
-    if (modalite) fQuery = fQuery.eq('modalite', modalite)
     if (q.trim()) fQuery = fQuery.ilike('nom', `%${q.trim()}%`)
 
     const { data: fData } = await fQuery
