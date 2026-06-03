@@ -45,10 +45,12 @@ export default function PanelCandidatEcoles({ onNavigateEcole, initialVue, initi
   const [regions, setRegions] = useState([])
 
   // Filtres géographiques
-  const [ville,  setVille]  = useState(initialFilters?.ville || '')
-  const [rayon,  setRayon]  = useState(initialFilters?.rayon || '')
-  const [geoErr, setGeoErr] = useState('')
-  const [geoLoading, setGeoLoading] = useState(false)
+  const [ville,       setVille]       = useState(initialFilters?.ville || '')
+  const [rayon,       setRayon]       = useState(initialFilters?.rayon || '')
+  const [villeCity,   setVilleCity]   = useState(initialFilters?.villeCity || '') // nom exact pour filtre sans rayon
+  const [suggestions, setSuggestions] = useState([])
+  const [geoErr,      setGeoErr]      = useState('')
+  const [geoLoading,  setGeoLoading]  = useState(false)
 
   const NIVEAUX = [
     { value: 'cap',    label: 'CAP' },
@@ -76,6 +78,27 @@ export default function PanelCandidatEcoles({ onNavigateEcole, initialVue, initi
     search()
   }, [])
 
+  async function fetchSuggestions(q) {
+    if (q.length < 2) { setSuggestions([]); return }
+    const url = `https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(q)}&type=municipality&limit=6`
+    try {
+      const res = await fetch(url)
+      const json = await res.json()
+      setSuggestions((json.features || []).map(f => ({
+        label: f.properties.label,
+        city:  f.properties.city,
+        lat:   f.geometry.coordinates[1],
+        lng:   f.geometry.coordinates[0],
+      })))
+    } catch { setSuggestions([]) }
+  }
+
+  function selectSuggestion(s) {
+    setVille(s.label)
+    setVilleCity(s.city)
+    setSuggestions([])
+  }
+
   // Géocode une ville via l'API adresse du gouvernement
   async function geocodeVille(nom) {
     const url = `https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(nom)}&type=municipality&limit=1`
@@ -85,7 +108,7 @@ export default function PanelCandidatEcoles({ onNavigateEcole, initialVue, initi
     const feat = json.features?.[0]
     if (!feat) return null
     const [lng, lat] = feat.geometry.coordinates
-    return { lat, lng, label: feat.properties.label }
+    return { lat, lng, city: feat.properties.city }
   }
 
   const search = useCallback(async () => {
@@ -95,8 +118,11 @@ export default function PanelCandidatEcoles({ onNavigateEcole, initialVue, initi
     setGeoErr('')
 
     // ── Filtre géographique ──────────────────────────────────────────────────
-    let geoIds = null
+    let geoIds    = null
+    let villeExacte = null  // filtre sur le champ ville quand pas de rayon
+
     if (ville.trim() && rayon) {
+      // Rayon → Haversine
       setGeoLoading(true)
       const coords = await geocodeVille(ville.trim())
       setGeoLoading(false)
@@ -111,6 +137,9 @@ export default function PanelCandidatEcoles({ onNavigateEcole, initialVue, initi
       })
       geoIds = (nearby || []).map(r => r.id)
       if (geoIds.length === 0) { setEcoles([]); setLoading(false); return }
+    } else if (ville.trim() && !rayon) {
+      // Pas de rayon → filtre exact sur le nom de ville
+      villeExacte = villeCity || ville.trim()
     }
 
     // ── Requête écoles ───────────────────────────────────────────────────────
@@ -120,10 +149,11 @@ export default function PanelCandidatEcoles({ onNavigateEcole, initialVue, initi
       .order('nom')
       .limit(100)
 
-    if (q.trim())  ecolesQuery = ecolesQuery.ilike('nom', `%${q.trim()}%`)
-    if (region)    ecolesQuery = ecolesQuery.eq('region', region)
-    if (secteur)   ecolesQuery = ecolesQuery.contains('secteurs', [secteur])
-    if (geoIds)    ecolesQuery = ecolesQuery.in('id', geoIds)
+    if (q.trim())      ecolesQuery = ecolesQuery.ilike('nom', `%${q.trim()}%`)
+    if (region)        ecolesQuery = ecolesQuery.eq('region', region)
+    if (secteur)       ecolesQuery = ecolesQuery.contains('secteurs', [secteur])
+    if (geoIds)        ecolesQuery = ecolesQuery.in('id', geoIds)
+    if (villeExacte)   ecolesQuery = ecolesQuery.ilike('ville', villeExacte)
 
     const { data: ecolesData } = await ecolesQuery
     const ecolesResult = ecolesData || []
@@ -206,15 +236,35 @@ export default function PanelCandidatEcoles({ onNavigateEcole, initialVue, initi
 
         {/* Ligne 2 : recherche géographique */}
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 0, flex: 1, minWidth: 200, border: '1.5px solid var(--border)', borderRadius: 8, overflow: 'hidden', background: 'white' }}>
-            <i className="ti ti-map-pin" style={{ padding: '0 10px', color: 'var(--muted)', fontSize: 15 }} />
-            <input
-              placeholder="Votre ville…"
-              value={ville}
-              onChange={e => { setVille(e.target.value); setGeoErr('') }}
-              onKeyDown={e => e.key === 'Enter' && search()}
-              style={{ ...inputStyle, border: 'none', borderRadius: 0, flex: 1, padding: '8px 8px 8px 0' }}
-            />
+          <div style={{ position: 'relative', flex: 1, minWidth: 200 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 0, border: '1.5px solid var(--border)', borderRadius: 8, overflow: 'hidden', background: 'white' }}>
+              <i className="ti ti-map-pin" style={{ padding: '0 10px', color: 'var(--muted)', fontSize: 15 }} />
+              <input
+                placeholder="Votre ville…"
+                value={ville}
+                onChange={e => { setVille(e.target.value); setVilleCity(''); setGeoErr(''); fetchSuggestions(e.target.value) }}
+                onKeyDown={e => { if (e.key === 'Enter') { setSuggestions([]); search() } if (e.key === 'Escape') setSuggestions([]) }}
+                onBlur={() => setTimeout(() => setSuggestions([]), 150)}
+                style={{ ...inputStyle, border: 'none', borderRadius: 0, flex: 1, padding: '8px 8px 8px 0' }}
+              />
+              {ville && <button onClick={() => { setVille(''); setVilleCity(''); setSuggestions('') }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 8px', color: 'var(--muted)', fontSize: 13 }}>×</button>}
+            </div>
+            {suggestions.length > 0 && (
+              <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'white', border: '1.5px solid var(--border)', borderRadius: 8, marginTop: 4, zIndex: 100, boxShadow: '0 4px 12px rgba(0,0,0,0.08)', overflow: 'hidden' }}>
+                {suggestions.map((s, i) => (
+                  <div
+                    key={i}
+                    onMouseDown={() => selectSuggestion(s)}
+                    style={{ padding: '8px 14px', fontSize: 13, color: 'var(--navy)', cursor: 'pointer', borderBottom: i < suggestions.length - 1 ? '0.5px solid var(--border)' : 'none' }}
+                    onMouseEnter={e => e.currentTarget.style.background = 'var(--light)'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'white'}
+                  >
+                    <i className="ti ti-map-pin" style={{ fontSize: 11, color: 'var(--muted)', marginRight: 6 }} />
+                    {s.label}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
           <select
             value={rayon}
@@ -300,7 +350,7 @@ export default function PanelCandidatEcoles({ onNavigateEcole, initialVue, initi
                 <div className="s-card-title"><i className="ti ti-info-circle" /> {selected.nom}</div>
                 <div style={{ display: 'flex', gap: 5 }}>
                   {onNavigateEcole && (
-                    <button className="btn-sm teal" style={{ fontSize: 11 }} onClick={() => onNavigateEcole(selected.id, vue, { q, region, niveau, secteur, ville, rayon })}>
+                    <button className="btn-sm teal" style={{ fontSize: 11 }} onClick={() => onNavigateEcole(selected.id, vue, { q, region, niveau, secteur, ville, villeCity, rayon })}>
                       <i className="ti ti-external-link" /> Page publique
                     </button>
                   )}
@@ -377,7 +427,7 @@ export default function PanelCandidatEcoles({ onNavigateEcole, initialVue, initi
                   {f.ecole && (
                     <div
                       style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, cursor: onNavigateEcole ? 'pointer' : 'default', padding: '4px 8px', borderRadius: 8, background: 'var(--light)' }}
-                      onClick={() => onNavigateEcole?.(f.ecole.id, 'formations', { q, region, niveau, secteur, ville, rayon })}
+                      onClick={() => onNavigateEcole?.(f.ecole.id, 'formations', { q, region, niveau, secteur, ville, villeCity, rayon })}
                     >
                       <div style={{ width: 22, height: 22, borderRadius: 5, background: 'var(--purple-soft)', color: 'var(--purple)', fontSize: 8, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                         {sigle(f.ecole.nom)}
