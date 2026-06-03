@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '../../lib/supabase/client'
 import TopNav from '../../components/TopNav'
@@ -152,10 +152,23 @@ export default function Home() {
     setActivePanelData(null)
   }
 
-  function navigateTo(panel, data = null) {
+  const navigateTo = useCallback((panel, data = null) => {
+    window.history.pushState({ panel, data }, '')
     setActivePanel(panel)
     setActivePanelData(data)
-  }
+  }, [])
+
+  useEffect(() => {
+    function onPopState(e) {
+      const state = e.state
+      if (state?.panel) {
+        setActivePanel(state.panel)
+        setActivePanelData(state.data ?? null)
+      }
+    }
+    window.addEventListener('popstate', onPopState)
+    return () => window.removeEventListener('popstate', onPopState)
+  }, [])
 
   const isAdmin = authUser?.user_metadata?.role === 'admin'
 
