@@ -143,22 +143,22 @@ export function PanelEntrepriseSiret() {
 export function PanelEntrepriseRecherche({ onNavigate }) {
   const supabase = createClient()
   const [profils, setProfils]   = useState([])
-  const [loading, setLoading]   = useState(true)
+  const [loading, setLoading]   = useState(false)
+  const [searched, setSearched] = useState(false)
   const [filters, setFilters]   = useState({ formation: '', ville: '', disponibilite: '' })
   const [toggles, setToggles]   = useState({ teletravail: false, rqth: false, dispo: false })
 
   const load = useCallback(async () => {
     setLoading(true)
+    setSearched(true)
     let q = supabase.from('candidats').select('id, prenom, nom, ville, formation, disponibilite, passions')
-    if (filters.formation)    q = q.ilike('formation', `%${filters.formation}%`)
-    if (filters.ville)        q = q.ilike('ville', `%${filters.ville}%`)
+    if (filters.formation)     q = q.ilike('formation', `%${filters.formation}%`)
+    if (filters.ville)         q = q.ilike('ville', `%${filters.ville}%`)
     if (filters.disponibilite) q = q.ilike('disponibilite', `%${filters.disponibilite}%`)
     const { data } = await q.limit(20)
     setProfils(data || [])
     setLoading(false)
   }, [filters])
-
-  useEffect(() => { load() }, [load])
 
   const toggle = key => setToggles(t => ({ ...t, [key]: !t[key] }))
 
@@ -174,7 +174,7 @@ export function PanelEntrepriseRecherche({ onNavigate }) {
       <div className="topbar">
         <div>
           <div className="page-title">Rechercher un alternant</div>
-          <div className="page-sub">{loading ? 'Chargement…' : `${profils.length} profil${profils.length !== 1 ? 's' : ''} trouvé${profils.length !== 1 ? 's' : ''}`}</div>
+          <div className="page-sub">{loading ? 'Chargement…' : searched ? `${profils.length} profil${profils.length !== 1 ? 's' : ''} trouvé${profils.length !== 1 ? 's' : ''}` : 'Lancez une recherche pour voir les profils'}</div>
         </div>
         <button className="btn-sm accent" onClick={() => onNavigate('entreprise-offres')}>
           <i className="ti ti-plus" /> Déposer une offre
@@ -208,7 +208,12 @@ export function PanelEntrepriseRecherche({ onNavigate }) {
         </div>
       </div>
 
-      {loading ? (
+      {!searched ? (
+        <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--muted)', fontSize: 14 }}>
+          <i className="ti ti-search" style={{ fontSize: 32, display: 'block', marginBottom: 12, opacity: 0.3 }} />
+          Utilisez les filtres ci-dessus et cliquez sur <strong>Filtrer</strong> pour voir les candidats disponibles.
+        </div>
+      ) : loading ? (
         <div style={{ padding: '2rem', color: 'var(--muted)', fontSize: 14 }}>Chargement des profils…</div>
       ) : profils.length === 0 ? (
         <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--muted)', fontSize: 14 }}>Aucun profil ne correspond à vos critères.</div>
