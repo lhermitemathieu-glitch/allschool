@@ -390,6 +390,37 @@ export function PanelBackDetailEntreprises() {
   const [q, setQ]           = useState('')
   const [secteur, setSecteur] = useState('')
   const [secteurs, setSecteurs] = useState([])
+  const [selected, setSelected] = useState(null)
+  const [editForm, setEditForm] = useState({})
+  const [saving, setSaving]     = useState(false)
+  const [msg, setMsg]           = useState('')
+
+  const SECTEURS_LIST = [
+    'Agriculture & Environnement', 'Alimentation & Restauration', 'Arts & Culture',
+    'BTP & Immobilier', 'Commerce & Vente', 'Communication & Marketing',
+    'Finance & Comptabilité', 'Hôtellerie & Tourisme', 'Industrie & Production',
+    'Informatique & Numérique', 'Juridique & Droit', 'Logistique & Transport',
+    'Ressources Humaines', 'Santé & Social', 'Sport & Animation',
+  ]
+
+  function openEdit(e) {
+    setSelected(e)
+    setEditForm({ raison_sociale: e.raison_sociale || '', siret: e.siret || '', secteur: e.secteur || '', ville: e.ville || '', taille: e.taille || '', adresse: e.adresse || '', code_postal: e.code_postal || '' })
+    setMsg('')
+  }
+
+  async function handleSave() {
+    setSaving(true)
+    const { data, error } = await supabase.from('entreprises').update({ ...editForm, updated_at: new Date().toISOString() }).eq('id', selected.id).select().single()
+    if (error) { setMsg('Erreur : ' + error.message) }
+    else {
+      setRows(prev => prev.map(r => r.id === selected.id ? { ...r, ...data } : r))
+      setSelected(data)
+      setMsg('Enregistré !')
+      setTimeout(() => setMsg(''), 3000)
+    }
+    setSaving(false)
+  }
 
   useEffect(() => {
     async function init() {
@@ -444,7 +475,8 @@ export function PanelBackDetailEntreprises() {
         </div>
       </div>
 
-      <div className="s-card">
+      <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+      <div className="s-card" style={{ flex: 1, minWidth: 0 }}>
         <SearchBar placeholder="Rechercher une entreprise…" value={q} onChange={e => setQ(e.target.value)} onSearch={handleSearch}>
           <select value={secteur} onChange={e => setSecteur(e.target.value)} style={selectStyle}>
             <option value="">Tous les secteurs</option>
@@ -463,7 +495,11 @@ export function PanelBackDetailEntreprises() {
         ) : rows.length === 0 ? (
           <div style={{ padding: '2rem 0', color: 'var(--muted)', fontSize: 13 }}>Aucun résultat.</div>
         ) : rows.map((e, i) => (
-          <div key={e.id} style={{ display: 'grid', gridTemplateColumns: '2fr 1.5fr 1fr 1fr 80px', gap: 10, padding: '10px 4px', borderBottom: i < rows.length - 1 ? '0.5px solid var(--border)' : 'none', alignItems: 'center' }}>
+          <div
+            key={e.id}
+            onClick={() => openEdit(e)}
+            style={{ display: 'grid', gridTemplateColumns: '2fr 1.5fr 1fr 1fr 80px', gap: 10, padding: '10px 4px', borderBottom: i < rows.length - 1 ? '0.5px solid var(--border)' : 'none', alignItems: 'center', cursor: 'pointer', borderRadius: 6, background: selected?.id === e.id ? 'var(--light)' : 'transparent' }}
+          >
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <div style={{ width: 34, height: 34, borderRadius: 8, background: '#fff3e0', color: 'var(--accent)', fontSize: 11, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 {initiales(e.raison_sociale)}
@@ -487,6 +523,49 @@ export function PanelBackDetailEntreprises() {
 
         <Pager page={page} hasMore={rows.length === PAGE_SIZE} total={total} onPrev={handlePrev} onNext={handleNext} />
       </div>
+
+      {/* Panel latéral d'édition */}
+      {selected && (
+        <div className="s-card" style={{ position: 'sticky', top: 0, minWidth: 300, maxWidth: 340, flexShrink: 0 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+            <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--navy)' }}>Modifier</div>
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+              {msg && <span style={{ fontSize: 12, color: 'var(--teal)', fontWeight: 500 }}>{msg}</span>}
+              <button className="btn-sm teal" onClick={handleSave} disabled={saving}>{saving ? '…' : 'Enregistrer'}</button>
+              <button className="btn-sm" onClick={() => setSelected(null)}>✕</button>
+            </div>
+          </div>
+          {[
+            ['Raison sociale', 'raison_sociale', 'text'],
+            ['SIRET', 'siret', 'text'],
+            ['Adresse', 'adresse', 'text'],
+            ['Code postal', 'code_postal', 'text'],
+            ['Ville', 'ville', 'text'],
+          ].map(([label, key, type]) => (
+            <div key={key} style={{ marginBottom: 10 }}>
+              <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 3 }}>{label}</div>
+              <input type={type} value={editForm[key] || ''} onChange={e => setEditForm(f => ({ ...f, [key]: e.target.value }))} style={inputStyle} />
+            </div>
+          ))}
+          <div style={{ marginBottom: 10 }}>
+            <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 3 }}>Secteur</div>
+            <select value={editForm.secteur || ''} onChange={e => setEditForm(f => ({ ...f, secteur: e.target.value }))} style={inputStyle}>
+              <option value="">— Sélectionner —</option>
+              {SECTEURS_LIST.map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
+          </div>
+          <div>
+            <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 3 }}>Taille</div>
+            <select value={editForm.taille || ''} onChange={e => setEditForm(f => ({ ...f, taille: e.target.value }))} style={inputStyle}>
+              <option value="">— Sélectionner —</option>
+              <option value="tpe">TPE (moins de 11 salariés)</option>
+              <option value="pme">PME (11 à 249 salariés)</option>
+              <option value="ge">Grande entreprise (250+)</option>
+            </select>
+          </div>
+        </div>
+      )}
+      </div>{/* fin flex wrapper liste + panel */}
     </>
   )
 }
