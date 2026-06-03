@@ -463,7 +463,12 @@ export function PanelEntrepriseOffres() {
   const [loading, setLoading]       = useState(true)
   const [entrepriseId, setEntrepriseId] = useState(null)
   const [showForm, setShowForm]     = useState(false)
-  const [form, setForm]             = useState({ titre: '', niveau: 'bach', secteur: '', ville: '', description: '' })
+  const EMPTY_FORM = {
+    titre: '', niveau: 'bach', secteur: '', ville: '', description: '',
+    type_contrat: [], competences: '', missions: '', recherche: '',
+    date_prise_poste: '', preference_ecole: false,
+  }
+  const [form, setForm]             = useState(EMPTY_FORM)
   const [saving, setSaving]         = useState(false)
   const [msg, setMsg]               = useState('')
 
@@ -486,7 +491,7 @@ export function PanelEntrepriseOffres() {
     setSaving(true)
     const { data, error } = await supabase.from('offres').insert({ ...form, entreprise_id: entrepriseId }).select().single()
     if (error) { setMsg('Erreur : ' + error.message) }
-    else { setOffres(prev => [data, ...prev]); setShowForm(false); setForm({ titre: '', niveau: 'bach', secteur: '', ville: '', description: '' }); setMsg('Offre publiée !'); setTimeout(() => setMsg(''), 3000) }
+    else { setOffres(prev => [data, ...prev]); setShowForm(false); setForm(EMPTY_FORM); setMsg('Offre publiée !'); setTimeout(() => setMsg(''), 3000) }
     setSaving(false)
   }
 
@@ -529,24 +534,119 @@ export function PanelEntrepriseOffres() {
           <div className="s-card-header">
             <div className="s-card-title"><i className="ti ti-plus" /> Nouvelle offre</div>
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <input placeholder="Titre du poste" value={form.titre} onChange={e => setForm(f => ({ ...f, titre: e.target.value }))} style={inputStyle} />
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+
+            {/* Type de contrat */}
+            <div>
+              <div style={labelStyle}>Type de contrat</div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                {['Contrat d\'apprentissage', 'Contrat de professionnalisation'].map(type => (
+                  <button
+                    key={type}
+                    onClick={() => setForm(f => ({
+                      ...f,
+                      type_contrat: f.type_contrat.includes(type)
+                        ? f.type_contrat.filter(t => t !== type)
+                        : [...f.type_contrat, type]
+                    }))}
+                    style={{
+                      padding: '7px 14px', borderRadius: 8, fontSize: 12, fontWeight: 500, cursor: 'pointer',
+                      border: '1.5px solid ' + (form.type_contrat.includes(type) ? 'var(--accent)' : 'var(--border)'),
+                      background: form.type_contrat.includes(type) ? 'var(--accent-soft)' : 'white',
+                      color: form.type_contrat.includes(type) ? 'var(--accent)' : 'var(--muted)',
+                    }}
+                  >
+                    {form.type_contrat.includes(type) && <i className="ti ti-check" style={{ marginRight: 5 }} />}
+                    {type}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Nom du poste + niveau + ville */}
+            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: 8 }}>
               <div>
-                <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Niveau</div>
+                <div style={labelStyle}>Nom du poste *</div>
+                <input placeholder="Ex : Chargé(e) de marketing digital" value={form.titre} onChange={e => setForm(f => ({ ...f, titre: e.target.value }))} style={{ ...inputStyle, width: '100%' }} />
+              </div>
+              <div>
+                <div style={labelStyle}>Niveau</div>
                 <select value={form.niveau} onChange={e => setForm(f => ({ ...f, niveau: e.target.value }))} style={{ ...inputStyle, width: '100%' }}>
                   <option value="cap">CAP</option>
-                  <option value="bts">BTS / BUT (Bac+2)</option>
-                  <option value="bach">Bachelor (Bac+3)</option>
-                  <option value="master">Master (Bac+5)</option>
+                  <option value="bts">BTS / BUT</option>
+                  <option value="bach">Bachelor</option>
+                  <option value="master">Master</option>
                 </select>
               </div>
-              <input placeholder="Secteur" value={form.secteur} onChange={e => setForm(f => ({ ...f, secteur: e.target.value }))} style={inputStyle} />
-              <input placeholder="Ville" value={form.ville} onChange={e => setForm(f => ({ ...f, ville: e.target.value }))} style={inputStyle} />
+              <div>
+                <div style={labelStyle}>Ville</div>
+                <input placeholder="Paris, Lyon…" value={form.ville} onChange={e => setForm(f => ({ ...f, ville: e.target.value }))} style={{ ...inputStyle, width: '100%' }} />
+              </div>
             </div>
-            <textarea placeholder="Description du poste…" value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} rows={3} style={{ ...inputStyle, resize: 'vertical' }} />
-            <div style={{ display: 'flex', gap: 6 }}>
-              <button className="btn-sm teal" onClick={handleCreate} disabled={saving || !form.titre}><i className="ti ti-check" /> {saving ? 'Publication…' : 'Publier'}</button>
+
+            {/* Compétences attendues */}
+            <div>
+              <div style={labelStyle}>Compétences attendues</div>
+              <textarea
+                placeholder="Ex : Maîtrise des réseaux sociaux, Excel, sens du relationnel…"
+                value={form.competences}
+                onChange={e => setForm(f => ({ ...f, competences: e.target.value }))}
+                rows={2}
+                style={{ ...inputStyle, width: '100%', resize: 'vertical', boxSizing: 'border-box' }}
+              />
+            </div>
+
+            {/* Missions */}
+            <div>
+              <div style={labelStyle}>Missions</div>
+              <textarea
+                placeholder="Décrivez les principales missions du poste…"
+                value={form.missions}
+                onChange={e => setForm(f => ({ ...f, missions: e.target.value }))}
+                rows={3}
+                style={{ ...inputStyle, width: '100%', resize: 'vertical', boxSizing: 'border-box' }}
+              />
+            </div>
+
+            {/* Ce que l'entreprise recherche */}
+            <div>
+              <div style={labelStyle}>Ce que nous recherchons</div>
+              <textarea
+                placeholder="Profil idéal, qualités humaines, motivations attendues…"
+                value={form.recherche}
+                onChange={e => setForm(f => ({ ...f, recherche: e.target.value }))}
+                rows={2}
+                style={{ ...inputStyle, width: '100%', resize: 'vertical', boxSizing: 'border-box' }}
+              />
+            </div>
+
+            {/* Date de prise de poste + préférence école */}
+            <div style={{ display: 'flex', gap: 16, alignItems: 'flex-end', flexWrap: 'wrap' }}>
+              <div>
+                <div style={labelStyle}>Date de prise de poste</div>
+                <input
+                  type="date"
+                  value={form.date_prise_poste}
+                  onChange={e => setForm(f => ({ ...f, date_prise_poste: e.target.value }))}
+                  style={{ ...inputStyle, width: 180 }}
+                />
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingBottom: 2 }}>
+                <div>
+                  <div style={labelStyle}>Préférence école partenaire ?</div>
+                  <div style={{ fontSize: 12, color: 'var(--muted)' }}>Oui, je souhaite travailler avec une école spécifique</div>
+                </div>
+                <button
+                  className={`toggle ${form.preference_ecole ? 'on' : ''}`}
+                  onClick={() => setForm(f => ({ ...f, preference_ecole: !f.preference_ecole }))}
+                />
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: 6, paddingTop: 4 }}>
+              <button className="btn-sm accent" onClick={handleCreate} disabled={saving || !form.titre}>
+                <i className="ti ti-speakerphone" /> {saving ? 'Publication…' : 'Publier l\'offre'}
+              </button>
               <button className="btn-sm" onClick={() => setShowForm(false)}>Annuler</button>
             </div>
           </div>
@@ -562,14 +662,36 @@ export function PanelEntrepriseOffres() {
         ) : offres.map(o => (
           <div key={o.id} className="offre-card">
             <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-              <div className="status-dot" style={{ background: o.statut === 'active' ? 'var(--teal)' : 'var(--muted)' }} />
+              <div className="status-dot" style={{ background: o.statut === 'active' ? 'var(--teal)' : 'var(--muted)', marginTop: 4, flexShrink: 0 }} />
               <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--navy)' }}>{o.titre}</div>
+                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--navy)' }}>{o.titre}</div>
                 <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>
                   {[NIVEAUX[o.niveau], o.ville, o.secteur].filter(Boolean).join(' · ')}
                 </div>
+                {/* Types de contrat */}
+                {(o.type_contrat || []).length > 0 && (
+                  <div style={{ display: 'flex', gap: 5, marginTop: 6, flexWrap: 'wrap' }}>
+                    {o.type_contrat.map(t => (
+                      <span key={t} className="pill accent" style={{ fontSize: 10 }}>{t}</span>
+                    ))}
+                  </div>
+                )}
+                {/* Date + préférence école */}
+                <div style={{ display: 'flex', gap: 10, marginTop: 4, flexWrap: 'wrap' }}>
+                  {o.date_prise_poste && (
+                    <span style={{ fontSize: 11, color: 'var(--muted)' }}>
+                      <i className="ti ti-calendar" style={{ marginRight: 3 }} />
+                      {new Date(o.date_prise_poste).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
+                    </span>
+                  )}
+                  {o.preference_ecole && (
+                    <span style={{ fontSize: 11, color: 'var(--purple-mid)' }}>
+                      <i className="ti ti-school" style={{ marginRight: 3 }} />Préférence école
+                    </span>
+                  )}
+                </div>
               </div>
-              <div style={{ display: 'flex', gap: 4 }}>
+              <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
                 <button className="btn-sm" style={{ fontSize: 11 }} onClick={() => handleToggle(o)}>
                   <i className={`ti ti-${o.statut === 'active' ? 'pause' : 'player-play'}`} />
                 </button>
@@ -681,4 +803,9 @@ const inputStyle = {
   outline: 'none',
   width: '100%',
   boxSizing: 'border-box',
+}
+
+const labelStyle = {
+  fontSize: 11, fontWeight: 500, color: 'var(--muted)',
+  marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.5px',
 }
