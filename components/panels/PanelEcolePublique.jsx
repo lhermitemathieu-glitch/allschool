@@ -17,6 +17,22 @@ const NIVEAUX = [
   { value: 'autre',  label: 'Autre',               bg: '#ede9fe', color: '#7c3aed' },
 ]
 
+const MODALITES = {
+  presentiel: { label: 'Présentiel', icon: 'ti-building', bg: '#e0f2fe', color: '#0369a1' },
+  distanciel:  { label: 'Distanciel', icon: 'ti-wifi',    bg: '#dcfce7', color: '#166534' },
+  hybride:     { label: 'Hybride',   icon: 'ti-refresh',  bg: '#fef9c3', color: '#854d0e' },
+}
+
+function ModaliteTag({ value, size = 11 }) {
+  const m = MODALITES[value]
+  if (!m) return null
+  return (
+    <span style={{ background: m.bg, color: m.color, fontSize: size, fontWeight: 600, padding: '2px 8px', borderRadius: 20, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+      <i className={`ti ${m.icon}`} style={{ fontSize: size - 1 }} /> {m.label}
+    </span>
+  )
+}
+
 function NiveauTag({ value }) {
   const n = NIVEAUX.find(x => x.value === value) || NIVEAUX[4]
   return (
@@ -195,11 +211,7 @@ export default function PanelEcolePublique({ ecoleId, onBack, onEdit, onNavigate
         {(niveauxUniques.length > 0 || modalitesUniques.length > 0) && (
           <div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 6 }}>
             {niveauxUniques.map(n => <NiveauTag key={n} value={n} />)}
-            {modalitesUniques.map(m => {
-              const MMAP = { presentiel: { label: 'Présentiel', bg: '#e0f2fe', color: '#0369a1', icon: 'ti-building' }, distanciel: { label: 'Distanciel', bg: '#dcfce7', color: '#166534', icon: 'ti-wifi' }, hybride: { label: 'Hybride', bg: '#fef9c3', color: '#854d0e', icon: 'ti-refresh' } }
-              const md = MMAP[m]; if (!md) return null
-              return <span key={m} style={{ background: md.bg, color: md.color, fontSize: 11, fontWeight: 600, padding: '3px 10px', borderRadius: 20, display: 'inline-flex', alignItems: 'center', gap: 4 }}><i className={`ti ${md.icon}`} style={{ fontSize: 10 }} />{md.label}</span>
-            })}
+            {modalitesUniques.map(m => <ModaliteTag key={m} value={m} />)}
             {ecole.qualiopi && (
               <span style={{ background: 'var(--teal-soft)', color: 'var(--teal)', fontSize: 11, fontWeight: 600, padding: '3px 10px', borderRadius: 20 }}>
                 <i className="ti ti-rosette" style={{ fontSize: 10 }} /> Qualiopi
@@ -244,7 +256,7 @@ export default function PanelEcolePublique({ ecoleId, onBack, onEdit, onNavigate
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, alignItems: 'center' }}>
                     {f.niveau && <NiveauTag value={f.niveau} />}
                     {f.localite_formation && <span style={{ fontSize: 10, color: 'var(--muted)' }}><i className="ti ti-map-pin" style={{ fontSize: 9 }} /> {f.localite_formation}</span>}
-                    {f.modalite && (() => { const MMAP = { presentiel: { label: 'Présentiel', bg: '#e0f2fe', color: '#0369a1', icon: 'ti-building' }, distanciel: { label: 'Distanciel', bg: '#dcfce7', color: '#166534', icon: 'ti-wifi' }, hybride: { label: 'Hybride', bg: '#fef9c3', color: '#854d0e', icon: 'ti-refresh' } }; const m = MMAP[f.modalite]; return m ? <span style={{ background: m.bg, color: m.color, fontSize: 10, fontWeight: 600, padding: '2px 7px', borderRadius: 20, display: 'inline-flex', alignItems: 'center', gap: 3 }}><i className={`ti ${m.icon}`} style={{ fontSize: 9 }} />{m.label}</span> : null })()}
+                    {f.modalite && <ModaliteTag value={f.modalite} size={10} />}
                     {f.url_onisep && (
                       <span onClick={e => { e.stopPropagation(); window.open(f.url_onisep, '_blank') }}
                         style={{ fontSize: 10, color: 'var(--teal)', cursor: 'pointer', fontWeight: 600 }}>
