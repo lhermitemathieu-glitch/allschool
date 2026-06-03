@@ -268,7 +268,7 @@ export default function PanelCandidatEcoles({ onNavigateEcole, onNavigateFormati
         {/* Ligne 2 : diplôme + recherche géographique */}
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
           <input
-            placeholder="Nom du diplôme…"
+            placeholder="Mot clé diplôme…"
             value={diplome}
             onChange={e => setDiplome(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && search()}
