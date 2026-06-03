@@ -94,16 +94,16 @@ export default function PanelEcolePublique({ ecoleId, onBack, onEdit, onNavigate
     setToggling(false)
   }
 
+  if (loading) return <div style={{ padding: '2rem', color: 'var(--muted)', fontSize: 14 }}>Chargement…</div>
+  if (!ecole)  return <div style={{ padding: '2rem', color: 'var(--muted)', fontSize: 14 }}>École introuvable.</div>
+
   // niveaux déduits des formations, modalités lues directement sur l'école
   const niveauxUniques   = [...new Set(formations.map(f => f.niveau).filter(Boolean))]
   const modalitesUniques = ecole.modalites || []
-  const formsFiltrees  = niveauFilter ? formations.filter(f => f.niveau === niveauFilter) : formations
+  const formsFiltrees    = niveauFilter ? formations.filter(f => f.niveau === niveauFilter) : formations
 
   const BG_COLORS = ['var(--teal-soft)', 'var(--purple-soft)', 'var(--accent-soft)', '#fef9c3']
   const FG_COLORS = ['var(--teal)',      'var(--purple)',      'var(--accent)',       '#92400e']
-
-  if (loading) return <div style={{ padding: '2rem', color: 'var(--muted)', fontSize: 14 }}>Chargement…</div>
-  if (!ecole)  return <div style={{ padding: '2rem', color: 'var(--muted)', fontSize: 14 }}>École introuvable.</div>
 
   const enLigne = ecole.publiee === true
 
