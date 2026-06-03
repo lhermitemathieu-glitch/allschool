@@ -160,13 +160,15 @@ async function importCatalogue(admin, user, filename, rawRows) {
     if (formationsSet.has(key)) continue
     formationsSet.add(key)
 
+    const localite = row['Localité formation']?.trim() || null
     formations.push({
       ecole_id:           ecoleId,
       nom:                nomForm,
       diplome:            diplome || null,
       niveau:             normaliseNiveau(row['Niveau']?.trim()),
       url_onisep:         row['URL ONISEP']?.trim()          || null,
-      localite_formation: row['Localité formation']?.trim()  || null,
+      localite_formation: localite,
+      modalite:           normaliseModalite(row['Modalités']?.trim() || row['modalites_evaluation']?.trim(), localite),
     })
   }
 
@@ -194,6 +196,16 @@ async function importCatalogue(admin, user, filename, rawRows) {
     ecoles: ecolesInserted,
     formations: formationsInserted,
   })
+}
+
+function normaliseModalite(modalite, localite) {
+  const m = (modalite || '').toLowerCase()
+  const l = (localite  || '').toLowerCase()
+  if (m.includes('distanciel') || m.includes('distance') || m.includes('en ligne') || m.includes('e-learning')
+    || l.includes('distanciel') || l.includes('distance') || l.includes('en ligne') || l.includes('e-learning')) return 'distanciel'
+  if (m.includes('hybride') || m.includes('mixte')) return 'hybride'
+  if (m.includes('présentiel') || m.includes('presentiel')) return 'presentiel'
+  return null
 }
 
 function normaliseNiveau(niveau) {

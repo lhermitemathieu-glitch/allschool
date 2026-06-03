@@ -3,6 +3,12 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '../../lib/supabase/client'
 
+const MODALITE_MAP = {
+  presentiel: { label: 'Présentiel', icon: 'ti-building', bg: '#e0f2fe', color: '#0369a1' },
+  distanciel: { label: 'Distanciel', icon: 'ti-wifi',     bg: '#dcfce7', color: '#166534' },
+  hybride:    { label: 'Hybride',    icon: 'ti-refresh',  bg: '#fef9c3', color: '#854d0e' },
+}
+
 const NIVEAU_MAP = {
   cap:    { label: 'CAP',                bg: '#fef9c3', color: '#854d0e' },
   bac:    { label: 'Bac Pro',            bg: '#ffedd5', color: '#9a3412' },
@@ -37,7 +43,7 @@ export default function PanelFormationPublique({ formationId, onBack, onNavigate
       setLoading(true)
       const { data: f } = await supabase
         .from('formations')
-        .select('id, nom, diplome, niveau, url_onisep, localite_formation, nb_apprentis, taux_presentation, taux_reussite, ecole_id')
+        .select('id, nom, diplome, niveau, modalite, url_onisep, localite_formation, nb_apprentis, taux_presentation, taux_reussite, ecole_id')
         .eq('id', formationId)
         .single()
       setFormation(f)
@@ -75,6 +81,14 @@ export default function PanelFormationPublique({ formationId, onBack, onNavigate
       <div className="s-card" style={{ marginBottom: '1rem' }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', marginBottom: 12 }}>
           {formation.niveau && <NiveauTag value={formation.niveau} />}
+          {formation.modalite && (() => {
+            const m = MODALITE_MAP[formation.modalite]
+            return m ? (
+              <span style={{ background: m.bg, color: m.color, fontSize: 12, fontWeight: 600, padding: '4px 12px', borderRadius: 20, display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                <i className={`ti ${m.icon}`} style={{ fontSize: 11 }} /> {m.label}
+              </span>
+            ) : null
+          })()}
           {formation.diplome && (
             <span style={{ fontSize: 12, color: 'var(--muted)', background: 'var(--light)', padding: '3px 10px', borderRadius: 20 }}>
               {formation.diplome}

@@ -7,6 +7,22 @@ function sigle(nom) {
   return (nom || '').split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 3) || '?'
 }
 
+const MODALITE_MAP = {
+  presentiel:  { label: 'Présentiel',  icon: 'ti-building', bg: '#e0f2fe', color: '#0369a1' },
+  distanciel:  { label: 'Distanciel',  icon: 'ti-wifi',     bg: '#dcfce7', color: '#166534' },
+  hybride:     { label: 'Hybride',     icon: 'ti-refresh',  bg: '#fef9c3', color: '#854d0e' },
+}
+
+function ModaliteTag({ value, style = {} }) {
+  const m = MODALITE_MAP[value]
+  if (!m) return null
+  return (
+    <span style={{ background: m.bg, color: m.color, fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 20, display: 'inline-flex', alignItems: 'center', gap: 3, ...style }}>
+      <i className={`ti ${m.icon}`} style={{ fontSize: 9 }} /> {m.label}
+    </span>
+  )
+}
+
 const SECTEURS = [
   'Agriculture & Environnement',
   'Alimentation & Restauration',
@@ -38,11 +54,12 @@ export default function PanelCandidatEcoles({ onNavigateEcole, onNavigateFormati
   const [loadingFS, setLoadingFS]   = useState(false)
 
   // Filtres (restaurés depuis initialFilters si présent)
-  const [q, setQ]             = useState(initialFilters?.q       || '')
-  const [region, setRegion]   = useState(initialFilters?.region  || '')
-  const [niveau, setNiveau]   = useState(initialFilters?.niveau  || '')
-  const [secteur, setSecteur] = useState(initialFilters?.secteur || '')
-  const [regions, setRegions] = useState([])
+  const [q, setQ]               = useState(initialFilters?.q        || '')
+  const [region, setRegion]     = useState(initialFilters?.region   || '')
+  const [niveau, setNiveau]     = useState(initialFilters?.niveau   || '')
+  const [secteur, setSecteur]   = useState(initialFilters?.secteur  || '')
+  const [modalite, setModalite] = useState(initialFilters?.modalite || '')
+  const [regions, setRegions]   = useState([])
 
   // Filtres géographiques
   const [ville,       setVille]       = useState(initialFilters?.ville || '')
@@ -167,12 +184,13 @@ export default function PanelCandidatEcoles({ onNavigateEcole, onNavigateFormati
 
     let fQuery = supabase
       .from('formations')
-      .select('id, nom, diplome, niveau, url_onisep, localite_formation, ecole_id')
+      .select('id, nom, diplome, niveau, modalite, url_onisep, localite_formation, ecole_id')
       .in('ecole_id', ecoleIdsResult)
       .order('nom')
       .limit(200)
 
-    if (niveau) fQuery = fQuery.eq('niveau', niveau)
+    if (niveau)   fQuery = fQuery.eq('niveau', niveau)
+    if (modalite) fQuery = fQuery.eq('modalite', modalite)
     if (q.trim()) fQuery = fQuery.ilike('nom', `%${q.trim()}%`)
 
     const { data: fData } = await fQuery
@@ -181,9 +199,9 @@ export default function PanelCandidatEcoles({ onNavigateEcole, onNavigateFormati
     const ecoleMap = Object.fromEntries(ecolesResult.map(e => [e.id, e]))
     setFormationsSearch((fData || []).map(f => ({ ...f, ecole: ecoleMap[f.ecole_id] })))
     setLoadingFS(false)
-  }, [q, region, niveau, secteur, ville, rayon])
+  }, [q, region, niveau, secteur, modalite, ville, rayon])
 
-  useEffect(() => { search() }, [region, niveau, secteur])
+  useEffect(() => { search() }, [region, niveau, secteur, modalite])
 
   async function selectEcole(ecole) {
     setSelected(ecole)
@@ -227,6 +245,12 @@ export default function PanelCandidatEcoles({ onNavigateEcole, onNavigateFormati
           <select value={niveau} onChange={e => setNiveau(e.target.value)} style={{ ...inputStyle, flex: 'none', width: 'auto', minWidth: 180 }}>
             <option value="">Tous les niveaux</option>
             {NIVEAUX.map(n => <option key={n.value} value={n.value}>{n.label}</option>)}
+          </select>
+          <select value={modalite} onChange={e => setModalite(e.target.value)} style={{ ...inputStyle, flex: 'none', width: 'auto', minWidth: 150 }}>
+            <option value="">Présentiel & distanciel</option>
+            <option value="presentiel">Présentiel</option>
+            <option value="distanciel">Distanciel</option>
+            <option value="hybride">Hybride</option>
           </select>
           <select value={region} onChange={e => setRegion(e.target.value)} style={{ ...inputStyle, flex: 'none', width: 'auto', minWidth: 160 }}>
             <option value="">Toutes les régions</option>
@@ -350,7 +374,7 @@ export default function PanelCandidatEcoles({ onNavigateEcole, onNavigateFormati
                 <div className="s-card-title"><i className="ti ti-info-circle" /> {selected.nom}</div>
                 <div style={{ display: 'flex', gap: 5 }}>
                   {onNavigateEcole && (
-                    <button className="btn-sm teal" style={{ fontSize: 11 }} onClick={() => onNavigateEcole(selected.id, vue, { q, region, niveau, secteur, ville, villeCity, rayon })}>
+                    <button className="btn-sm teal" style={{ fontSize: 11 }} onClick={() => onNavigateEcole(selected.id, vue, { q, region, niveau, secteur, modalite, ville, villeCity, rayon })}>
                       <i className="ti ti-external-link" /> Page publique
                     </button>
                   )}
@@ -381,7 +405,7 @@ export default function PanelCandidatEcoles({ onNavigateEcole, onNavigateFormati
                 <div key={f.id} style={{ padding: '8px 0', borderBottom: '0.5px solid var(--border)' }}>
                   <div
                     style={{ fontSize: 13, fontWeight: 500, color: onNavigateFormation ? 'var(--teal)' : 'var(--navy)', marginBottom: 2, cursor: onNavigateFormation ? 'pointer' : 'default' }}
-                    onClick={() => onNavigateFormation?.(f.id, vue, { q, region, niveau, secteur, ville, villeCity, rayon })}
+                    onClick={() => onNavigateFormation?.(f.id, vue, { q, region, niveau, secteur, modalite, ville, villeCity, rayon })}
                   >
                     {f.nom}
                     {onNavigateFormation && <i className="ti ti-chevron-right" style={{ fontSize: 11, marginLeft: 4 }} />}
@@ -419,23 +443,26 @@ export default function PanelCandidatEcoles({ onNavigateEcole, onNavigateFormati
                   </div>
 
                   {/* Nom + localité */}
-                  <div style={{ flex: 1, minWidth: 0, cursor: onNavigateFormation ? 'pointer' : 'default' }} onClick={() => onNavigateFormation?.(f.id, 'formations', { q, region, niveau, secteur, ville, villeCity, rayon })}>
+                  <div style={{ flex: 1, minWidth: 0, cursor: onNavigateFormation ? 'pointer' : 'default' }} onClick={() => onNavigateFormation?.(f.id, 'formations', { q, region, niveau, secteur, modalite, ville, villeCity, rayon })}>
                     <div style={{ fontSize: 13, fontWeight: 600, color: onNavigateFormation ? 'var(--teal)' : 'var(--navy)', lineHeight: 1.4 }}>
                       {f.nom}
                       {onNavigateFormation && <i className="ti ti-chevron-right" style={{ fontSize: 11, marginLeft: 4 }} />}
                     </div>
-                    {f.localite_formation && (
-                      <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 1 }}>
-                        <i className="ti ti-map-pin" style={{ fontSize: 10 }} /> {f.localite_formation}
-                      </div>
-                    )}
+                    <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 2 }}>
+                      {f.localite_formation && (
+                        <span style={{ fontSize: 11, color: 'var(--muted)' }}>
+                          <i className="ti ti-map-pin" style={{ fontSize: 10 }} /> {f.localite_formation}
+                        </span>
+                      )}
+                      <ModaliteTag value={f.modalite} />
+                    </div>
                   </div>
 
                   {/* École */}
                   {f.ecole && (
                     <div
                       style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, cursor: onNavigateEcole ? 'pointer' : 'default', padding: '4px 8px', borderRadius: 8, background: 'var(--light)' }}
-                      onClick={() => onNavigateEcole?.(f.ecole.id, 'formations', { q, region, niveau, secteur, ville, villeCity, rayon })}
+                      onClick={() => onNavigateEcole?.(f.ecole.id, 'formations', { q, region, niveau, secteur, modalite, ville, villeCity, rayon })}
                     >
                       <div style={{ width: 22, height: 22, borderRadius: 5, background: 'var(--purple-soft)', color: 'var(--purple)', fontSize: 8, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                         {sigle(f.ecole.nom)}

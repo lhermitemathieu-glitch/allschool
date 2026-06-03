@@ -48,7 +48,7 @@ export default function PanelEcolePublique({ ecoleId, onBack, onEdit, onNavigate
     async function load() {
       const [{ data: e }, { data: f }, { data: a }] = await Promise.all([
         supabase.from('ecoles').select('*').eq('id', ecoleId).single(),
-        supabase.from('formations').select('id,nom,diplome,niveau,url_onisep,localite_formation').eq('ecole_id', ecoleId).order('nom'),
+        supabase.from('formations').select('id,nom,diplome,niveau,modalite,url_onisep,localite_formation').eq('ecole_id', ecoleId).order('nom'),
         supabase.from('ecole_actus').select('*').eq('ecole_id', ecoleId).order('created_at', { ascending: false }).limit(6),
       ])
       setEcole(e)
@@ -238,6 +238,7 @@ export default function PanelEcolePublique({ ecoleId, onBack, onEdit, onNavigate
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, alignItems: 'center' }}>
                     {f.niveau && <NiveauTag value={f.niveau} />}
                     {f.localite_formation && <span style={{ fontSize: 10, color: 'var(--muted)' }}><i className="ti ti-map-pin" style={{ fontSize: 9 }} /> {f.localite_formation}</span>}
+                    {f.modalite && (() => { const MMAP = { presentiel: { label: 'Présentiel', bg: '#e0f2fe', color: '#0369a1', icon: 'ti-building' }, distanciel: { label: 'Distanciel', bg: '#dcfce7', color: '#166534', icon: 'ti-wifi' }, hybride: { label: 'Hybride', bg: '#fef9c3', color: '#854d0e', icon: 'ti-refresh' } }; const m = MMAP[f.modalite]; return m ? <span style={{ background: m.bg, color: m.color, fontSize: 10, fontWeight: 600, padding: '2px 7px', borderRadius: 20, display: 'inline-flex', alignItems: 'center', gap: 3 }}><i className={`ti ${m.icon}`} style={{ fontSize: 9 }} />{m.label}</span> : null })()}
                     {f.url_onisep && (
                       <span onClick={e => { e.stopPropagation(); window.open(f.url_onisep, '_blank') }}
                         style={{ fontSize: 10, color: 'var(--teal)', cursor: 'pointer', fontWeight: 600 }}>
