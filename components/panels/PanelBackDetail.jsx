@@ -68,12 +68,16 @@ export function PanelBackDetailEcoles({ onNavigateEcole }) {
   const [total, setTotal]     = useState(0)
 
   const NIVEAUX = [
-    { value: 'cap',    label: 'CAP' },
-    { value: 'bac',    label: 'Bac Pro' },
-    { value: 'bts',    label: 'BTS / DEUST' },
-    { value: 'bach',   label: 'Bachelor / Licence' },
-    { value: 'master', label: 'Master / Ingénieur' },
-    { value: 'autre',  label: 'Autre' },
+    { value: 'cap',      label: 'CAP' },
+    { value: 'bac',      label: 'Bac Pro' },
+    { value: 'bts',      label: 'BTS' },
+    { value: 'bts_agri', label: 'BTS Agricole' },
+    { value: 'deust',    label: 'DEUST' },
+    { value: 'afpa3',    label: 'Niv 3 – AFPA' },
+    { value: 'niv3',     label: 'Niv 3 – Autre' },
+    { value: 'bach',     label: 'Bachelor / Licence' },
+    { value: 'master',   label: 'Master / Ingénieur' },
+    { value: 'autre',    label: 'Autre' },
   ]
 
   const [q, setQ]           = useState('')

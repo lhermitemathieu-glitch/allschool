@@ -9,12 +9,16 @@ function initiales(str) {
 }
 
 const NIVEAUX = [
-  { value: 'cap',    label: 'CAP',                 bg: '#fef9c3', color: '#854d0e' },
-  { value: 'bac',    label: 'Bac Pro',             bg: '#ffedd5', color: '#9a3412' },
-  { value: 'bts',    label: 'BTS / DEUST',         bg: '#e0f2fe', color: '#0369a1' },
-  { value: 'bach',   label: 'Bachelor / Licence',  bg: '#dcfce7', color: '#166534' },
-  { value: 'master', label: 'Master / Ingénieur',  bg: '#fce7f3', color: '#9d174d' },
-  { value: 'autre',  label: 'Autre',               bg: '#ede9fe', color: '#7c3aed' },
+  { value: 'cap',      label: 'CAP',                bg: '#fef9c3', color: '#854d0e' },
+  { value: 'bac',      label: 'Bac Pro',            bg: '#ffedd5', color: '#9a3412' },
+  { value: 'bts',      label: 'BTS',                bg: '#e0f2fe', color: '#0369a1' },
+  { value: 'bts_agri', label: 'BTS Agricole',       bg: '#d1fae5', color: '#065f46' },
+  { value: 'deust',    label: 'DEUST',              bg: '#ede9fe', color: '#5b21b6' },
+  { value: 'afpa3',    label: 'Niv 3 – AFPA',       bg: '#fce7f3', color: '#9d174d' },
+  { value: 'niv3',     label: 'Niv 3 – Autre',      bg: '#f1f5f9', color: '#475569' },
+  { value: 'bach',     label: 'Bachelor / Licence', bg: '#dcfce7', color: '#166534' },
+  { value: 'master',   label: 'Master / Ingénieur', bg: '#fce7f3', color: '#9d174d' },
+  { value: 'autre',    label: 'Autre',              bg: '#ede9fe', color: '#7c3aed' },
 ]
 
 const MODALITES = {

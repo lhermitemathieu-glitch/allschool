@@ -70,12 +70,16 @@ export default function PanelCandidatEcoles({ onNavigateEcole, onNavigateFormati
   const [geoLoading,  setGeoLoading]  = useState(false)
 
   const NIVEAUX = [
-    { value: 'cap',    label: 'CAP' },
-    { value: 'bac',    label: 'Bac Pro' },
-    { value: 'bts',    label: 'BTS / DEUST' },
-    { value: 'bach',   label: 'Bachelor / Licence' },
-    { value: 'master', label: 'Master / Ingénieur' },
-    { value: 'autre',  label: 'Autre' },
+    { value: 'cap',      label: 'CAP' },
+    { value: 'bac',      label: 'Bac Pro' },
+    { value: 'bts',      label: 'BTS' },
+    { value: 'bts_agri', label: 'BTS Agricole' },
+    { value: 'deust',    label: 'DEUST' },
+    { value: 'afpa3',    label: 'Niv 3 – AFPA' },
+    { value: 'niv3',     label: 'Niv 3 – Autre' },
+    { value: 'bach',     label: 'Bachelor / Licence' },
+    { value: 'master',   label: 'Master / Ingénieur' },
+    { value: 'autre',    label: 'Autre' },
   ]
 
   useEffect(() => {
@@ -216,7 +220,7 @@ export default function PanelCandidatEcoles({ onNavigateEcole, onNavigateFormati
     setLoadingF(false)
   }
 
-  const NIVEAU_LABEL = { cap: 'CAP', bac: 'Bac Pro', bts: 'BTS / DEUST', bach: 'Bachelor', master: 'Master', autre: 'Autre' }
+  const NIVEAU_LABEL = { cap: 'CAP', bac: 'Bac Pro', bts: 'BTS', bts_agri: 'BTS Agricole', deust: 'DEUST', afpa3: 'Niv 3 – AFPA', niv3: 'Niv 3 – Autre', bach: 'Bachelor', master: 'Master', autre: 'Autre' }
 
   return (
     <>
@@ -494,12 +498,16 @@ export default function PanelCandidatEcoles({ onNavigateEcole, onNavigateFormati
 
 function niveauStyle(niveau) {
   const map = {
-    cap:    { background: '#fef9c3', color: '#854d0e' },
-    bac:    { background: '#ffedd5', color: '#9a3412' },
-    bts:    { background: '#e0f2fe', color: '#0369a1' },
-    bach:   { background: '#dcfce7', color: '#166534' },
-    master: { background: '#fce7f3', color: '#9d174d' },
-    autre:  { background: '#ede9fe', color: '#7c3aed' },
+    cap:      { background: '#fef9c3', color: '#854d0e' },
+    bac:      { background: '#ffedd5', color: '#9a3412' },
+    bts:      { background: '#e0f2fe', color: '#0369a1' },
+    bts_agri: { background: '#d1fae5', color: '#065f46' },
+    deust:    { background: '#ede9fe', color: '#5b21b6' },
+    afpa3:    { background: '#fce7f3', color: '#9d174d' },
+    niv3:     { background: '#f1f5f9', color: '#475569' },
+    bach:     { background: '#dcfce7', color: '#166534' },
+    master:   { background: '#fce7f3', color: '#9d174d' },
+    autre:    { background: '#ede9fe', color: '#7c3aed' },
   }
   return map[niveau] || map.autre
 }

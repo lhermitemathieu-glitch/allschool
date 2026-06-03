@@ -213,7 +213,11 @@ function normaliseNiveau(niveau) {
   const n = niveau.toLowerCase()
   if (n.includes('cap') || n.startsWith('3')) return 'cap'
   if (n.includes('bac pro') || n.includes('baccalauréat professionnel') || n.includes('baccalaureat professionnel') || n.startsWith('4')) return 'bac'
-  if (n.includes('bts') || n.includes('deust') || n.startsWith('5')) return 'bts'
+  if (n.includes('technicien superieur agricole') || n.includes('technicien supérieur agricole')) return 'bts_agri'
+  if (n.includes('bts') || n.includes('brevet de technicien superieur') || n.includes('brevet de technicien supérieur')) return 'bts'
+  if (n.includes('deust') || n.includes('etudes universitaires')) return 'deust'
+  if (n.includes('niv 3 ministere du travail') || n.includes('afpa') && n.startsWith('3')) return 'afpa3'
+  if (n.startsWith('5') || n.includes('niveau iii') || n.includes('niv 3')) return 'niv3'
   if (n.includes('bachelor') || n.includes('licence') || n.startsWith('6')) return 'bach'
   if (n.includes('master') || n.includes('ingénieur') || n.startsWith('7')) return 'master'
   return 'autre'
