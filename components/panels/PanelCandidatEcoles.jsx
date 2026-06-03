@@ -159,19 +159,11 @@ export default function PanelCandidatEcoles({ onNavigateEcole, onNavigateFormati
       villeExacte = villeCity || ville.trim()
     }
 
-    // ── Filtre modalité → IDs d'écoles concernées ────────────────────────────
-    let modaliteIds = null
-    if (modalite) {
-      const { data: mIds } = await supabase
-        .from('formations').select('ecole_id').eq('modalite', modalite)
-      modaliteIds = [...new Set((mIds || []).map(f => f.ecole_id))]
-      if (modaliteIds.length === 0) { setEcoles([]); setFormationsSearch([]); setLoading(false); setLoadingFS(false); return }
-    }
 
     // ── Requête écoles ───────────────────────────────────────────────────────
     let ecolesQuery = supabase
       .from('ecoles')
-      .select('id, nom, ville, region, academie, type_ecole, site_web, email, telephone, adresse, code_postal, secteurs')
+      .select('id, nom, ville, region, academie, type_ecole, site_web, email, telephone, adresse, code_postal, secteurs, modalites')
       .order('nom')
       .limit(100)
 
@@ -180,7 +172,7 @@ export default function PanelCandidatEcoles({ onNavigateEcole, onNavigateFormati
     if (secteur)       ecolesQuery = ecolesQuery.contains('secteurs', [secteur])
     if (geoIds)        ecolesQuery = ecolesQuery.in('id', geoIds)
     if (villeExacte)   ecolesQuery = ecolesQuery.ilike('ville', villeExacte)
-    if (modaliteIds)   ecolesQuery = ecolesQuery.in('id', modaliteIds)
+    if (modalite)      ecolesQuery = ecolesQuery.contains('modalites', [modalite])
 
     const { data: ecolesData } = await ecolesQuery
     const ecolesResult = ecolesData || []

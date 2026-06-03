@@ -78,9 +78,9 @@ export default function PanelEcolePublique({ ecoleId, onBack, onEdit, onNavigate
     setToggling(false)
   }
 
-  // niveaux et modalités uniques déduits des formations
+  // niveaux déduits des formations, modalités lues directement sur l'école
   const niveauxUniques   = [...new Set(formations.map(f => f.niveau).filter(Boolean))]
-  const modalitesUniques = [...new Set(formations.map(f => f.modalite).filter(Boolean))]
+  const modalitesUniques = ecole.modalites || []
   const formsFiltrees  = niveauFilter ? formations.filter(f => f.niveau === niveauFilter) : formations
 
   const BG_COLORS = ['var(--teal-soft)', 'var(--purple-soft)', 'var(--accent-soft)', '#fef9c3']
