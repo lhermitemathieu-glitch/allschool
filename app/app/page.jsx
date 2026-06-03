@@ -8,6 +8,7 @@ import Sidebar from '../../components/Sidebar'
 import PanelHome from '../../components/panels/PanelHome'
 import PanelCandidatProfil from '../../components/panels/PanelCandidatProfil'
 import PanelCandidatEcoles from '../../components/panels/PanelCandidatEcoles'
+import PanelCandidatFormations from '../../components/panels/PanelCandidatFormations'
 import PanelCandidatCandidatures from '../../components/panels/PanelCandidatCandidatures'
 import PanelCandidatBadges from '../../components/panels/PanelCandidatBadges'
 import { PanelEntrepriseSiret, PanelEntrepriseRecherche, PanelEntrepriseEcoles, PanelEntrepriseOffres, PanelEntrepriseSimulateur } from '../../components/panels/PanelEntreprise'
@@ -28,7 +29,8 @@ const SPACES = {
     user: { av: 'TM', bg: 'var(--teal)', name: 'Thomas Martin', role: 'Candidat' },
     nav: [
       { icon: 'ti-user-circle', label: 'Mon profil',      panel: 'candidat-profil',      cls: 'cand' },
-      { icon: 'ti-school',      label: 'Mes écoles',       panel: 'candidat-ecoles',       cls: 'cand' },
+      { icon: 'ti-school',      label: 'Écoles',            panel: 'candidat-ecoles',       cls: 'cand' },
+      { icon: 'ti-certificate', label: 'Formations',        panel: 'candidat-formations',   cls: 'cand' },
       { icon: 'ti-building',    label: 'Mes candidatures', panel: 'candidat-candidatures', cls: 'cand' },
       { icon: 'ti-trophy',      label: 'Mes badges',       panel: 'candidat-badges',       cls: 'cand' },
       { section: 'Explorer' },
@@ -182,6 +184,11 @@ export default function Home() {
           initialFilters={activePanelData?.filters}
           onNavigateEcole={(id, tab, filters) => navigateTo('ecole-publique', { ecoleId: id, from: 'candidat-ecoles', fromTab: tab, filters })}
           onNavigateFormation={(id, tab, filters) => navigateTo('formation-publique', { formationId: id, from: 'candidat-ecoles', fromTab: tab, filters })}
+        />
+      case 'candidat-formations':   return <PanelCandidatFormations
+          initialFilters={activePanelData?.filters}
+          onNavigateFormation={(id, from, filters) => navigateTo('formation-publique', { formationId: id, from, filters })}
+          onNavigateEcole={(id, from, filters) => navigateTo('ecole-publique', { ecoleId: id, from, filters })}
         />
       case 'candidat-candidatures': return <PanelCandidatCandidatures />
       case 'candidat-badges':       return <PanelCandidatBadges />
