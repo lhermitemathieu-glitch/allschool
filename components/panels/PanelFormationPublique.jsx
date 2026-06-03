@@ -51,7 +51,7 @@ export default function PanelFormationPublique({ formationId, onBack, onNavigate
       if (f?.ecole_id) {
         const { data: e } = await supabase
           .from('ecoles')
-          .select('id, nom, ville, region, academie, site_web, email, telephone, avatar_url')
+          .select('id, nom, ville, region, academie, site_web, email, telephone, avatar_url, modalites')
           .eq('id', f.ecole_id)
           .single()
         setEcole(e)
@@ -81,14 +81,17 @@ export default function PanelFormationPublique({ formationId, onBack, onNavigate
       <div className="s-card" style={{ marginBottom: '1rem' }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', marginBottom: 12 }}>
           {formation.niveau && <NiveauTag value={formation.niveau} />}
-          {formation.modalite && (() => {
-            const m = MODALITE_MAP[formation.modalite]
+          {(formation.modalite
+            ? [formation.modalite]
+            : (ecole?.modalites || [])
+          ).map(val => {
+            const m = MODALITE_MAP[val]
             return m ? (
-              <span style={{ background: m.bg, color: m.color, fontSize: 12, fontWeight: 600, padding: '4px 12px', borderRadius: 20, display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+              <span key={val} style={{ background: m.bg, color: m.color, fontSize: 12, fontWeight: 600, padding: '4px 12px', borderRadius: 20, display: 'inline-flex', alignItems: 'center', gap: 5 }}>
                 <i className={`ti ${m.icon}`} style={{ fontSize: 11 }} /> {m.label}
               </span>
             ) : null
-          })()}
+          })}
           {formation.diplome && (
             <span style={{ fontSize: 12, color: 'var(--muted)', background: 'var(--light)', padding: '3px 10px', borderRadius: 20 }}>
               {formation.diplome}
