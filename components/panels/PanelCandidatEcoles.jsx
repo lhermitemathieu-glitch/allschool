@@ -112,15 +112,6 @@ export default function PanelCandidatEcoles({ onNavigateEcole, initialVue }) {
       if (geoIds.length === 0) { setEcoles([]); setLoading(false); return }
     }
 
-    // ── Filtre niveau ────────────────────────────────────────────────────────
-    let niveauIds = null
-    if (niveau) {
-      const { data: fIds } = await supabase
-        .from('formations').select('ecole_id').eq('niveau', niveau)
-      niveauIds = [...new Set((fIds || []).map(f => f.ecole_id))]
-      if (niveauIds.length === 0) { setEcoles([]); setLoading(false); return }
-    }
-
     // ── Requête écoles ───────────────────────────────────────────────────────
     let ecolesQuery = supabase
       .from('ecoles')
@@ -128,11 +119,10 @@ export default function PanelCandidatEcoles({ onNavigateEcole, initialVue }) {
       .order('nom')
       .limit(100)
 
-    if (q.trim())    ecolesQuery = ecolesQuery.ilike('nom', `%${q.trim()}%`)
-    if (region)      ecolesQuery = ecolesQuery.eq('region', region)
-    if (secteur)     ecolesQuery = ecolesQuery.contains('secteurs', [secteur])
-    if (geoIds)      ecolesQuery = ecolesQuery.in('id', geoIds)
-    if (niveauIds)   ecolesQuery = ecolesQuery.in('id', niveauIds)
+    if (q.trim())  ecolesQuery = ecolesQuery.ilike('nom', `%${q.trim()}%`)
+    if (region)    ecolesQuery = ecolesQuery.eq('region', region)
+    if (secteur)   ecolesQuery = ecolesQuery.contains('secteurs', [secteur])
+    if (geoIds)    ecolesQuery = ecolesQuery.in('id', geoIds)
 
     const { data: ecolesData } = await ecolesQuery
     const ecolesResult = ecolesData || []
