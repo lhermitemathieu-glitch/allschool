@@ -4,6 +4,95 @@ import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '../../lib/supabase/client'
 
 // ── SIRET ─────────────────────────────────────────────────────────────────────
+// Composant champ lecture/édition
+function FieldRow({ label, editing, children }) {
+  return (
+    <div>
+      <div style={{ fontSize: 11, fontWeight: 500, color: 'var(--muted)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{label}</div>
+      {editing
+        ? children
+        : <div style={{ fontSize: 14, color: 'var(--navy)' }}>{children || <span style={{ color: 'var(--muted)' }}>—</span>}</div>
+      }
+    </div>
+  )
+}
+
+// Composant adresse avec autocomplete api-adresse.data.gouv.fr
+function AdresseField({ editing, adresse, codePostal, ville, onChange }) {
+  const [suggestions, setSuggestions] = useState([])
+
+  async function fetchSuggestions(val) {
+    if (val.length < 3) { setSuggestions([]); return }
+    const res = await fetch(`https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(val)}&limit=6`)
+    const json = await res.json()
+    setSuggestions(json?.features || [])
+  }
+
+  function selectSuggestion(feat) {
+    const p = feat.properties
+    onChange({
+      adresse:     p.name,
+      code_postal: p.postcode,
+      ville:       p.city,
+    })
+    setSuggestions([])
+  }
+
+  if (!editing) {
+    const parts = [adresse, codePostal && ville ? `${codePostal} ${ville}` : (ville || codePostal)].filter(Boolean)
+    return (
+      <div>
+        <div style={{ fontSize: 11, fontWeight: 500, color: 'var(--muted)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Adresse</div>
+        <div style={{ fontSize: 14, color: 'var(--navy)' }}>
+          {parts.length > 0 ? parts.map((p, i) => <div key={i}>{p}</div>) : <span style={{ color: 'var(--muted)' }}>—</span>}
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div>
+      <div style={{ fontSize: 11, fontWeight: 500, color: 'var(--muted)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Adresse</div>
+      <div style={{ position: 'relative', marginBottom: 8 }}>
+        <input
+          value={adresse || ''}
+          onChange={e => { onChange({ adresse: e.target.value }); fetchSuggestions(e.target.value) }}
+          placeholder="Commencez à taper votre adresse…"
+          style={inputStyle}
+        />
+        {suggestions.length > 0 && (
+          <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'white', border: '1.5px solid var(--border)', borderRadius: 8, zIndex: 10, boxShadow: '0 4px 12px rgba(0,0,0,0.08)', marginTop: 2 }}>
+            {suggestions.map(feat => (
+              <div
+                key={feat.properties.id}
+                onMouseDown={() => selectSuggestion(feat)}
+                style={{ padding: '9px 12px', fontSize: 13, cursor: 'pointer', color: 'var(--navy)', borderBottom: '0.5px solid var(--border)' }}
+              >
+                <div style={{ fontWeight: 500 }}>{feat.properties.name}</div>
+                <div style={{ fontSize: 11, color: 'var(--muted)' }}>{feat.properties.postcode} {feat.properties.city}</div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+      <div style={{ display: 'flex', gap: 8 }}>
+        <input
+          value={codePostal || ''}
+          onChange={e => onChange({ code_postal: e.target.value })}
+          placeholder="Code postal"
+          style={{ ...inputStyle, flex: '0 0 120px' }}
+        />
+        <input
+          value={ville || ''}
+          onChange={e => onChange({ ville: e.target.value })}
+          placeholder="Ville"
+          style={{ ...inputStyle, flex: 1 }}
+        />
+      </div>
+    </div>
+  )
+}
+
 export function PanelEntrepriseSiret() {
   const supabase = createClient()
   const [siret, setSiret]       = useState('')
@@ -103,36 +192,57 @@ export function PanelEntrepriseSiret() {
       </div>
 
       <div className="s-card">
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {[
-            ['SIRET', 'siret', 'text', '381 658 820 00038'],
-            ['Raison sociale', 'raison_sociale', 'text', 'Ex : Boulangerie Leroux'],
-            ['Secteur', 'secteur', 'text', 'Ex : Artisanat alimentaire'],
-            ['Adresse', 'adresse', 'text', '12 rue de la Paix'],
-            ['Ville', 'ville', 'text', 'Paris'],
-          ].map(([label, key, type, placeholder]) => (
-            <div key={key}>
-              <div style={{ fontSize: 11, fontWeight: 500, color: 'var(--muted)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{label}</div>
-              {editing
-                ? <input type={type} value={form[key] || ''} onChange={e => setForm(prev => ({ ...prev, [key]: e.target.value }))} placeholder={placeholder} style={inputStyle} />
-                : <div style={{ fontSize: 14, color: 'var(--navy)' }}>{f?.[key] || <span style={{ color: 'var(--muted)' }}>—</span>}</div>
-              }
-            </div>
-          ))}
-          <div>
-            <div style={{ fontSize: 11, fontWeight: 500, color: 'var(--muted)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Taille</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+
+          {/* SIRET */}
+          <FieldRow label="SIRET" editing={editing}>
+            {editing
+              ? <input value={form.siret || ''} onChange={e => setForm(p => ({ ...p, siret: e.target.value }))} placeholder="381 658 820 00038" style={inputStyle} />
+              : f?.siret}
+          </FieldRow>
+
+          {/* Raison sociale */}
+          <FieldRow label="Raison sociale" editing={editing}>
+            {editing
+              ? <input value={form.raison_sociale || ''} onChange={e => setForm(p => ({ ...p, raison_sociale: e.target.value }))} placeholder="Ex : Boulangerie Leroux" style={inputStyle} />
+              : f?.raison_sociale}
+          </FieldRow>
+
+          {/* Secteur — liste prédéfinie */}
+          <FieldRow label="Secteur d'activité" editing={editing}>
             {editing
               ? (
-                <select value={form.taille || ''} onChange={e => setForm(prev => ({ ...prev, taille: e.target.value }))} style={inputStyle}>
+                <select value={form.secteur || ''} onChange={e => setForm(p => ({ ...p, secteur: e.target.value }))} style={inputStyle}>
+                  <option value="">— Sélectionner —</option>
+                  {SECTEURS_ENT.map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+              )
+              : f?.secteur}
+          </FieldRow>
+
+          {/* Adresse avec autocomplete */}
+          <AdresseField
+            editing={editing}
+            adresse={editing ? form.adresse : f?.adresse}
+            codePostal={editing ? form.code_postal : f?.code_postal}
+            ville={editing ? form.ville : f?.ville}
+            onChange={(patch) => setForm(p => ({ ...p, ...patch }))}
+          />
+
+          {/* Taille */}
+          <FieldRow label="Taille" editing={editing}>
+            {editing
+              ? (
+                <select value={form.taille || ''} onChange={e => setForm(p => ({ ...p, taille: e.target.value }))} style={inputStyle}>
                   <option value="">— Sélectionner —</option>
                   <option value="tpe">TPE (moins de 11 salariés)</option>
                   <option value="pme">PME (11 à 249 salariés)</option>
                   <option value="ge">Grande entreprise (250+)</option>
                 </select>
               )
-              : <div style={{ fontSize: 14, color: 'var(--navy)' }}>{{ tpe: 'TPE', pme: 'PME', ge: 'Grande entreprise' }[f?.taille] || <span style={{ color: 'var(--muted)' }}>—</span>}</div>
-            }
-          </div>
+              : ({ tpe: 'TPE (moins de 11 salariés)', pme: 'PME (11 à 249 salariés)', ge: 'Grande entreprise (250+)' }[f?.taille])}
+          </FieldRow>
+
         </div>
       </div>
     </>
