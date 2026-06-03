@@ -9,7 +9,8 @@ function initiales(str) {
 }
 
 const NIVEAUX = [
-  { value: 'cap',    label: 'CAP / Bac Pro',      bg: '#fef9c3', color: '#854d0e' },
+  { value: 'cap',    label: 'CAP',                 bg: '#fef9c3', color: '#854d0e' },
+  { value: 'bac',    label: 'Bac Pro',             bg: '#ffedd5', color: '#9a3412' },
   { value: 'bts',    label: 'BTS / DEUST',         bg: '#e0f2fe', color: '#0369a1' },
   { value: 'bach',   label: 'Bachelor / Licence',  bg: '#dcfce7', color: '#166534' },
   { value: 'master', label: 'Master / Ingénieur',  bg: '#fce7f3', color: '#9d174d' },

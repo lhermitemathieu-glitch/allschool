@@ -14,7 +14,8 @@ function DiploTag({ label }) {
   const l = (label || '').toLowerCase()
   let bg = '#ede9fe', color = '#7c3aed'
   if (l.includes('bts') || l.includes('deust'))                { bg = '#e0f2fe'; color = '#0369a1' }
-  else if (l.includes('cap') || l.includes('bac pro') || l.includes('brevet')) { bg = '#fef9c3'; color = '#854d0e' }
+  else if (l.includes('cap') || l.includes('brevet'))                          { bg = '#fef9c3'; color = '#854d0e' }
+  else if (l.includes('bac pro') || l.includes('baccalauréat professionnel'))  { bg = '#ffedd5'; color = '#9a3412' }
   else if (l.includes('bachelor') || l.includes('licence'))    { bg = '#dcfce7'; color = '#166534' }
   else if (l.includes('master') || l.includes('ingénieur'))    { bg = '#fce7f3'; color = '#9d174d' }
   return (
@@ -67,7 +68,8 @@ export function PanelBackDetailEcoles({ onNavigateEcole }) {
   const [total, setTotal]     = useState(0)
 
   const NIVEAUX = [
-    { value: 'cap',    label: 'CAP / Bac Pro' },
+    { value: 'cap',    label: 'CAP' },
+    { value: 'bac',    label: 'Bac Pro' },
     { value: 'bts',    label: 'BTS / DEUST' },
     { value: 'bach',   label: 'Bachelor / Licence' },
     { value: 'master', label: 'Master / Ingénieur' },

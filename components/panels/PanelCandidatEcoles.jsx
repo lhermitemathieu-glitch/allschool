@@ -51,7 +51,8 @@ export default function PanelCandidatEcoles({ onNavigateEcole, initialVue }) {
   const [geoLoading, setGeoLoading] = useState(false)
 
   const NIVEAUX = [
-    { value: 'cap',    label: 'CAP / Bac Pro' },
+    { value: 'cap',    label: 'CAP' },
+    { value: 'bac',    label: 'Bac Pro' },
     { value: 'bts',    label: 'BTS / DEUST' },
     { value: 'bach',   label: 'Bachelor / Licence' },
     { value: 'master', label: 'Master / Ingénieur' },
@@ -166,7 +167,7 @@ export default function PanelCandidatEcoles({ onNavigateEcole, initialVue }) {
     setLoadingF(false)
   }
 
-  const NIVEAU_LABEL = { cap: 'CAP / Bac pro', bts: 'BTS / DEUST', bach: 'Bachelor', master: 'Master', autre: 'Autre' }
+  const NIVEAU_LABEL = { cap: 'CAP', bac: 'Bac Pro', bts: 'BTS / DEUST', bach: 'Bachelor', master: 'Master', autre: 'Autre' }
 
   return (
     <>
@@ -408,6 +409,7 @@ export default function PanelCandidatEcoles({ onNavigateEcole, initialVue }) {
 function niveauStyle(niveau) {
   const map = {
     cap:    { background: '#fef9c3', color: '#854d0e' },
+    bac:    { background: '#ffedd5', color: '#9a3412' },
     bts:    { background: '#e0f2fe', color: '#0369a1' },
     bach:   { background: '#dcfce7', color: '#166534' },
     master: { background: '#fce7f3', color: '#9d174d' },
