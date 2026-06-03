@@ -25,7 +25,7 @@ const SECTEURS = [
   'Sport & Animation',
 ]
 
-export default function PanelCandidatEcoles({ onNavigateEcole, initialVue }) {
+export default function PanelCandidatEcoles({ onNavigateEcole, initialVue, initialFilters }) {
   const supabase = createClient()
 
   const [vue, setVue]               = useState(initialVue || 'ecoles') // 'ecoles' | 'formations'
@@ -37,16 +37,16 @@ export default function PanelCandidatEcoles({ onNavigateEcole, initialVue }) {
   const [formationsSearch, setFormationsSearch] = useState([]) // résultats onglet formations
   const [loadingFS, setLoadingFS]   = useState(false)
 
-  // Filtres
-  const [q, setQ]             = useState('')
-  const [region, setRegion]   = useState('')
-  const [niveau, setNiveau]   = useState('')
-  const [secteur, setSecteur] = useState('')
+  // Filtres (restaurés depuis initialFilters si présent)
+  const [q, setQ]             = useState(initialFilters?.q       || '')
+  const [region, setRegion]   = useState(initialFilters?.region  || '')
+  const [niveau, setNiveau]   = useState(initialFilters?.niveau  || '')
+  const [secteur, setSecteur] = useState(initialFilters?.secteur || '')
   const [regions, setRegions] = useState([])
 
   // Filtres géographiques
-  const [ville,  setVille]  = useState('')
-  const [rayon,  setRayon]  = useState('')
+  const [ville,  setVille]  = useState(initialFilters?.ville || '')
+  const [rayon,  setRayon]  = useState(initialFilters?.rayon || '')
   const [geoErr, setGeoErr] = useState('')
   const [geoLoading, setGeoLoading] = useState(false)
 
@@ -300,7 +300,7 @@ export default function PanelCandidatEcoles({ onNavigateEcole, initialVue }) {
                 <div className="s-card-title"><i className="ti ti-info-circle" /> {selected.nom}</div>
                 <div style={{ display: 'flex', gap: 5 }}>
                   {onNavigateEcole && (
-                    <button className="btn-sm teal" style={{ fontSize: 11 }} onClick={() => onNavigateEcole(selected.id)}>
+                    <button className="btn-sm teal" style={{ fontSize: 11 }} onClick={() => onNavigateEcole(selected.id, vue, { q, region, niveau, secteur, ville, rayon })}>
                       <i className="ti ti-external-link" /> Page publique
                     </button>
                   )}
@@ -377,7 +377,7 @@ export default function PanelCandidatEcoles({ onNavigateEcole, initialVue }) {
                   {f.ecole && (
                     <div
                       style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, cursor: onNavigateEcole ? 'pointer' : 'default', padding: '4px 8px', borderRadius: 8, background: 'var(--light)' }}
-                      onClick={() => onNavigateEcole?.(f.ecole.id, 'formations')}
+                      onClick={() => onNavigateEcole?.(f.ecole.id, 'formations', { q, region, niveau, secteur, ville, rayon })}
                     >
                       <div style={{ width: 22, height: 22, borderRadius: 5, background: 'var(--purple-soft)', color: 'var(--purple)', fontSize: 8, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                         {sigle(f.ecole.nom)}
