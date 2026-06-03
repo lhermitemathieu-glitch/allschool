@@ -11,6 +11,7 @@ import PanelCandidatEcoles from '../../components/panels/PanelCandidatEcoles'
 import PanelCandidatFormations from '../../components/panels/PanelCandidatFormations'
 import PanelCandidatCandidatures from '../../components/panels/PanelCandidatCandidatures'
 import PanelCandidatBadges from '../../components/panels/PanelCandidatBadges'
+import PanelCandidatOffres from '../../components/panels/PanelCandidatOffres'
 import { PanelEntrepriseSiret, PanelEntrepriseRecherche, PanelEntrepriseEcoles, PanelEntrepriseOffres, PanelEntrepriseSimulateur } from '../../components/panels/PanelEntreprise'
 import { PanelEcolePage, PanelEcoleApprentis, PanelEcoleDashboard } from '../../components/panels/PanelEcole'
 import { PanelBackOverview, PanelBackApprentis, PanelBackEcoles, PanelBackEntreprises, PanelBackLogs } from '../../components/panels/PanelBackoffice'
@@ -34,7 +35,7 @@ const SPACES = {
       { icon: 'ti-building',    label: 'Mes candidatures', panel: 'candidat-candidatures', cls: 'cand' },
       { icon: 'ti-trophy',      label: 'Mes badges',       panel: 'candidat-badges',       cls: 'cand' },
       { section: 'Explorer' },
-      { icon: 'ti-search', label: 'Offres alternance', panel: null, cls: 'cand' },
+      { icon: 'ti-search', label: 'Offres alternance', panel: 'candidat-offres', cls: 'cand' },
       { icon: 'ti-gift',   label: 'Bons plans',        panel: null, cls: 'cand' },
     ],
     firstPanel: 'candidat-profil',
@@ -209,6 +210,7 @@ export default function Home() {
         />
       case 'candidat-candidatures': return <PanelCandidatCandidatures />
       case 'candidat-badges':       return <PanelCandidatBadges />
+      case 'candidat-offres':       return <PanelCandidatOffres />
       case 'entreprise-siret':      return <PanelEntrepriseSiret />
       case 'entreprise-recherche':  return <PanelEntrepriseRecherche onNavigate={setActivePanel} />
       case 'entreprise-ecoles':     return <PanelEntrepriseEcoles onNavigateEcole={id => navigateTo('ecole-publique', { ecoleId: id, from: 'entreprise-ecoles' })} />

@@ -495,10 +495,36 @@ export function PanelEntrepriseOffres() {
     setSaving(false)
   }
 
-  async function handleToggle(offre) {
-    const nouveau = offre.statut === 'active' ? 'inactive' : 'active'
-    await supabase.from('offres').update({ statut: nouveau }).eq('id', offre.id)
-    setOffres(prev => prev.map(o => o.id === offre.id ? { ...o, statut: nouveau } : o))
+  const [editingId, setEditingId] = useState(null)
+  const [editForm, setEditForm]   = useState({})
+
+  function openEdit(o) {
+    setEditingId(o.id)
+    setEditForm({
+      titre: o.titre || '', niveau: o.niveau || 'bach', secteur: o.secteur || '',
+      ville: o.ville || '', type_contrat: o.type_contrat || [],
+      competences: o.competences || '', missions: o.missions || '',
+      recherche: o.recherche || '', date_prise_poste: o.date_prise_poste || '',
+      preference_ecole: o.preference_ecole || false,
+    })
+  }
+
+  async function handleUpdate() {
+    setSaving(true)
+    const { data, error } = await supabase.from('offres').update({ ...editForm, updated_at: new Date().toISOString() }).eq('id', editingId).select().single()
+    if (!error && data) { setOffres(prev => prev.map(o => o.id === editingId ? data : o)); setEditingId(null); setMsg('Offre mise à jour !'); setTimeout(() => setMsg(''), 3000) }
+    else setMsg('Erreur : ' + error?.message)
+    setSaving(false)
+  }
+
+  async function handleStatut(id, statut) {
+    const { data } = await supabase.from('offres').update({ statut, updated_at: new Date().toISOString() }).eq('id', id).select().single()
+    if (data) setOffres(prev => prev.map(o => o.id === id ? data : o))
+  }
+
+  async function handleActualiser(id) {
+    const { data } = await supabase.from('offres').update({ updated_at: new Date().toISOString() }).eq('id', id).select().single()
+    if (data) { setOffres(prev => prev.map(o => o.id === id ? data : o)); setMsg('Offre actualisée !'); setTimeout(() => setMsg(''), 3000) }
   }
 
   async function handleDelete(id) {
@@ -507,6 +533,13 @@ export function PanelEntrepriseOffres() {
   }
 
   const NIVEAUX = { cap: 'CAP', bts: 'BTS / BUT', bach: 'Bachelor', master: 'Master' }
+
+  const STATUT_CONFIG = {
+    active:   { label: 'Active',   color: 'var(--teal)',   dot: 'var(--teal)' },
+    inactive: { label: 'En pause', color: 'var(--muted)',  dot: 'var(--muted)' },
+    archive:  { label: 'Archivée', color: '#9e9e9e',       dot: '#ccc' },
+    pourvue:  { label: 'Pourvue',  color: 'var(--accent)', dot: 'var(--accent)' },
+  }
 
   if (loading) return <div style={{ padding: '2rem', color: 'var(--muted)', fontSize: 14 }}>Chargement…</div>
 
@@ -659,49 +692,73 @@ export function PanelEntrepriseOffres() {
         </div>
         {offres.length === 0 ? (
           <div style={{ fontSize: 13, color: 'var(--muted)', padding: '8px 0' }}>Aucune offre pour l'instant.</div>
-        ) : offres.map(o => (
-          <div key={o.id} className="offre-card">
-            <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-              <div className="status-dot" style={{ background: o.statut === 'active' ? 'var(--teal)' : 'var(--muted)', marginTop: 4, flexShrink: 0 }} />
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--navy)' }}>{o.titre}</div>
-                <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>
-                  {[NIVEAUX[o.niveau], o.ville, o.secteur].filter(Boolean).join(' · ')}
-                </div>
-                {/* Types de contrat */}
-                {(o.type_contrat || []).length > 0 && (
-                  <div style={{ display: 'flex', gap: 5, marginTop: 6, flexWrap: 'wrap' }}>
-                    {o.type_contrat.map(t => (
-                      <span key={t} className="pill accent" style={{ fontSize: 10 }}>{t}</span>
-                    ))}
+        ) : offres.map(o => {
+          const st = STATUT_CONFIG[o.statut] || STATUT_CONFIG.inactive
+          const isEditing = editingId === o.id
+          return (
+            <div key={o.id} className="offre-card" style={{ borderLeft: `3px solid ${st.dot}` }}>
+              {isEditing ? (
+                /* ── Mode édition ── */
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: 8 }}>
+                    <input value={editForm.titre} onChange={e => setEditForm(f => ({ ...f, titre: e.target.value }))} placeholder="Titre du poste" style={{ ...inputStyle }} />
+                    <select value={editForm.niveau} onChange={e => setEditForm(f => ({ ...f, niveau: e.target.value }))} style={{ ...inputStyle }}>
+                      <option value="cap">CAP</option><option value="bts">BTS / BUT</option><option value="bach">Bachelor</option><option value="master">Master</option>
+                    </select>
+                    <input value={editForm.ville} onChange={e => setEditForm(f => ({ ...f, ville: e.target.value }))} placeholder="Ville" style={{ ...inputStyle }} />
                   </div>
-                )}
-                {/* Date + préférence école */}
-                <div style={{ display: 'flex', gap: 10, marginTop: 4, flexWrap: 'wrap' }}>
-                  {o.date_prise_poste && (
-                    <span style={{ fontSize: 11, color: 'var(--muted)' }}>
-                      <i className="ti ti-calendar" style={{ marginRight: 3 }} />
-                      {new Date(o.date_prise_poste).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
-                    </span>
-                  )}
-                  {o.preference_ecole && (
-                    <span style={{ fontSize: 11, color: 'var(--purple-mid)' }}>
-                      <i className="ti ti-school" style={{ marginRight: 3 }} />Préférence école
-                    </span>
-                  )}
+                  <textarea value={editForm.missions} onChange={e => setEditForm(f => ({ ...f, missions: e.target.value }))} placeholder="Missions…" rows={2} style={{ ...inputStyle, resize: 'vertical' }} />
+                  <textarea value={editForm.competences} onChange={e => setEditForm(f => ({ ...f, competences: e.target.value }))} placeholder="Compétences attendues…" rows={2} style={{ ...inputStyle, resize: 'vertical' }} />
+                  <textarea value={editForm.recherche} onChange={e => setEditForm(f => ({ ...f, recherche: e.target.value }))} placeholder="Ce que nous recherchons…" rows={2} style={{ ...inputStyle, resize: 'vertical' }} />
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                    <input type="date" value={editForm.date_prise_poste} onChange={e => setEditForm(f => ({ ...f, date_prise_poste: e.target.value }))} style={{ ...inputStyle, width: 180 }} />
+                    <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
+                      <button className={`toggle ${editForm.preference_ecole ? 'on' : ''}`} onClick={() => setEditForm(f => ({ ...f, preference_ecole: !f.preference_ecole }))} />
+                      Préférence école
+                    </label>
+                  </div>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <button className="btn-sm teal" onClick={handleUpdate} disabled={saving}><i className="ti ti-check" /> {saving ? '…' : 'Enregistrer'}</button>
+                    <button className="btn-sm" onClick={() => setEditingId(null)}>Annuler</button>
+                  </div>
                 </div>
-              </div>
-              <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
-                <button className="btn-sm" style={{ fontSize: 11 }} onClick={() => handleToggle(o)}>
-                  <i className={`ti ti-${o.statut === 'active' ? 'pause' : 'player-play'}`} />
-                </button>
-                <button className="btn-sm" style={{ fontSize: 11, color: 'var(--muted)' }} onClick={() => handleDelete(o.id)}>
-                  <i className="ti ti-trash" />
-                </button>
-              </div>
+              ) : (
+                /* ── Mode lecture ── */
+                <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--navy)' }}>{o.titre}</span>
+                      <span style={{ fontSize: 11, fontWeight: 600, color: st.color, background: st.color + '18', padding: '2px 8px', borderRadius: 100 }}>{st.label}</span>
+                    </div>
+                    <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>
+                      {[NIVEAUX[o.niveau], o.ville, o.secteur].filter(Boolean).join(' · ')}
+                    </div>
+                    {(o.type_contrat || []).length > 0 && (
+                      <div style={{ display: 'flex', gap: 5, marginTop: 6, flexWrap: 'wrap' }}>
+                        {o.type_contrat.map(t => <span key={t} className="pill accent" style={{ fontSize: 10 }}>{t}</span>)}
+                      </div>
+                    )}
+                    <div style={{ display: 'flex', gap: 10, marginTop: 4, flexWrap: 'wrap' }}>
+                      {o.date_prise_poste && <span style={{ fontSize: 11, color: 'var(--muted)' }}><i className="ti ti-calendar" style={{ marginRight: 3 }} />{new Date(o.date_prise_poste).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}</span>}
+                      {o.preference_ecole && <span style={{ fontSize: 11, color: 'var(--purple-mid)' }}><i className="ti ti-school" style={{ marginRight: 3 }} />Préférence école</span>}
+                      <span style={{ fontSize: 11, color: 'var(--muted)' }}>Actualisée le {new Date(o.updated_at).toLocaleDateString('fr-FR')}</span>
+                    </div>
+                  </div>
+                  {/* Actions */}
+                  <div style={{ display: 'flex', gap: 4, flexShrink: 0, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                    <button className="btn-sm" style={{ fontSize: 11 }} onClick={() => openEdit(o)} title="Modifier"><i className="ti ti-pencil" /></button>
+                    <button className="btn-sm" style={{ fontSize: 11 }} onClick={() => handleActualiser(o.id)} title="Actualiser"><i className="ti ti-refresh" /></button>
+                    {o.statut !== 'active'   && <button className="btn-sm teal"   style={{ fontSize: 11 }} onClick={() => handleStatut(o.id, 'active')}>  <i className="ti ti-player-play" /> Activer</button>}
+                    {o.statut === 'active'   && <button className="btn-sm"         style={{ fontSize: 11 }} onClick={() => handleStatut(o.id, 'inactive')}><i className="ti ti-pause" /> Pause</button>}
+                    {o.statut !== 'archive'  && <button className="btn-sm"         style={{ fontSize: 11 }} onClick={() => handleStatut(o.id, 'archive')}> <i className="ti ti-archive" /> Archiver</button>}
+                    {o.statut !== 'pourvue'  && <button className="btn-sm"         style={{ fontSize: 11 }} onClick={() => handleStatut(o.id, 'pourvue')}> <i className="ti ti-check" /> Pourvue</button>}
+                    <button className="btn-sm" style={{ fontSize: 11, color: 'var(--red)' }} onClick={() => handleDelete(o.id)}><i className="ti ti-trash" /></button>
+                  </div>
+                </div>
+              )}
             </div>
-          </div>
-        ))}
+          )
+        })}
       </div>
     </>
   )
