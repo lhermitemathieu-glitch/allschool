@@ -321,6 +321,29 @@ export function PanelEcolePage({ onVoirPage, ecoleIdOverride = null, onBack = nu
                 </div>
               </div>
 
+              {/* Modalités */}
+              <div>
+                <div style={sectionLabel}>Modalités d'enseignement</div>
+                <div style={{ display: 'flex', gap: 10 }}>
+                  {[
+                    { value: 'presentiel', label: 'Présentiel', bg: '#e0f2fe', color: '#0369a1', icon: 'ti-building' },
+                    { value: 'distanciel', label: 'Distanciel', bg: '#dcfce7', color: '#166534', icon: 'ti-wifi'     },
+                    { value: 'hybride',    label: 'Hybride',    bg: '#fef9c3', color: '#854d0e', icon: 'ti-refresh'  },
+                  ].map(m => {
+                    const checked = (form.modalites || []).includes(m.value)
+                    return (
+                      <label key={m.value} style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 12.5, cursor: 'pointer', padding: '7px 14px', borderRadius: 8, border: `1.5px solid ${checked ? m.color : 'var(--border)'}`, background: checked ? m.bg : 'white', color: checked ? m.color : 'var(--muted)', fontWeight: checked ? 600 : 400, transition: 'all 0.15s' }}>
+                        <input type="checkbox" style={{ display: 'none' }} checked={checked} onChange={() => {
+                          const current = form.modalites || []
+                          setForm(f => ({ ...f, modalites: checked ? current.filter(x => x !== m.value) : [...current, m.value] }))
+                        }} />
+                        <i className={`ti ${m.icon}`} style={{ fontSize: 13 }} /> {m.label}
+                      </label>
+                    )
+                  })}
+                </div>
+              </div>
+
               {/* Secteurs */}
               <div>
                 <div style={sectionLabel}>Secteurs d'activité</div>
