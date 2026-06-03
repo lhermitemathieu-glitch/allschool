@@ -171,6 +171,33 @@ export default function PanelCandidatProfil() {
       </div>
 
       {/* Grille passions / loisirs */}
+      {/* Visibilité profil */}
+      <div className="s-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div>
+          <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--navy)', marginBottom: 2 }}>
+            <i className="ti ti-eye" style={{ marginRight: 6 }} />
+            Profil visible par les entreprises
+          </div>
+          <div style={{ fontSize: 12, color: 'var(--muted)' }}>
+            {(editing ? form.profil_public : profil.profil_public)
+              ? 'Ton profil est visible dans les recherches entreprise'
+              : 'Ton profil est masqué — les entreprises ne peuvent pas te trouver'}
+          </div>
+        </div>
+        <button
+          className={`toggle ${(editing ? form.profil_public : profil.profil_public) ? 'on' : ''}`}
+          onClick={() => {
+            const val = !(editing ? form.profil_public : profil.profil_public)
+            setField('profil_public', val)
+            if (!editing) {
+              // Sauvegarde immédiate si pas en mode édition
+              supabase.from('candidats').update({ profil_public: val }).eq('id', profil.id)
+              setProfil(p => ({ ...p, profil_public: val }))
+            }
+          }}
+        />
+      </div>
+
       <div className="grid3">
         <div className="s-card" style={{ marginBottom: 0 }}>
           <div className="s-card-header">
