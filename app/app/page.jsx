@@ -15,7 +15,7 @@ import PanelCandidatOffres from '../../components/panels/PanelCandidatOffres'
 import { PanelEntrepriseSiret, PanelEntrepriseRecherche, PanelEntrepriseEcoles, PanelEntrepriseOffres, PanelEntrepriseSimulateur } from '../../components/panels/PanelEntreprise'
 import { PanelEcolePage, PanelEcoleApprentis, PanelEcoleDashboard } from '../../components/panels/PanelEcole'
 import { PanelBackOverview, PanelBackApprentis, PanelBackEcoles, PanelBackEntreprises, PanelBackLogs } from '../../components/panels/PanelBackoffice'
-import { PanelBackDetailEcoles, PanelBackDetailCandidats, PanelBackDetailEntreprises } from '../../components/panels/PanelBackDetail'
+import { PanelBackDetailEcoles, PanelBackDetailCandidats, PanelBackDetailEntreprises, PanelAdminEntreprise, PanelAdminCandidat } from '../../components/panels/PanelBackDetail'
 import PanelEcolePublique from '../../components/panels/PanelEcolePublique'
 import PanelFormationPublique from '../../components/panels/PanelFormationPublique'
 
@@ -224,9 +224,11 @@ export default function Home() {
       case 'back-ecoles':           return <PanelBackEcoles       onImported={() => setActivePanel('back-logs')} />
       case 'back-entreprises':      return <PanelBackEntreprises  onImported={() => setActivePanel('back-logs')} />
       case 'back-logs':             return <PanelBackLogs />
-      case 'back-detail-candidats':   return <PanelBackDetailCandidats />
+      case 'back-detail-candidats':   return <PanelBackDetailCandidats onNavigateCandidat={id => navigateTo('back-admin-candidat', { candidatId: id })} />
       case 'back-detail-ecoles':      return <PanelBackDetailEcoles onNavigateEcole={id => navigateTo('ecole-publique', { ecoleId: id, from: 'back-detail-ecoles' })} />
-      case 'back-detail-entreprises': return <PanelBackDetailEntreprises />
+      case 'back-detail-entreprises': return <PanelBackDetailEntreprises onNavigateEntreprise={id => navigateTo('back-admin-entreprise', { entrepriseId: id })} />
+      case 'back-admin-entreprise':   return <PanelAdminEntreprise entrepriseId={activePanelData?.entrepriseId} onBack={() => navigateTo('back-detail-entreprises')} />
+      case 'back-admin-candidat':     return <PanelAdminCandidat candidatId={activePanelData?.candidatId} onBack={() => navigateTo('back-detail-candidats')} />
       case 'ecole-publique':        return (
         <PanelEcolePublique
           ecoleId={activePanelData?.ecoleId}

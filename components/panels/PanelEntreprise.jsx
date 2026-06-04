@@ -1,7 +1,34 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { createClient } from '../../lib/supabase/client'
+
+function AvatarPhoto({ url, initials, size = 64, bg = '#fff3e0', color = 'var(--accent)', onUpload, uploading }) {
+  const inputRef = useRef(null)
+  const [hover, setHover] = useState(false)
+  return (
+    <div
+      style={{ position: 'relative', width: size, height: size, flexShrink: 0, cursor: onUpload ? 'pointer' : 'default' }}
+      onClick={() => onUpload && inputRef.current?.click()}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+    >
+      {url ? (
+        <img src={url} alt="" style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover', display: 'block' }} />
+      ) : (
+        <div style={{ width: size, height: size, borderRadius: '50%', background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Syne, sans-serif', fontSize: size * 0.3, fontWeight: 800, color }}>
+          {initials}
+        </div>
+      )}
+      {onUpload && (hover || uploading) && (
+        <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', background: 'rgba(0,0,0,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <i className={`ti ${uploading ? 'ti-loader' : 'ti-camera'}`} style={{ color: 'white', fontSize: Math.round(size * 0.3) }} />
+        </div>
+      )}
+      {onUpload && <input ref={inputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={e => { const f = e.target.files[0]; if (f) onUpload(f); e.target.value = '' }} />}
+    </div>
+  )
+}
 
 // ── SIRET ─────────────────────────────────────────────────────────────────────
 // Composant champ lecture/édition
@@ -93,7 +120,7 @@ function AdresseField({ editing, adresse, codePostal, ville, onChange }) {
   )
 }
 
-export function PanelEntrepriseSiret() {
+export function PanelEntrepriseSiret({ entrepriseIdOverride, onBack }) {
   const supabase = createClient()
   const [siret, setSiret]       = useState('')
   const [fiche, setFiche]       = useState(null)
@@ -102,33 +129,66 @@ export function PanelEntrepriseSiret() {
   const [saving, setSaving]     = useState(false)
   const [msg, setMsg]           = useState('')
   const [loading, setLoading]   = useState(true)
+  const [uploading, setUploading] = useState(false)
 
   useEffect(() => {
     async function load() {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
-      const { data } = await supabase.from('entreprises').select('*').eq('user_id', user.id).maybeSingle()
+      let data
+      if (entrepriseIdOverride) {
+        const res = await supabase.from('entreprises').select('*').eq('id', entrepriseIdOverride).single()
+        data = res.data
+      } else {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return
+        const res = await supabase.from('entreprises').select('*').eq('user_id', user.id).maybeSingle()
+        data = res.data
+      }
       if (data) { setFiche(data); setForm(data) }
       setLoading(false)
     }
     load()
-  }, [])
+  }, [entrepriseIdOverride])
 
   async function handleSave() {
     setSaving(true)
     setMsg('')
-    const { data: { user } } = await supabase.auth.getUser()
-    const payload = { ...form, user_id: user.id, updated_at: new Date().toISOString() }
-    const { data, error } = await supabase.from('entreprises').upsert(payload).select().single()
+    let data, error
+    if (entrepriseIdOverride) {
+      const res = await supabase.from('entreprises').update({ ...form, updated_at: new Date().toISOString() }).eq('id', entrepriseIdOverride).select().single()
+      data = res.data; error = res.error
+    } else {
+      const { data: { user } } = await supabase.auth.getUser()
+      const payload = { ...form, user_id: user.id, updated_at: new Date().toISOString() }
+      const res = await supabase.from('entreprises').upsert(payload).select().single()
+      data = res.data; error = res.error
+    }
     if (error) { setMsg('Erreur : ' + error.message) }
     else { setFiche(data); setForm(data); setEditing(false); setMsg('Entreprise enregistrée !'); setTimeout(() => setMsg(''), 3000) }
     setSaving(false)
   }
 
+  async function handlePhotoUpload(file) {
+    if (!fiche?.id) return
+    setUploading(true)
+    const ext = file.name.split('.').pop() || 'jpg'
+    const path = `entreprises/${fiche.id}/photo.${ext}`
+    const { error } = await supabase.storage.from('profiles').upload(path, file, { upsert: true })
+    if (error) { setMsg('Erreur photo : ' + error.message); setUploading(false); return }
+    const { data: { publicUrl } } = supabase.storage.from('profiles').getPublicUrl(path)
+    await supabase.from('entreprises').update({ photo_url: publicUrl }).eq('id', fiche.id)
+    setFiche(p => ({ ...p, photo_url: publicUrl }))
+    setForm(f => ({ ...f, photo_url: publicUrl }))
+    setUploading(false)
+  }
+
+  function initials(str) {
+    return (str || '').split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) || '?'
+  }
+
   if (loading) return <div style={{ padding: '2rem', color: 'var(--muted)', fontSize: 14 }}>Chargement…</div>
 
-  // Formulaire d'onboarding si pas encore de fiche
-  if (!fiche && !editing) {
+  // Formulaire d'onboarding si pas encore de fiche (mode normal uniquement)
+  if (!fiche && !editing && !entrepriseIdOverride) {
     return (
       <>
         <div className="topbar">
@@ -175,12 +235,16 @@ export function PanelEntrepriseSiret() {
 
   // Fiche entreprise (lecture / édition)
   const f = editing ? form : fiche
+  const displayUrl = (editing ? form.photo_url : fiche?.photo_url) || null
   return (
     <>
       <div className="topbar">
-        <div>
-          <div className="page-title">Mon entreprise</div>
-          <div className="page-sub">{f?.raison_sociale || f?.siret || 'Fiche entreprise'}</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          {onBack && <button className="btn-sm" onClick={onBack}><i className="ti ti-arrow-left" /> Retour</button>}
+          <div>
+            <div className="page-title">{entrepriseIdOverride ? 'Fiche entreprise (admin)' : 'Mon entreprise'}</div>
+            <div className="page-sub">{f?.raison_sociale || f?.siret || 'Fiche entreprise'}</div>
+          </div>
         </div>
         <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
           {msg && <span style={{ fontSize: 13, color: 'var(--teal)', fontWeight: 500 }}>{msg}</span>}
@@ -192,6 +256,18 @@ export function PanelEntrepriseSiret() {
       </div>
 
       <div className="s-card">
+        <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start', marginBottom: 14 }}>
+          <AvatarPhoto
+            url={displayUrl}
+            initials={initials(f?.raison_sociale)}
+            size={64}
+            onUpload={fiche ? handlePhotoUpload : undefined}
+            uploading={uploading}
+          />
+          <div style={{ flex: 1, fontFamily: 'Syne, sans-serif', fontSize: 16, fontWeight: 800, color: 'var(--navy)', alignSelf: 'center' }}>
+            {f?.raison_sociale || <span style={{ color: 'var(--muted)', fontWeight: 400, fontSize: 13 }}>Raison sociale non renseignée</span>}
+          </div>
+        </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
 
           {/* SIRET */}
@@ -567,11 +643,11 @@ export function PanelEntrepriseEcoles({ onNavigateEcole }) {
 }
 
 // ── OFFRES ────────────────────────────────────────────────────────────────────
-export function PanelEntrepriseOffres() {
+export function PanelEntrepriseOffres({ entrepriseIdOverride, hideTopbar } = {}) {
   const supabase = createClient()
   const [offres, setOffres]         = useState([])
   const [loading, setLoading]       = useState(true)
-  const [entrepriseId, setEntrepriseId] = useState(null)
+  const [entrepriseId, setEntrepriseId] = useState(entrepriseIdOverride || null)
   const [showForm, setShowForm]     = useState(false)
   const EMPTY_FORM = {
     titre: '', niveau: 'bach', secteur: '', ville: '', description: '',
@@ -584,17 +660,21 @@ export function PanelEntrepriseOffres() {
 
   useEffect(() => {
     async function load() {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
-      const { data: ent } = await supabase.from('entreprises').select('id').eq('user_id', user.id).maybeSingle()
-      if (!ent) { setLoading(false); return }
-      setEntrepriseId(ent.id)
-      const { data } = await supabase.from('offres').select('*').eq('entreprise_id', ent.id).order('created_at', { ascending: false })
+      let entId = entrepriseIdOverride
+      if (!entId) {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) { setLoading(false); return }
+        const { data: ent } = await supabase.from('entreprises').select('id').eq('user_id', user.id).maybeSingle()
+        if (!ent) { setLoading(false); return }
+        entId = ent.id
+        setEntrepriseId(entId)
+      }
+      const { data } = await supabase.from('offres').select('*').eq('entreprise_id', entId).order('created_at', { ascending: false })
       setOffres(data || [])
       setLoading(false)
     }
     load()
-  }, [])
+  }, [entrepriseIdOverride])
 
   async function handleCreate() {
     if (!entrepriseId) return
@@ -653,18 +733,31 @@ export function PanelEntrepriseOffres() {
 
   if (loading) return <div style={{ padding: '2rem', color: 'var(--muted)', fontSize: 14 }}>Chargement…</div>
 
+  const activeCount = offres.filter(o => o.statut === 'active').length
   return (
     <>
-      <div className="topbar">
-        <div>
-          <div className="page-title">Mes offres d'alternance</div>
-          <div className="page-sub">{offres.filter(o => o.statut === 'active').length} offre{offres.filter(o => o.statut === 'active').length !== 1 ? 's' : ''} active{offres.filter(o => o.statut === 'active').length !== 1 ? 's' : ''}</div>
+      {!hideTopbar && (
+        <div className="topbar">
+          <div>
+            <div className="page-title">Mes offres d'alternance</div>
+            <div className="page-sub">{activeCount} offre{activeCount !== 1 ? 's' : ''} active{activeCount !== 1 ? 's' : ''}</div>
+          </div>
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+            {msg && <span style={{ fontSize: 13, color: 'var(--teal)', fontWeight: 500 }}>{msg}</span>}
+            <button className="btn-sm accent" onClick={() => setShowForm(v => !v)}><i className="ti ti-plus" /> Nouvelle offre</button>
+          </div>
         </div>
-        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-          {msg && <span style={{ fontSize: 13, color: 'var(--teal)', fontWeight: 500 }}>{msg}</span>}
-          <button className="btn-sm accent" onClick={() => setShowForm(v => !v)}><i className="ti ti-plus" /> Nouvelle offre</button>
+      )}
+
+      {hideTopbar && (
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+          <div style={{ fontSize: 13, color: 'var(--muted)' }}>{activeCount} offre{activeCount !== 1 ? 's' : ''} active{activeCount !== 1 ? 's' : ''}</div>
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+            {msg && <span style={{ fontSize: 12, color: 'var(--teal)', fontWeight: 500 }}>{msg}</span>}
+            <button className="btn-sm accent" onClick={() => setShowForm(v => !v)}><i className="ti ti-plus" /> Nouvelle offre</button>
+          </div>
         </div>
-      </div>
+      )}
 
       {!entrepriseId && (
         <div className="s-card">

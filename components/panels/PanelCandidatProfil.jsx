@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { createClient } from '../../lib/supabase/client'
 
 const CHAMPS = ['prenom', 'nom', 'ville', 'formation', 'disponibilite', 'bio']
@@ -17,40 +17,74 @@ function initiales(prenom, nom) {
   return [(prenom || '')[0], (nom || '')[0]].filter(Boolean).join('').toUpperCase() || '?'
 }
 
-export default function PanelCandidatProfil() {
+function AvatarPhoto({ url, initials, size = 64, onUpload, uploading }) {
+  const inputRef = useRef(null)
+  const [hover, setHover] = useState(false)
+  return (
+    <div
+      style={{ position: 'relative', width: size, height: size, flexShrink: 0, cursor: onUpload ? 'pointer' : 'default' }}
+      onClick={() => onUpload && inputRef.current?.click()}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+    >
+      {url ? (
+        <img src={url} alt="" style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover', display: 'block' }} />
+      ) : (
+        <div style={{ width: size, height: size, borderRadius: '50%', background: 'var(--teal-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Syne, sans-serif', fontSize: size * 0.3, fontWeight: 800, color: 'var(--teal-mid)' }}>
+          {initials}
+        </div>
+      )}
+      {onUpload && (hover || uploading) && (
+        <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', background: 'rgba(0,0,0,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <i className={`ti ${uploading ? 'ti-loader' : 'ti-camera'}`} style={{ color: 'white', fontSize: Math.round(size * 0.3) }} />
+        </div>
+      )}
+      {onUpload && <input ref={inputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={e => { const f = e.target.files[0]; if (f) onUpload(f); e.target.value = '' }} />}
+    </div>
+  )
+}
+
+export default function PanelCandidatProfil({ candidatIdOverride, onBack }) {
   const supabase = createClient()
 
-  const [profil, setProfil]     = useState(null)
-  const [editing, setEditing]   = useState(false)
-  const [form, setForm]         = useState({})
-  const [saving, setSaving]     = useState(false)
-  const [message, setMessage]   = useState('')
+  const [profil, setProfil]       = useState(null)
+  const [editing, setEditing]     = useState(false)
+  const [form, setForm]           = useState({})
+  const [saving, setSaving]       = useState(false)
+  const [message, setMessage]     = useState('')
+  const [uploading, setUploading] = useState(false)
 
   useEffect(() => {
     async function load() {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
-      const { data } = await supabase.from('candidats').select('*').eq('id', user.id).single()
+      let uid = candidatIdOverride
+      if (!uid) {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return
+        uid = user.id
+      }
+      const { data } = await supabase.from('candidats').select('*').eq('id', uid).single()
       if (data) {
         setProfil(data)
         setForm(data)
       } else {
-        const vide = { id: user.id, prenom: '', nom: '', ville: '', formation: '', disponibilite: '', bio: '', passions: [], loisirs: [] }
+        const vide = { id: uid, prenom: '', nom: '', ville: '', formation: '', disponibilite: '', bio: '', passions: [], loisirs: [] }
         setProfil(vide)
         setForm(vide)
         setEditing(true)
       }
     }
     load()
-  }, [])
+  }, [candidatIdOverride])
 
   async function handleSave() {
     setSaving(true)
     setMessage('')
-    const { error } = await supabase.from('candidats').upsert({
-      ...form,
-      updated_at: new Date().toISOString(),
-    })
+    let error
+    if (candidatIdOverride) {
+      ({ error } = await supabase.from('candidats').update({ ...form, updated_at: new Date().toISOString() }).eq('id', candidatIdOverride))
+    } else {
+      ({ error } = await supabase.from('candidats').upsert({ ...form, updated_at: new Date().toISOString() }))
+    }
     if (error) {
       setMessage('Erreur : ' + error.message)
     } else {
@@ -62,31 +96,48 @@ export default function PanelCandidatProfil() {
     setSaving(false)
   }
 
-  function setField(key, val) {
-    setForm((f) => ({ ...f, [key]: val }))
+  async function handlePhotoUpload(file) {
+    if (!profil?.id) return
+    setUploading(true)
+    const ext = file.name.split('.').pop() || 'jpg'
+    const path = `candidats/${profil.id}/photo.${ext}`
+    const { error } = await supabase.storage.from('profiles').upload(path, file, { upsert: true })
+    if (error) { setMessage('Erreur photo : ' + error.message); setUploading(false); return }
+    const { data: { publicUrl } } = supabase.storage.from('profiles').getPublicUrl(path)
+    await supabase.from('candidats').update({ photo_url: publicUrl }).eq('id', profil.id)
+    setProfil(p => ({ ...p, photo_url: publicUrl }))
+    setForm(f => ({ ...f, photo_url: publicUrl }))
+    setUploading(false)
   }
 
+  function setField(key, val) { setForm((f) => ({ ...f, [key]: val })) }
   function setTags(key, val) {
     const arr = val.split(',').map((s) => s.trim()).filter(Boolean)
     setForm((f) => ({ ...f, [key]: arr }))
   }
 
-  if (!profil) {
-    return <div style={{ padding: '2rem', color: 'var(--muted)', fontSize: 14 }}>Chargement…</div>
-  }
+  if (!profil) return <div style={{ padding: '2rem', color: 'var(--muted)', fontSize: 14 }}>Chargement…</div>
 
   const pct = completion(editing ? form : profil)
+  const displayUrl = (editing ? form.photo_url : profil.photo_url) || null
 
   return (
     <>
       <div className="topbar">
-        <div>
-          <div className="page-title">Mon profil</div>
-          <div className="page-sub">Complété à {pct}%</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          {onBack && (
+            <button className="btn-sm" onClick={onBack}><i className="ti ti-arrow-left" /> Retour</button>
+          )}
+          <div>
+            <div className="page-title">
+              {candidatIdOverride ? `Profil — ${[profil.prenom, profil.nom].filter(Boolean).join(' ') || 'Candidat'}` : 'Mon profil'}
+            </div>
+            <div className="page-sub">Complété à {pct}%</div>
+          </div>
         </div>
         <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
           {message && <span style={{ fontSize: 13, color: 'var(--teal)', fontWeight: 500 }}>{message}</span>}
-          <button className="btn-sm"><i className="ti ti-qrcode" /> QR Code</button>
+          {!candidatIdOverride && <button className="btn-sm"><i className="ti ti-qrcode" /> QR Code</button>}
           {editing
             ? <button className="btn-sm teal" onClick={handleSave} disabled={saving}>
                 <i className="ti ti-device-floppy" /> {saving ? 'Enregistrement…' : 'Enregistrer'}
@@ -100,55 +151,26 @@ export default function PanelCandidatProfil() {
 
       {/* Carte identité */}
       <div className="s-card" style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
-        <div style={{ position: 'relative', flexShrink: 0 }}>
-          <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'var(--teal-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Syne, sans-serif', fontSize: 20, fontWeight: 800, color: 'var(--teal-mid)' }}>
-            {initiales(editing ? form.prenom : profil.prenom, editing ? form.nom : profil.nom)}
-          </div>
-        </div>
+        <AvatarPhoto
+          url={displayUrl}
+          initials={initiales(editing ? form.prenom : profil.prenom, editing ? form.nom : profil.nom)}
+          size={64}
+          onUpload={handlePhotoUpload}
+          uploading={uploading}
+        />
 
         {editing ? (
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 10 }}>
             <div style={{ display: 'flex', gap: 8 }}>
-              <input
-                placeholder="Prénom"
-                value={form.prenom || ''}
-                onChange={(e) => setField('prenom', e.target.value)}
-                style={inputStyle}
-              />
-              <input
-                placeholder="Nom"
-                value={form.nom || ''}
-                onChange={(e) => setField('nom', e.target.value)}
-                style={inputStyle}
-              />
+              <input placeholder="Prénom" value={form.prenom || ''} onChange={(e) => setField('prenom', e.target.value)} style={inputStyle} />
+              <input placeholder="Nom" value={form.nom || ''} onChange={(e) => setField('nom', e.target.value)} style={inputStyle} />
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
-              <input
-                placeholder="Ville (ex: Paris 11e)"
-                value={form.ville || ''}
-                onChange={(e) => setField('ville', e.target.value)}
-                style={inputStyle}
-              />
-              <input
-                placeholder="Formation (ex: Bachelor Marketing)"
-                value={form.formation || ''}
-                onChange={(e) => setField('formation', e.target.value)}
-                style={inputStyle}
-              />
+              <input placeholder="Ville (ex: Paris 11e)" value={form.ville || ''} onChange={(e) => setField('ville', e.target.value)} style={inputStyle} />
+              <input placeholder="Formation (ex: Bachelor Marketing)" value={form.formation || ''} onChange={(e) => setField('formation', e.target.value)} style={inputStyle} />
             </div>
-            <input
-              placeholder="Disponibilité (ex: Dispo sept. 2025)"
-              value={form.disponibilite || ''}
-              onChange={(e) => setField('disponibilite', e.target.value)}
-              style={inputStyle}
-            />
-            <textarea
-              placeholder="Bio — présente-toi en quelques phrases"
-              value={form.bio || ''}
-              onChange={(e) => setField('bio', e.target.value)}
-              rows={3}
-              style={{ ...inputStyle, resize: 'vertical' }}
-            />
+            <input placeholder="Disponibilité (ex: Dispo sept. 2025)" value={form.disponibilite || ''} onChange={(e) => setField('disponibilite', e.target.value)} style={inputStyle} />
+            <textarea placeholder="Bio — présente-toi en quelques phrases" value={form.bio || ''} onChange={(e) => setField('bio', e.target.value)} rows={3} style={{ ...inputStyle, resize: 'vertical' }} />
           </div>
         ) : (
           <div style={{ flex: 1 }}>
@@ -160,9 +182,7 @@ export default function PanelCandidatProfil() {
               {profil.formation     && <span className="pill purple">{profil.formation}</span>}
               {profil.disponibilite && <span className="pill accent">{profil.disponibilite}</span>}
             </div>
-            {profil.bio && (
-              <div style={{ fontSize: 13, color: 'var(--muted)', lineHeight: 1.6 }}>{profil.bio}</div>
-            )}
+            {profil.bio && <div style={{ fontSize: 13, color: 'var(--muted)', lineHeight: 1.6 }}>{profil.bio}</div>}
             <div style={{ background: 'var(--light)', borderRadius: 100, height: 5, marginTop: 10 }}>
               <div style={{ width: `${pct}%`, height: 5, borderRadius: 100, background: 'var(--teal)', transition: 'width 0.4s' }} />
             </div>
@@ -170,7 +190,6 @@ export default function PanelCandidatProfil() {
         )}
       </div>
 
-      {/* Grille passions / loisirs */}
       {/* Visibilité profil */}
       <div className="s-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
@@ -190,7 +209,6 @@ export default function PanelCandidatProfil() {
             const val = !(editing ? form.profil_public : profil.profil_public)
             setField('profil_public', val)
             if (!editing) {
-              // Sauvegarde immédiate si pas en mode édition
               supabase.from('candidats').update({ profil_public: val }).eq('id', profil.id)
               setProfil(p => ({ ...p, profil_public: val }))
             }
@@ -204,12 +222,7 @@ export default function PanelCandidatProfil() {
             <div className="s-card-title"><i className="ti ti-heart" /> Passions</div>
           </div>
           {editing ? (
-            <input
-              placeholder="Social media, Copywriting, UX Design…"
-              value={(form.passions || []).join(', ')}
-              onChange={(e) => setTags('passions', e.target.value)}
-              style={inputStyle}
-            />
+            <input placeholder="Social media, Copywriting, UX Design…" value={(form.passions || []).join(', ')} onChange={(e) => setTags('passions', e.target.value)} style={inputStyle} />
           ) : (
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
               {(profil.passions || []).length
@@ -224,12 +237,7 @@ export default function PanelCandidatProfil() {
             <div className="s-card-title"><i className="ti ti-confetti" /> Loisirs</div>
           </div>
           {editing ? (
-            <input
-              placeholder="Musique, Running, Photo…"
-              value={(form.loisirs || []).join(', ')}
-              onChange={(e) => setTags('loisirs', e.target.value)}
-              style={inputStyle}
-            />
+            <input placeholder="Musique, Running, Photo…" value={(form.loisirs || []).join(', ')} onChange={(e) => setTags('loisirs', e.target.value)} style={inputStyle} />
           ) : (
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
               {(profil.loisirs || []).length
