@@ -364,7 +364,7 @@ export default function PanelCandidatProfil({ candidatIdOverride, onBack }) {
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
               <CityAutocomplete value={form.ville || ''} onChange={v => setField('ville', v)} />
-              <input placeholder="Formation visée (ex: Bachelor Marketing)" value={form.formation || ''} onChange={e => setField('formation', e.target.value)} style={inputStyle} />
+              <input placeholder="Formation visée (ex: Bachelor Marketing)" value={form.formation || ''} onChange={e => setField('formation', e.target.value)} style={{ ...inputStyle, flex: 1 }} />
             </div>
             {/* Disponibilité : sélecteur mois + année */}
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
@@ -452,6 +452,25 @@ export default function PanelCandidatProfil({ candidatIdOverride, onBack }) {
                 const val = !data.profil_visible_ecoles
                 setField('profil_visible_ecoles', val)
                 if (!editing) { supabase.from('candidats').update({ profil_visible_ecoles: val }).eq('id', profil.id); setProfil(p => ({ ...p, profil_visible_ecoles: val })) }
+              }}
+            />
+          </div>
+          {/* Visibilité expériences / compétences */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 12, borderTop: '0.5px solid var(--border)' }}>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--navy)' }}>
+                <i className="ti ti-briefcase" style={{ marginRight: 6 }} />Visibilité de l'expérience professionnelle
+              </div>
+              <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>
+                {data.masquer_experiences ? 'Masqué dans mon profil — expériences, compétences, langues cachées' : 'Affiché dans mon profil'}
+              </div>
+            </div>
+            <button
+              className={`toggle ${!data.masquer_experiences ? 'on' : ''}`}
+              onClick={() => {
+                const val = !data.masquer_experiences
+                setField('masquer_experiences', val)
+                if (!editing) { supabase.from('candidats').update({ masquer_experiences: val }).eq('id', profil.id); setProfil(p => ({ ...p, masquer_experiences: val })) }
               }}
             />
           </div>
@@ -583,21 +602,6 @@ export default function PanelCandidatProfil({ candidatIdOverride, onBack }) {
               Je n'ai pas d'expérience pro
             </button>
 
-            {/* Bouton "masquer la section" — visible seulement en mode édition */}
-            {editing && (
-              <button
-                onClick={() => setExpMode(expMode === 'masquer' ? null : 'masquer')}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 5, padding: '5px 12px', borderRadius: 8, fontSize: 12, fontWeight: 600,
-                  cursor: 'pointer', border: 'none', fontFamily: 'DM Sans, sans-serif',
-                  background: expMode === 'masquer' ? '#f3f4f6' : 'var(--light)',
-                  color: 'var(--muted)',
-                }}
-              >
-                <i className="ti ti-eye-off" />
-                Masquer cette section
-              </button>
-            )}
           </div>
 
           {/* Contenu selon le mode */}
@@ -691,86 +695,88 @@ export default function PanelCandidatProfil({ candidatIdOverride, onBack }) {
         </div>
       )}
 
-      {/* ── Compétences techniques ── */}
-      <div className="s-card">
-        <div className="s-card-header">
-          <div className="s-card-title"><i className="ti ti-tool" /> Compétences techniques</div>
+      {/* ── Compétences techniques / Soft skills / Langues — masquées si expériences masquées ── */}
+      {!data.masquer_experiences && (<>
+        <div className="s-card">
+          <div className="s-card-header">
+            <div className="s-card-title"><i className="ti ti-tool" /> Compétences techniques</div>
+          </div>
+          {editing ? (
+            <textarea
+              placeholder={"Décris tes compétences techniques et missions réalisées…\nEx : Gestion des réseaux sociaux (Instagram, LinkedIn), création de visuels sur Canva, rédaction de newsletters, analyse de KPIs…"}
+              value={form.competences_hard || ''}
+              onChange={e => setField('competences_hard', e.target.value)}
+              rows={4}
+              style={{ ...inputStyle, resize: 'vertical' }}
+            />
+          ) : data.competences_hard ? (
+            <div style={{ fontSize: 13, color: 'var(--navy)', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>{data.competences_hard}</div>
+          ) : (
+            <div style={{ fontSize: 13, color: 'var(--muted)' }}>Aucune compétence technique renseignée.</div>
+          )}
         </div>
-        {editing ? (
-          <textarea
-            placeholder={"Décris tes compétences techniques et missions réalisées…\nEx : Gestion des réseaux sociaux (Instagram, LinkedIn), création de visuels sur Canva, rédaction de newsletters, analyse de KPIs…"}
-            value={form.competences_hard || ''}
-            onChange={e => setField('competences_hard', e.target.value)}
-            rows={4}
-            style={{ ...inputStyle, resize: 'vertical' }}
-          />
-        ) : data.competences_hard ? (
-          <div style={{ fontSize: 13, color: 'var(--navy)', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>{data.competences_hard}</div>
-        ) : (
-          <div style={{ fontSize: 13, color: 'var(--muted)' }}>Aucune compétence technique renseignée.</div>
-        )}
-      </div>
 
-      {/* ── Soft skills ── */}
-      <div className="s-card">
-        <div className="s-card-header">
-          <div className="s-card-title"><i className="ti ti-mood-smile" /> Soft skills</div>
+        {/* ── Soft skills ── */}
+        <div className="s-card">
+          <div className="s-card-header">
+            <div className="s-card-title"><i className="ti ti-mood-smile" /> Soft skills</div>
+          </div>
+          {editing ? (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
+              {SOFT_SKILLS.map(skill => {
+                const selected = (form.competences_soft || []).includes(skill)
+                return (
+                  <button key={skill} onClick={() => toggleSoft(skill)} style={{ padding: '5px 12px', borderRadius: 20, fontSize: 12, cursor: 'pointer', border: 'none', fontFamily: 'DM Sans, sans-serif', background: selected ? 'var(--teal)' : 'var(--light)', color: selected ? 'white' : 'var(--navy)', fontWeight: selected ? 600 : 400, transition: 'all 0.15s' }}>
+                    {selected && <i className="ti ti-check" style={{ marginRight: 4, fontSize: 11 }} />}
+                    {skill}
+                  </button>
+                )
+              })}
+            </div>
+          ) : (data.competences_soft || []).length > 0 ? (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {data.competences_soft.map(s => (
+                <span key={s} style={{ padding: '4px 12px', borderRadius: 20, fontSize: 12, fontWeight: 500, background: 'var(--teal-soft)', color: 'var(--teal-mid)' }}>{s}</span>
+              ))}
+            </div>
+          ) : (
+            <div style={{ fontSize: 13, color: 'var(--muted)' }}>Aucun soft skill sélectionné.</div>
+          )}
         </div>
-        {editing ? (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
-            {SOFT_SKILLS.map(skill => {
-              const selected = (form.competences_soft || []).includes(skill)
-              return (
-                <button key={skill} onClick={() => toggleSoft(skill)} style={{ padding: '5px 12px', borderRadius: 20, fontSize: 12, cursor: 'pointer', border: 'none', fontFamily: 'DM Sans, sans-serif', background: selected ? 'var(--teal)' : 'var(--light)', color: selected ? 'white' : 'var(--navy)', fontWeight: selected ? 600 : 400, transition: 'all 0.15s' }}>
-                  {selected && <i className="ti ti-check" style={{ marginRight: 4, fontSize: 11 }} />}
-                  {skill}
-                </button>
-              )
-            })}
-          </div>
-        ) : (data.competences_soft || []).length > 0 ? (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-            {data.competences_soft.map(s => (
-              <span key={s} style={{ padding: '4px 12px', borderRadius: 20, fontSize: 12, fontWeight: 500, background: 'var(--teal-soft)', color: 'var(--teal-mid)' }}>{s}</span>
-            ))}
-          </div>
-        ) : (
-          <div style={{ fontSize: 13, color: 'var(--muted)' }}>Aucun soft skill sélectionné.</div>
-        )}
-      </div>
 
-      {/* ── Langues ── */}
-      <div className="s-card">
-        <div className="s-card-header">
-          <div className="s-card-title"><i className="ti ti-world" /> Langues</div>
-          {editing && <button className="btn-sm teal" onClick={addLang}><i className="ti ti-plus" /> Ajouter</button>}
+        {/* ── Langues ── */}
+        <div className="s-card">
+          <div className="s-card-header">
+            <div className="s-card-title"><i className="ti ti-world" /> Langues</div>
+            {editing && <button className="btn-sm teal" onClick={addLang}><i className="ti ti-plus" /> Ajouter</button>}
+          </div>
+          {(data.langues || []).length === 0 ? (
+            <div style={{ fontSize: 13, color: 'var(--muted)' }}>{editing ? 'Clique sur "+ Ajouter" pour renseigner une langue.' : 'Aucune langue renseignée.'}</div>
+          ) : editing ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {(form.langues || []).map(lang => (
+                <div key={lang.id} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <input placeholder="Langue (ex: Anglais)" value={lang.langue} onChange={e => updateLang(lang.id, 'langue', e.target.value)} style={{ ...inputStyle, flex: 2 }} />
+                  <select value={lang.niveau} onChange={e => updateLang(lang.id, 'niveau', e.target.value)} style={{ ...selectStyle, flex: 2 }}>
+                    {NIVEAUX_LANGUE.map(n => <option key={n} value={n}>{n}</option>)}
+                  </select>
+                  <button onClick={() => removeLang(lang.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626', fontSize: 16, flexShrink: 0 }}><i className="ti ti-trash" /></button>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              {(profil.langues || []).map(lang => (
+                <div key={lang.id} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 12px', borderRadius: 10, background: 'var(--light)', border: '1px solid var(--border)' }}>
+                  <i className="ti ti-language" style={{ fontSize: 13, color: 'var(--teal-mid)' }} />
+                  <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--navy)' }}>{lang.langue}</span>
+                  <span style={{ fontSize: 11, color: 'var(--muted)' }}>{lang.niveau}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
-        {(data.langues || []).length === 0 ? (
-          <div style={{ fontSize: 13, color: 'var(--muted)' }}>{editing ? 'Clique sur "+ Ajouter" pour renseigner une langue.' : 'Aucune langue renseignée.'}</div>
-        ) : editing ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {(form.langues || []).map(lang => (
-              <div key={lang.id} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                <input placeholder="Langue (ex: Anglais)" value={lang.langue} onChange={e => updateLang(lang.id, 'langue', e.target.value)} style={{ ...inputStyle, flex: 2 }} />
-                <select value={lang.niveau} onChange={e => updateLang(lang.id, 'niveau', e.target.value)} style={{ ...selectStyle, flex: 2 }}>
-                  {NIVEAUX_LANGUE.map(n => <option key={n} value={n}>{n}</option>)}
-                </select>
-                <button onClick={() => removeLang(lang.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626', fontSize: 16, flexShrink: 0 }}><i className="ti ti-trash" /></button>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-            {(profil.langues || []).map(lang => (
-              <div key={lang.id} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 12px', borderRadius: 10, background: 'var(--light)', border: '1px solid var(--border)' }}>
-                <i className="ti ti-language" style={{ fontSize: 13, color: 'var(--teal-mid)' }} />
-                <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--navy)' }}>{lang.langue}</span>
-                <span style={{ fontSize: 11, color: 'var(--muted)' }}>{lang.niveau}</span>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+      </>)}
     </>
   )
 }
