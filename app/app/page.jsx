@@ -123,6 +123,7 @@ export default function Home() {
   const [authUser, setAuthUser]             = useState(null)
   const [allowedSpaces, setAllowedSpaces]   = useState([])
   const [dynamicUser, setDynamicUser]       = useState(null)
+  const [notifCount, setNotifCount]         = useState(0)
 
   // Verrouille le scroll sur le body (layout fixe du dashboard)
   useEffect(() => {
@@ -156,6 +157,15 @@ export default function Home() {
           const initiales = [cand.prenom?.[0], cand.nom?.[0]].filter(Boolean).join('').toUpperCase()
           setDynamicUser({ name: fullName, av: initiales, role: 'Candidat', bg: 'var(--teal)' })
         }
+        // Charger le nombre d'actions en retard ou à faire aujourd'hui
+        const today = new Date().toISOString().split('T')[0]
+        const { count } = await supabase
+          .from('formation_actions')
+          .select('id', { count: 'exact', head: true })
+          .eq('candidat_id', user.id)
+          .eq('fait', false)
+          .lte('echeance', today)
+        setNotifCount(count ?? 0)
       }
     }
     loadUser()
@@ -281,7 +291,15 @@ export default function Home() {
 
   return (
     <>
-      <TopNav activeSpace={activeSpace} onSwitch={switchSpace} user={dynamicUser || space?.user} onLogout={handleLogout} allowedSpaces={allowedSpaces} />
+      <TopNav
+        activeSpace={activeSpace}
+        onSwitch={switchSpace}
+        user={dynamicUser || space?.user}
+        onLogout={handleLogout}
+        allowedSpaces={allowedSpaces}
+        notifCount={notifCount}
+        onNotifClick={isCandidat ? () => { switchSpace('candidat'); navigateTo('candidat-actions') } : undefined}
+      />
       <div className={`workspace ${isHome ? 'home-mode' : ''}`}>
         {!isHome && (
           <Sidebar space={space} activePanel={activePanel} onNavigate={setActivePanel} dynamicUser={dynamicUser} />

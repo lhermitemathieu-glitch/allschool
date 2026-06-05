@@ -6,7 +6,7 @@
 //   onSwitch    : (space: string) => void
 //   user        : { av: string, bg: string, name: string }
 
-export default function TopNav({ activeSpace, onSwitch, user, onLogout, allowedSpaces = [] }) {
+export default function TopNav({ activeSpace, onSwitch, user, onLogout, allowedSpaces = [], notifCount = 0, onNotifClick }) {
   const ALL_SPACES = [
     { key: 'candidat',   label: 'Candidat',   icon: 'ti-user-circle', cls: 'cand' },
     { key: 'entreprise', label: 'Entreprise',  icon: 'ti-building',    cls: 'ent'  },
@@ -35,6 +35,29 @@ export default function TopNav({ activeSpace, onSwitch, user, onLogout, allowedS
           </button>
         ))}
       </div>
+
+      {/* Cloche notifications */}
+      {onNotifClick && (
+        <button
+          onClick={onNotifClick}
+          style={{
+            position: 'relative', background: notifCount > 0 ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.06)',
+            border: 'none', borderRadius: 8, color: notifCount > 0 ? 'white' : 'rgba(255,255,255,0.5)',
+            cursor: 'pointer', padding: '6px 10px', fontSize: 15, display: 'flex', alignItems: 'center',
+            transition: 'all 0.15s',
+          }}
+          title={notifCount > 0 ? `${notifCount} action${notifCount > 1 ? 's' : ''} à faire` : 'Mes actions'}
+        >
+          <i className="ti ti-bell" />
+          {notifCount > 0 && (
+            <span style={{
+              position: 'absolute', top: 4, right: 4,
+              width: 8, height: 8, borderRadius: '50%',
+              background: '#ef4444', border: '1.5px solid var(--navy)',
+            }} />
+          )}
+        </button>
+      )}
 
       {/* Utilisateur + Logout */}
       <div className="topnav-right">
