@@ -12,6 +12,8 @@ import PanelCandidatFormations from '../../components/panels/PanelCandidatFormat
 import PanelCandidatCandidatures from '../../components/panels/PanelCandidatCandidatures'
 import PanelCandidatBadges from '../../components/panels/PanelCandidatBadges'
 import PanelCandidatOffres from '../../components/panels/PanelCandidatOffres'
+import PanelCandidatStatuts from '../../components/panels/PanelCandidatStatuts'
+import PanelCandidatActions from '../../components/panels/PanelCandidatActions'
 import { PanelEntrepriseSiret, PanelEntrepriseRecherche, PanelEntrepriseEcoles, PanelEntrepriseOffres, PanelEntrepriseSimulateur } from '../../components/panels/PanelEntreprise'
 import { PanelEcolePage, PanelEcoleApprentis, PanelEcoleDashboard } from '../../components/panels/PanelEcole'
 import { PanelBackOverview, PanelBackApprentis, PanelBackEcoles, PanelBackEntreprises, PanelBackLogs } from '../../components/panels/PanelBackoffice'
@@ -33,7 +35,9 @@ const SPACES = {
       { icon: 'ti-school',      label: 'Écoles',            panel: 'candidat-ecoles',       cls: 'cand' },
       { icon: 'ti-certificate', label: 'Formations',        panel: 'candidat-formations',   cls: 'cand' },
       { icon: 'ti-building',    label: 'Mes candidatures', panel: 'candidat-candidatures', cls: 'cand' },
-      { icon: 'ti-trophy',      label: 'Mes badges',       panel: 'candidat-badges',       cls: 'cand' },
+      { icon: 'ti-trophy',      label: 'Mes badges',        panel: 'candidat-badges',       cls: 'cand' },
+      { icon: 'ti-bookmark',    label: 'Mes statuts',       panel: 'candidat-statuts',      cls: 'cand' },
+      { icon: 'ti-bell',        label: 'Mes actions',       panel: 'candidat-actions',      cls: 'cand' },
       { section: 'Explorer' },
       { icon: 'ti-search', label: 'Offres alternance', panel: 'candidat-offres', cls: 'cand' },
       { icon: 'ti-gift',   label: 'Bons plans',        panel: null, cls: 'cand' },
@@ -191,7 +195,9 @@ export default function Home() {
     return () => window.removeEventListener('popstate', onPopState)
   }, [])
 
-  const isAdmin = authUser?.user_metadata?.role === 'admin'
+  const isAdmin     = authUser?.user_metadata?.role === 'admin'
+  const isCandidat  = authUser?.user_metadata?.role === 'candidat'
+  const candidatId  = isCandidat ? authUser?.id : null
 
   function renderPanel() {
     switch (activePanel) {
@@ -210,6 +216,12 @@ export default function Home() {
         />
       case 'candidat-candidatures': return <PanelCandidatCandidatures />
       case 'candidat-badges':       return <PanelCandidatBadges />
+      case 'candidat-statuts':      return <PanelCandidatStatuts
+          onNavigateFormation={id => navigateTo('formation-publique', { formationId: id, from: 'candidat-statuts' })}
+        />
+      case 'candidat-actions':      return <PanelCandidatActions
+          onNavigateFormation={id => navigateTo('formation-publique', { formationId: id, from: 'candidat-actions' })}
+        />
       case 'candidat-offres':       return <PanelCandidatOffres />
       case 'entreprise-siret':      return <PanelEntrepriseSiret />
       case 'entreprise-recherche':  return <PanelEntrepriseRecherche onNavigate={setActivePanel} />
@@ -242,6 +254,7 @@ export default function Home() {
       case 'formation-publique':    return (
         <PanelFormationPublique
           formationId={activePanelData?.formationId}
+          candidatId={candidatId}
           onBack={() => navigateTo(activePanelData?.from || 'home', { ecoleId: activePanelData?.ecoleId, fromTab: activePanelData?.fromTab, filters: activePanelData?.filters })}
           onNavigateEcole={id => navigateTo('ecole-publique', { ecoleId: id, from: 'formation-publique', formationId: activePanelData?.formationId, fromTab: activePanelData?.fromTab, filters: activePanelData?.filters })}
         />

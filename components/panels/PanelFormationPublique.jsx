@@ -22,6 +22,15 @@ const NIVEAU_MAP = {
   autre:    { label: 'Autre',             bg: '#ede9fe', color: '#7c3aed' },
 }
 
+export const STATUTS = [
+  { key: 'favori',            label: 'Favori',              icon: 'ti-star',      color: '#b45309', bg: '#fef9c3' },
+  { key: 'candidature_faire', label: 'Candidature à faire', icon: 'ti-clipboard', color: 'var(--accent)', bg: '#fff3e0' },
+  { key: 'postule',           label: 'Postulé',              icon: 'ti-send',      color: '#0d9488', bg: '#e0fdf4' },
+  { key: 'en_attente',        label: 'En attente',           icon: 'ti-hourglass', color: '#7c3aed', bg: '#ede9fe' },
+  { key: 'accepte',           label: 'Accepté',              icon: 'ti-check',     color: '#166534', bg: '#dcfce7' },
+  { key: 'pas_interesse',     label: 'Pas intéressé',        icon: 'ti-ban',       color: '#6b7280', bg: '#f3f4f6' },
+]
+
 function NiveauTag({ value }) {
   const n = NIVEAU_MAP[value] || NIVEAU_MAP.autre
   return (
@@ -35,11 +44,77 @@ function sigle(nom) {
   return (nom || '').split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 3) || '?'
 }
 
-export default function PanelFormationPublique({ formationId, onBack, onNavigateEcole }) {
+// ── Modale action ─────────────────────────────────────────────────────────────
+function ActionModal({ action, onSave, onClose }) {
+  const [texte, setTexte]       = useState(action?.texte || '')
+  const [echeance, setEcheance] = useState(action?.echeance || '')
+  const [saving, setSaving]     = useState(false)
+
+  async function handleSave() {
+    if (!texte.trim()) return
+    setSaving(true)
+    await onSave({ texte: texte.trim(), echeance: echeance || null })
+    setSaving(false)
+    onClose()
+  }
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+      onClick={e => e.target === e.currentTarget && onClose()}>
+      <div style={{ background: 'white', borderRadius: 16, padding: '1.5rem', width: 420, boxShadow: '0 8px 32px rgba(0,0,0,0.16)' }}>
+        <div style={{ fontFamily: 'Syne, sans-serif', fontSize: 16, fontWeight: 800, color: 'var(--navy)', marginBottom: 16 }}>
+          <i className="ti ti-bell" style={{ marginRight: 8 }} />
+          {action ? 'Modifier l\'action' : 'Fixer une action'}
+        </div>
+
+        <div style={{ marginBottom: 12 }}>
+          <div style={labelStyle}>Prochaine action *</div>
+          <input
+            autoFocus
+            value={texte}
+            onChange={e => setTexte(e.target.value)}
+            placeholder="Ex : Envoyer mon dossier, Appeler le secrétariat…"
+            style={inputStyle}
+          />
+        </div>
+
+        <div style={{ marginBottom: 20 }}>
+          <div style={labelStyle}>Échéance</div>
+          <input
+            type="date"
+            value={echeance}
+            onChange={e => setEcheance(e.target.value)}
+            style={{ ...inputStyle, width: 'auto' }}
+          />
+        </div>
+
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button className="btn-sm teal" onClick={handleSave} disabled={saving || !texte.trim()}>
+            <i className="ti ti-check" /> {saving ? 'Enregistrement…' : 'Enregistrer'}
+          </button>
+          {action && (
+            <button className="btn-sm" style={{ color: 'var(--red)' }} onClick={() => onSave(null)}>
+              <i className="ti ti-trash" /> Supprimer
+            </button>
+          )}
+          <button className="btn-sm" onClick={onClose}>Annuler</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export default function PanelFormationPublique({ formationId, candidatId, onBack, onNavigateEcole }) {
   const supabase = createClient()
   const [formation, setFormation] = useState(null)
   const [ecole,     setEcole]     = useState(null)
   const [loading,   setLoading]   = useState(true)
+
+  // Suivi candidat
+  const [statut,      setStatut]      = useState(null)
+  const [action,      setAction]      = useState(null)
+  const [showModal,   setShowModal]   = useState(false)
+  const [savingStatut, setSavingStatut] = useState(false)
 
   useEffect(() => {
     if (!formationId) return
@@ -60,16 +135,65 @@ export default function PanelFormationPublique({ formationId, onBack, onNavigate
           .single()
         setEcole(e)
       }
+
+      // Charger statut + action du candidat si connecté
+      if (candidatId) {
+        const [{ data: s }, { data: a }] = await Promise.all([
+          supabase.from('formation_statuts').select('*').eq('candidat_id', candidatId).eq('formation_id', formationId).maybeSingle(),
+          supabase.from('formation_actions').select('*').eq('candidat_id', candidatId).eq('formation_id', formationId).maybeSingle(),
+        ])
+        setStatut(s?.statut || null)
+        setAction(a || null)
+      }
+
       setLoading(false)
     }
     load()
-  }, [formationId])
+  }, [formationId, candidatId])
+
+  async function handleStatut(key) {
+    if (!candidatId) return
+    setSavingStatut(true)
+    if (statut === key) {
+      // Désélectionner
+      await supabase.from('formation_statuts').delete().eq('candidat_id', candidatId).eq('formation_id', formationId)
+      setStatut(null)
+    } else {
+      await supabase.from('formation_statuts').upsert({ candidat_id: candidatId, formation_id: formationId, statut: key, updated_at: new Date().toISOString() })
+      setStatut(key)
+    }
+    setSavingStatut(false)
+  }
+
+  async function handleSaveAction(payload) {
+    if (!candidatId) return
+    if (!payload) {
+      // Supprimer
+      await supabase.from('formation_actions').delete().eq('candidat_id', candidatId).eq('formation_id', formationId)
+      setAction(null)
+      return
+    }
+    const { data } = await supabase.from('formation_actions')
+      .upsert({ candidat_id: candidatId, formation_id: formationId, ...payload, fait: false, updated_at: new Date().toISOString() })
+      .select().single()
+    setAction(data)
+  }
 
   if (loading) return <div style={{ padding: '2rem', fontSize: 13, color: 'var(--muted)' }}>Chargement…</div>
   if (!formation) return <div style={{ padding: '2rem', fontSize: 13, color: 'var(--muted)' }}>Formation introuvable.</div>
 
+  const statutConfig = STATUTS.find(s => s.key === statut)
+
   return (
     <div style={{ maxWidth: 720, margin: '0 auto' }}>
+
+      {showModal && (
+        <ActionModal
+          action={action}
+          onSave={handleSaveAction}
+          onClose={() => setShowModal(false)}
+        />
+      )}
 
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: '1.5rem' }}>
@@ -113,7 +237,7 @@ export default function PanelFormationPublique({ formationId, onBack, onNavigate
           </div>
         )}
 
-        {/* Stats si disponibles */}
+        {/* Stats */}
         {(formation.nb_apprentis > 0 || formation.taux_reussite || formation.taux_presentation) && (
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 8 }}>
             {formation.nb_apprentis > 0 && (
@@ -147,6 +271,70 @@ export default function PanelFormationPublique({ formationId, onBack, onNavigate
           </button>
         )}
       </div>
+
+      {/* ── Bloc suivi candidat ─────────────────────────────────────────────── */}
+      {candidatId && (
+        <div className="s-card" style={{ marginBottom: '1rem' }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 12 }}>
+            <i className="ti ti-bookmark" /> Mon suivi
+          </div>
+
+          {/* Statuts */}
+          <div style={{ marginBottom: 14 }}>
+            <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 8 }}>Statut</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {STATUTS.map(s => {
+                const active = statut === s.key
+                return (
+                  <button
+                    key={s.key}
+                    disabled={savingStatut}
+                    onClick={() => handleStatut(s.key)}
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 5,
+                      padding: '5px 12px', borderRadius: 20, fontSize: 12, fontWeight: 500, cursor: 'pointer',
+                      border: `1.5px solid ${active ? s.color : 'var(--border)'}`,
+                      background: active ? s.bg : 'white',
+                      color: active ? s.color : 'var(--muted)',
+                      transition: 'all 0.15s',
+                    }}
+                  >
+                    <i className={`ti ${s.icon}`} style={{ fontSize: 11 }} />
+                    {s.label}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* Action */}
+          <div style={{ borderTop: '0.5px solid var(--border)', paddingTop: 12 }}>
+            <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 8 }}>Prochaine action</div>
+            {action ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', borderRadius: 10, background: 'var(--light)', border: '0.5px solid var(--border)' }}>
+                <i className="ti ti-bell" style={{ fontSize: 14, color: 'var(--teal)', flexShrink: 0 }} />
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--navy)' }}>{action.texte}</div>
+                  {action.echeance && (
+                    <div style={{ fontSize: 11, color: isOverdue(action.echeance) ? 'var(--red, #e53e3e)' : 'var(--muted)', marginTop: 2 }}>
+                      <i className="ti ti-calendar" style={{ marginRight: 3 }} />
+                      {formatDate(action.echeance)}
+                      {isOverdue(action.echeance) && ' — En retard'}
+                    </div>
+                  )}
+                </div>
+                <button className="btn-sm" style={{ fontSize: 11 }} onClick={() => setShowModal(true)}>
+                  <i className="ti ti-pencil" />
+                </button>
+              </div>
+            ) : (
+              <button className="btn-sm" onClick={() => setShowModal(true)}>
+                <i className="ti ti-plus" /> Fixer une action
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* École dispensatrice */}
       {ecole && (
@@ -191,7 +379,7 @@ export default function PanelFormationPublique({ formationId, onBack, onNavigate
         </div>
       )}
 
-      {/* Informations pratiques — section extensible */}
+      {/* Informations pratiques */}
       <div className="s-card" style={{ marginBottom: '1rem' }}>
         <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 12 }}>
           <i className="ti ti-calendar" /> Informations pratiques
@@ -203,4 +391,24 @@ export default function PanelFormationPublique({ formationId, onBack, onNavigate
 
     </div>
   )
+}
+
+function isOverdue(echeance) {
+  if (!echeance) return false
+  return new Date(echeance) < new Date(new Date().toDateString())
+}
+
+function formatDate(echeance) {
+  return new Date(echeance).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
+}
+
+const inputStyle = {
+  width: '100%', padding: '8px 12px', borderRadius: 8,
+  border: '1.5px solid var(--border)', background: 'white',
+  fontSize: 13, fontFamily: 'DM Sans, sans-serif', color: 'var(--navy)', outline: 'none',
+  boxSizing: 'border-box',
+}
+const labelStyle = {
+  fontSize: 11, fontWeight: 600, color: 'var(--muted)',
+  textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 5,
 }
