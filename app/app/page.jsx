@@ -211,6 +211,7 @@ export default function Home() {
         />
       case 'candidat-formations':   return <PanelCandidatFormations
           initialFilters={activePanelData?.filters}
+          candidatId={candidatId}
           onNavigateFormation={(id, from, filters) => navigateTo('formation-publique', { formationId: id, from, filters })}
           onNavigateEcole={(id, from, filters) => navigateTo('ecole-publique', { ecoleId: id, from, filters })}
         />

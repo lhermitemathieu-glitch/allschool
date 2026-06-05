@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { createClient } from '../../lib/supabase/client'
+import { STATUTS } from './PanelFormationPublique'
 
 function sigle(nom) {
   return (nom || '').split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 3) || '?'
@@ -59,25 +60,105 @@ function niveauStyle(niveau) {
 }
 
 const inputStyle = {
-  flex: 1,
-  minWidth: 140,
-  padding: '8px 12px',
-  border: '1.5px solid var(--border)',
-  borderRadius: 8,
-  fontSize: 13,
-  fontFamily: 'DM Sans, sans-serif',
-  color: 'var(--navy)',
-  background: 'white',
-  outline: 'none',
+  flex: 1, minWidth: 140, padding: '8px 12px',
+  border: '1.5px solid var(--border)', borderRadius: 8,
+  fontSize: 13, fontFamily: 'DM Sans, sans-serif',
+  color: 'var(--navy)', background: 'white', outline: 'none',
 }
 
-export default function PanelCandidatFormations({ onNavigateFormation, onNavigateEcole, initialFilters }) {
+// ── Sélecteur de statut compact (pour la liste) ───────────────────────────────
+function StatutPicker({ formationId, currentStatut, candidatId, onChange }) {
+  const supabase = createClient()
+  const [open, setOpen]     = useState(false)
+  const [saving, setSaving] = useState(false)
+  const ref = useRef(null)
+
+  // Fermer en cliquant dehors
+  useEffect(() => {
+    if (!open) return
+    function handle(e) { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
+    document.addEventListener('mousedown', handle)
+    return () => document.removeEventListener('mousedown', handle)
+  }, [open])
+
+  async function select(key) {
+    setSaving(true)
+    setOpen(false)
+    if (currentStatut === key) {
+      await supabase.from('formation_statuts').delete().eq('candidat_id', candidatId).eq('formation_id', formationId)
+      onChange(formationId, null)
+    } else {
+      await supabase.from('formation_statuts').upsert({
+        candidat_id: candidatId, formation_id: formationId,
+        statut: key, updated_at: new Date().toISOString(),
+      })
+      onChange(formationId, key)
+    }
+    setSaving(false)
+  }
+
+  const cfg = STATUTS.find(s => s.key === currentStatut)
+
+  return (
+    <div ref={ref} style={{ position: 'relative', flexShrink: 0 }}>
+      <button
+        onClick={() => !saving && setOpen(v => !v)}
+        style={{
+          display: 'inline-flex', alignItems: 'center', gap: 5,
+          padding: '4px 10px', borderRadius: 20, fontSize: 11, fontWeight: 500,
+          cursor: saving ? 'wait' : 'pointer',
+          border: `1.5px solid ${cfg ? cfg.color : 'var(--border)'}`,
+          background: cfg ? cfg.bg : 'white',
+          color: cfg ? cfg.color : 'var(--muted)',
+          whiteSpace: 'nowrap',
+          transition: 'all 0.15s',
+        }}
+      >
+        <i className={`ti ${saving ? 'ti-loader' : cfg ? cfg.icon : 'ti-bookmark'}`} style={{ fontSize: 11 }} />
+        {cfg ? cfg.label : 'Statut'}
+      </button>
+
+      {open && (
+        <div style={{
+          position: 'absolute', right: 0, top: 'calc(100% + 4px)',
+          background: 'white', border: '1.5px solid var(--border)', borderRadius: 10,
+          zIndex: 200, boxShadow: '0 4px 16px rgba(0,0,0,0.12)', minWidth: 200, overflow: 'hidden',
+        }}>
+          {STATUTS.map((s, i) => (
+            <div
+              key={s.key}
+              onMouseDown={() => select(s.key)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 8,
+                padding: '8px 12px', cursor: 'pointer', fontSize: 12,
+                background: currentStatut === s.key ? s.bg : 'white',
+                color: currentStatut === s.key ? s.color : 'var(--navy)',
+                fontWeight: currentStatut === s.key ? 600 : 400,
+                borderBottom: i < STATUTS.length - 1 ? '0.5px solid var(--border)' : 'none',
+              }}
+            >
+              <i className={`ti ${s.icon}`} style={{ fontSize: 12, color: s.color, flexShrink: 0 }} />
+              {s.label}
+              {currentStatut === s.key && <i className="ti ti-check" style={{ marginLeft: 'auto', fontSize: 11 }} />}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── Panel principal ───────────────────────────────────────────────────────────
+export default function PanelCandidatFormations({ candidatId, onNavigateFormation, onNavigateEcole, initialFilters }) {
   const supabase = createClient()
 
   const [formations, setFormations] = useState([])
   const [loading, setLoading]       = useState(false)
   const [searched, setSearched]     = useState(false)
   const [total, setTotal]           = useState(null)
+
+  // statuts : { [formation_id]: statut_key }
+  const [statuts, setStatuts] = useState({})
 
   const [q,        setQ]        = useState(initialFilters?.q        || '')
   const [diplome,  setDiplome]  = useState(initialFilters?.diplome  || '')
@@ -106,9 +187,7 @@ export default function PanelCandidatFormations({ onNavigateFormation, onNavigat
   }
 
   function selectSuggestion(s) {
-    setVille(s.label)
-    setVilleCity(s.city)
-    setSuggestions([])
+    setVille(s.label); setVilleCity(s.city); setSuggestions([])
   }
 
   async function geocodeVille(nom) {
@@ -122,34 +201,22 @@ export default function PanelCandidatFormations({ onNavigateFormation, onNavigat
   }
 
   const search = useCallback(async () => {
-    setLoading(true)
-    setSearched(true)
-    setGeoErr('')
+    setLoading(true); setSearched(true); setGeoErr('')
 
-    // ── Filtre géographique → IDs d'écoles ───────────────────────────────────
-    let ecoleIds    = null
-    let villeExacte = null
+    let ecoleIds = null, villeExacte = null
 
     if (ville.trim() && rayon) {
       setGeoLoading(true)
       const coords = await geocodeVille(ville.trim())
       setGeoLoading(false)
-      if (!coords) {
-        setGeoErr(`Ville "${ville}" introuvable`)
-        setFormations([])
-        setLoading(false)
-        return
-      }
-      const { data: nearby } = await supabase.rpc('ecoles_dans_rayon', {
-        lat: coords.lat, lng: coords.lng, rayon_km: parseFloat(rayon),
-      })
+      if (!coords) { setGeoErr(`Ville "${ville}" introuvable`); setFormations([]); setLoading(false); return }
+      const { data: nearby } = await supabase.rpc('ecoles_dans_rayon', { lat: coords.lat, lng: coords.lng, rayon_km: parseFloat(rayon) })
       ecoleIds = (nearby || []).map(r => r.id)
       if (ecoleIds.length === 0) { setFormations([]); setLoading(false); return }
     } else if (ville.trim() && !rayon) {
       villeExacte = villeCity || ville.trim()
     }
 
-    // Filtre modalité → IDs d'écoles
     if (modalite) {
       let mQuery = supabase.from('ecoles').select('id').contains('modalites', [modalite])
       if (ecoleIds)    mQuery = mQuery.in('id', ecoleIds)
@@ -165,12 +232,10 @@ export default function PanelCandidatFormations({ onNavigateFormation, onNavigat
       villeExacte = null
     }
 
-    // ── Requête formations ────────────────────────────────────────────────────
     let fQuery = supabase
       .from('formations')
       .select('id, nom, diplome, niveau, modalite, url_onisep, localite_formation, ecole_id')
-      .order('nom')
-      .limit(300)
+      .order('nom').limit(300)
 
     if (q.trim())       fQuery = fQuery.ilike('nom',    `%${q.trim()}%`)
     if (diplome.trim()) fQuery = fQuery.ilike('diplome', `%${diplome.trim()}%`)
@@ -179,22 +244,35 @@ export default function PanelCandidatFormations({ onNavigateFormation, onNavigat
 
     const { data: fData } = await fQuery
 
-    // Enrichit avec le nom de l'école
     const ids = [...new Set((fData || []).map(f => f.ecole_id))]
-    const { data: eData } = await supabase
-      .from('ecoles')
-      .select('id, nom, ville, region, modalites')
-      .in('id', ids)
+    const { data: eData } = await supabase.from('ecoles').select('id, nom, ville, region, modalites').in('id', ids)
     const ecoleMap = Object.fromEntries((eData || []).map(e => [e.id, e]))
 
-    setFormations((fData || []).map(f => ({ ...f, ecole: ecoleMap[f.ecole_id] })))
+    const result = (fData || []).map(f => ({ ...f, ecole: ecoleMap[f.ecole_id] }))
+    setFormations(result)
+
+    // Charger les statuts du candidat pour ces formations
+    if (candidatId && result.length > 0) {
+      const formationIds = result.map(f => f.id)
+      const { data: sData } = await supabase
+        .from('formation_statuts')
+        .select('formation_id, statut')
+        .eq('candidat_id', candidatId)
+        .in('formation_id', formationIds)
+      const map = Object.fromEntries((sData || []).map(s => [s.formation_id, s.statut]))
+      setStatuts(map)
+    }
+
     setLoading(false)
-  }, [q, diplome, niveau, modalite, ville, villeCity, rayon])
+  }, [q, diplome, niveau, modalite, ville, villeCity, rayon, candidatId])
 
   useEffect(() => {
     supabase.from('formations').select('id', { count: 'exact', head: true }).then(({ count }) => setTotal(count))
   }, [])
-  // Plus de déclenchement automatique sur changement de filtre
+
+  function handleStatutChange(formationId, newStatut) {
+    setStatuts(prev => ({ ...prev, [formationId]: newStatut }))
+  }
 
   const filters = { q, diplome, niveau, modalite, ville, villeCity, rayon }
 
@@ -209,23 +287,9 @@ export default function PanelCandidatFormations({ onNavigateFormation, onNavigat
 
       {/* Barre de recherche */}
       <div className="s-card" style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: '1rem' }}>
-
-        {/* Ligne 1 */}
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-          <input
-            placeholder="Nom de la formation…"
-            value={q}
-            onChange={e => setQ(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && search()}
-            style={inputStyle}
-          />
-          <input
-            placeholder="Mot clé diplôme…"
-            value={diplome}
-            onChange={e => setDiplome(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && search()}
-            style={{ ...inputStyle, flex: 'none', width: 200 }}
-          />
+          <input placeholder="Nom de la formation…" value={q} onChange={e => setQ(e.target.value)} onKeyDown={e => e.key === 'Enter' && search()} style={inputStyle} />
+          <input placeholder="Mot clé diplôme…" value={diplome} onChange={e => setDiplome(e.target.value)} onKeyDown={e => e.key === 'Enter' && search()} style={{ ...inputStyle, flex: 'none', width: 200 }} />
           <select value={niveau} onChange={e => setNiveau(e.target.value)} style={{ ...inputStyle, flex: 'none', width: 'auto', minWidth: 180 }}>
             <option value="">Tous les niveaux</option>
             {NIVEAUX.map(n => <option key={n.value} value={n.value}>{n.label}</option>)}
@@ -238,7 +302,6 @@ export default function PanelCandidatFormations({ onNavigateFormation, onNavigat
           </select>
         </div>
 
-        {/* Ligne 2 : géographique */}
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
           <div style={{ position: 'relative', flex: 1, minWidth: 200 }}>
             <div style={{ display: 'flex', alignItems: 'center', border: '1.5px solid var(--border)', borderRadius: 8, overflow: 'hidden', background: 'white' }}>
@@ -251,22 +314,17 @@ export default function PanelCandidatFormations({ onNavigateFormation, onNavigat
                 onBlur={() => setTimeout(() => setSuggestions([]), 150)}
                 style={{ ...inputStyle, border: 'none', borderRadius: 0, flex: 1, padding: '8px 8px 8px 0' }}
               />
-              {ville && (
-                <button onClick={() => { setVille(''); setVilleCity(''); setSuggestions([]) }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 8px', color: 'var(--muted)', fontSize: 13 }}>×</button>
-              )}
+              {ville && <button onClick={() => { setVille(''); setVilleCity(''); setSuggestions([]) }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 8px', color: 'var(--muted)', fontSize: 13 }}>×</button>}
             </div>
             {suggestions.length > 0 && (
               <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'white', border: '1.5px solid var(--border)', borderRadius: 8, marginTop: 4, zIndex: 100, boxShadow: '0 4px 12px rgba(0,0,0,0.08)', overflow: 'hidden' }}>
                 {suggestions.map((s, i) => (
-                  <div
-                    key={i}
-                    onMouseDown={() => selectSuggestion(s)}
+                  <div key={i} onMouseDown={() => selectSuggestion(s)}
                     style={{ padding: '8px 14px', fontSize: 13, color: 'var(--navy)', cursor: 'pointer', borderBottom: i < suggestions.length - 1 ? '0.5px solid var(--border)' : 'none' }}
                     onMouseEnter={e => e.currentTarget.style.background = 'var(--light)'}
                     onMouseLeave={e => e.currentTarget.style.background = 'white'}
                   >
-                    <i className="ti ti-map-pin" style={{ fontSize: 11, color: 'var(--muted)', marginRight: 6 }} />
-                    {s.label}
+                    <i className="ti ti-map-pin" style={{ fontSize: 11, color: 'var(--muted)', marginRight: 6 }} />{s.label}
                   </div>
                 ))}
               </div>
@@ -280,7 +338,7 @@ export default function PanelCandidatFormations({ onNavigateFormation, onNavigat
             <option value="50">50 km</option>
             <option value="100">100 km</option>
           </select>
-          {geoErr    && <span style={{ fontSize: 12, color: 'var(--accent)' }}><i className="ti ti-alert-circle" /> {geoErr}</span>}
+          {geoErr     && <span style={{ fontSize: 12, color: 'var(--accent)' }}><i className="ti ti-alert-circle" /> {geoErr}</span>}
           {geoLoading && <span style={{ fontSize: 12, color: 'var(--muted)' }}>Géolocalisation…</span>}
           <button className="btn-sm teal" onClick={search} style={{ marginLeft: 'auto' }}>
             {geoLoading ? <><i className="ti ti-loader" /> …</> : <><i className="ti ti-search" /> Rechercher</>}
@@ -306,7 +364,7 @@ export default function PanelCandidatFormations({ onNavigateFormation, onNavigat
               {formations.map(f => (
                 <div key={f.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 4px', borderBottom: '0.5px solid var(--border)' }}>
 
-                  {/* Niveau badge */}
+                  {/* Niveau */}
                   <div style={{ flexShrink: 0, width: 80, textAlign: 'center' }}>
                     {f.niveau && f.niveau !== 'autre' && (
                       <span style={{ ...niveauStyle(f.niveau), fontSize: 10, padding: '3px 8px', borderRadius: 20, whiteSpace: 'nowrap' }}>
@@ -353,6 +411,16 @@ export default function PanelCandidatFormations({ onNavigateFormation, onNavigat
                     <button className="btn-sm teal" style={{ fontSize: 11, flexShrink: 0 }} onClick={() => window.open(f.url_onisep, '_blank')}>
                       <i className="ti ti-external-link" /> ONISEP
                     </button>
+                  )}
+
+                  {/* Statut — visible uniquement pour les candidats */}
+                  {candidatId && (
+                    <StatutPicker
+                      formationId={f.id}
+                      currentStatut={statuts[f.id] || null}
+                      candidatId={candidatId}
+                      onChange={handleStatutChange}
+                    />
                   )}
                 </div>
               ))}
