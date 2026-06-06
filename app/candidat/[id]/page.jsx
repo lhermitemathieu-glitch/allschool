@@ -27,7 +27,7 @@ export default async function PageCandidatPublic({ params }) {
 
   const { data: profil } = await supabase
     .from('candidats')
-    .select('prenom, nom, photo_url, ville, formation, bio, disponibilite, dispo_mois, dispo_annee, experiences, competences_hard, competences_soft, langues, niveau_etudes, linkedin_url, permis, masquer_experiences, pas_experience_pro, passions, loisirs')
+    .select('prenom, nom, photo_url, ville, formation, bio, disponibilite, dispo_mois, dispo_annee, experiences, competences_hard, competences_soft, langues, niveau_etudes, email, telephone, linkedin_url, permis, masquer_experiences, pas_experience_pro, passions, loisirs')
     .eq('id', id)
     .eq('profil_public', true)
     .single()

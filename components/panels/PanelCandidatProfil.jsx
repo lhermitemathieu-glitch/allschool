@@ -71,6 +71,8 @@ function safeData(data) {
     competences_hard:      data.competences_hard      ?? '',
     niveau_etudes:         data.niveau_etudes         ?? '',
     linkedin_url:          data.linkedin_url           ?? '',
+    email:                 data.email                  ?? '',
+    telephone:             data.telephone              ?? '',
     permis:                data.permis                ?? false,
     dispo_mois:            data.dispo_mois             ?? '',
     dispo_annee:           data.dispo_annee            ?? '',
@@ -492,6 +494,28 @@ export default function PanelCandidatProfil({ candidatIdOverride, onBack }) {
               <div style={{ fontSize: 13, color: data.niveau_etudes ? 'var(--navy)' : 'var(--muted)', marginTop: 4 }}>
                 {data.niveau_etudes || 'Non renseigné'}
               </div>
+            )}
+          </div>
+          {/* Email */}
+          <div style={{ flex: '2 1 220px' }}>
+            <div style={labelStyle}><i className="ti ti-mail" style={{ marginRight: 4 }} />Email</div>
+            {editing ? (
+              <input type="email" placeholder="ton@email.com" value={form.email || ''} onChange={e => setField('email', e.target.value)} style={inputStyle} />
+            ) : data.email ? (
+              <a href={`mailto:${data.email}`} style={{ fontSize: 13, color: 'var(--teal)', marginTop: 4, display: 'block' }}>{data.email}</a>
+            ) : (
+              <div style={{ fontSize: 13, color: 'var(--muted)', marginTop: 4 }}>Non renseigné</div>
+            )}
+          </div>
+          {/* Téléphone */}
+          <div style={{ flex: '1 1 160px' }}>
+            <div style={labelStyle}><i className="ti ti-phone" style={{ marginRight: 4 }} />Téléphone</div>
+            {editing ? (
+              <input type="tel" placeholder="06 00 00 00 00" value={form.telephone || ''} onChange={e => setField('telephone', e.target.value)} style={inputStyle} />
+            ) : data.telephone ? (
+              <a href={`tel:${data.telephone}`} style={{ fontSize: 13, color: 'var(--teal)', marginTop: 4, display: 'block' }}>{data.telephone}</a>
+            ) : (
+              <div style={{ fontSize: 13, color: 'var(--muted)', marginTop: 4 }}>Non renseigné</div>
             )}
           </div>
           {/* LinkedIn */}

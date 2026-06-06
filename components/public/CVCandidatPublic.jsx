@@ -179,6 +179,14 @@ export default function CVCandidatPublic({ profil, publicUrl }) {
             {/* Infos de contact */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
               <SideTitle>Contact</SideTitle>
+              {profil.email && (
+                <SideItem icon="ti-mail">
+                  <a href={`mailto:${profil.email}`} style={{ color: 'rgba(255,255,255,0.75)', fontSize: 11, wordBreak: 'break-all', textDecoration: 'none' }}>
+                    {profil.email}
+                  </a>
+                </SideItem>
+              )}
+              {profil.telephone && <SideItem icon="ti-phone">{profil.telephone}</SideItem>}
               {profil.ville && <SideItem icon="ti-map-pin">{profil.ville}</SideItem>}
               {dispo && <SideItem icon="ti-calendar">{dispo}</SideItem>}
               {profil.linkedin_url && (
