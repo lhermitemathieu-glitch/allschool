@@ -187,6 +187,7 @@ export default function PanelCandidatProfil({ candidatIdOverride, onBack }) {
   const [saving, setSaving]       = useState(false)
   const [message, setMessage]     = useState('')
   const [uploading, setUploading] = useState(false)
+  const [showQR, setShowQR]       = useState(false)
 
   // Inputs bruts passions/loisirs (préserve les espaces pendant la saisie)
   const [passionsStr, setPassionsStr] = useState('')
@@ -304,6 +305,10 @@ export default function PanelCandidatProfil({ candidatIdOverride, onBack }) {
   /* ── Expériences : quel mode affiché ? ── */
   const expMode = data.masquer_experiences ? 'masquer' : data.pas_experience_pro ? 'sans' : null
 
+  /* ── QR Code modal ── */
+  const publicUrl = typeof window !== 'undefined' ? `${window.location.origin}/candidat/${profil.id}` : ''
+  const qrSrc     = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(publicUrl)}&bgcolor=ffffff&color=0E1B2E&margin=4`
+
   return (
     <>
       {/* ── Topbar ── */}
@@ -319,7 +324,11 @@ export default function PanelCandidatProfil({ candidatIdOverride, onBack }) {
         </div>
         <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
           {message && <span style={{ fontSize: 13, color: 'var(--teal)', fontWeight: 500 }}>{message}</span>}
-          {!candidatIdOverride && <button className="btn-sm"><i className="ti ti-qrcode" /> QR Code</button>}
+          {!candidatIdOverride && (
+            <button className="btn-sm" onClick={() => setShowQR(true)}>
+              <i className="ti ti-qrcode" /> QR Code
+            </button>
+          )}
           {editing
             ? <button className="btn-sm teal" onClick={handleSave} disabled={saving}>
                 <i className="ti ti-device-floppy" /> {saving ? 'Enregistrement…' : 'Enregistrer'}
@@ -429,11 +438,7 @@ export default function PanelCandidatProfil({ candidatIdOverride, onBack }) {
             </div>
             <button
               className={`toggle ${data.profil_public ? 'on' : ''}`}
-              onClick={() => {
-                const val = !data.profil_public
-                setField('profil_public', val)
-                if (!editing) { supabase.from('candidats').update({ profil_public: val }).eq('id', profil.id); setProfil(p => ({ ...p, profil_public: val })) }
-              }}
+              onClick={() => saveImmediate('profil_public', !data.profil_public)}
             />
           </div>
           {/* Écoles */}
@@ -448,11 +453,7 @@ export default function PanelCandidatProfil({ candidatIdOverride, onBack }) {
             </div>
             <button
               className={`toggle ${data.profil_visible_ecoles ? 'on' : ''}`}
-              onClick={() => {
-                const val = !data.profil_visible_ecoles
-                setField('profil_visible_ecoles', val)
-                if (!editing) { supabase.from('candidats').update({ profil_visible_ecoles: val }).eq('id', profil.id); setProfil(p => ({ ...p, profil_visible_ecoles: val })) }
-              }}
+              onClick={() => saveImmediate('profil_visible_ecoles', !data.profil_visible_ecoles)}
             />
           </div>
           {/* Visibilité expériences / compétences */}
@@ -467,11 +468,7 @@ export default function PanelCandidatProfil({ candidatIdOverride, onBack }) {
             </div>
             <button
               className={`toggle ${!data.masquer_experiences ? 'on' : ''}`}
-              onClick={() => {
-                const val = !data.masquer_experiences
-                setField('masquer_experiences', val)
-                if (!editing) { supabase.from('candidats').update({ masquer_experiences: val }).eq('id', profil.id); setProfil(p => ({ ...p, masquer_experiences: val })) }
-              }}
+              onClick={() => saveImmediate('masquer_experiences', !data.masquer_experiences)}
             />
           </div>
         </div>
@@ -692,6 +689,58 @@ export default function PanelCandidatProfil({ candidatIdOverride, onBack }) {
           <button onClick={() => setExpMode(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, color: 'var(--muted)', textDecoration: 'underline' }}>
             Réafficher la section expériences
           </button>
+        </div>
+      )}
+
+      {/* ── Modale QR Code ── */}
+      {showQR && (
+        <div
+          onClick={() => setShowQR(false)}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(14,27,46,0.55)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+        >
+          <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: 16, padding: 28, width: 340, boxShadow: '0 8px 40px rgba(14,27,46,0.18)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+              <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--navy)' }}>
+                <i className="ti ti-qrcode" style={{ marginRight: 7, color: 'var(--teal)' }} />
+                Mon QR Code
+              </div>
+              <button onClick={() => setShowQR(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, color: 'var(--muted)' }}>
+                <i className="ti ti-x" />
+              </button>
+            </div>
+
+            {!profil.profil_public && (
+              <div style={{ background: '#fff7ed', border: '1.5px solid #fed7aa', borderRadius: 10, padding: '10px 14px', width: '100%', fontSize: 12, color: '#9a3412', display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+                <i className="ti ti-alert-triangle" style={{ fontSize: 14, flexShrink: 0, marginTop: 1 }} />
+                Ton profil est actuellement masqué aux entreprises. Active la visibilité pour que le lien soit accessible.
+              </div>
+            )}
+
+            <img src={qrSrc} alt="QR Code profil" style={{ width: 180, height: 180, borderRadius: 10, border: '1.5px solid var(--border)' }} />
+
+            <div style={{ width: '100%', background: 'var(--light)', borderRadius: 8, padding: '8px 12px', fontSize: 11, color: 'var(--muted)', wordBreak: 'break-all', textAlign: 'center', fontFamily: 'monospace' }}>
+              {publicUrl}
+            </div>
+
+            <div style={{ display: 'flex', gap: 8, width: '100%' }}>
+              <button
+                onClick={() => { navigator.clipboard.writeText(publicUrl); setMessage('Lien copié !'); setShowQR(false); setTimeout(() => setMessage(''), 3000) }}
+                className="btn-sm"
+                style={{ flex: 1, justifyContent: 'center' }}
+              >
+                <i className="ti ti-copy" /> Copier le lien
+              </button>
+              <a
+                href={publicUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-sm teal"
+                style={{ flex: 1, justifyContent: 'center', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 5 }}
+              >
+                <i className="ti ti-external-link" /> Voir la page
+              </a>
+            </div>
+          </div>
         </div>
       )}
 
