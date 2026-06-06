@@ -642,21 +642,307 @@ export function PanelEntrepriseEcoles({ onNavigateEcole }) {
   )
 }
 
+// ── CONSTANTES OFFRES ────────────────────────────────────────────────────────
+const SOFT_SKILLS_OFFRE = [
+  'Autonomie', 'Travail en équipe', 'Rigueur', 'Adaptabilité', 'Créativité',
+  'Communication', 'Gestion du temps', "Prise d'initiative", "Esprit d'analyse",
+  'Curiosité intellectuelle', 'Leadership', 'Empathie', 'Gestion du stress',
+  'Persévérance', 'Sens des responsabilités', 'Organisation', 'Esprit de synthèse',
+  'Force de proposition', 'Écoute active', 'Résilience',
+]
+
+const TYPE_OFFRE_CONFIG = {
+  poste:            { label: 'Poste disponible',         icon: 'ti-briefcase',      bg: '#e0f2fe', color: '#0369a1' },
+  ecole_entreprise: { label: 'École + Entreprise',       icon: 'ti-building-school', bg: '#ede9fe', color: '#5b21b6' },
+  campagne:         { label: 'Campagne de recrutement',  icon: 'ti-speakerphone',   bg: '#fff7ed', color: '#c2410c' },
+}
+
+// ── CityAutocomplete pour les offres ─────────────────────────────────────────
+function CityAutocompleteOffre({ value, onChange }) {
+  const [suggestions, setSuggestions] = useState([])
+
+  async function fetchSuggestions(val) {
+    if (val.length < 2) { setSuggestions([]); return }
+    try {
+      const res  = await fetch(`https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(val)}&type=municipality&limit=6`)
+      const json = await res.json()
+      setSuggestions((json.features || []).map(f => f.properties.label))
+    } catch { setSuggestions([]) }
+  }
+
+  return (
+    <div style={{ position: 'relative', flex: 1 }}>
+      <input
+        placeholder="Ville ou France entière"
+        value={value}
+        onChange={e => { onChange(e.target.value); fetchSuggestions(e.target.value) }}
+        onBlur={() => setTimeout(() => setSuggestions([]), 150)}
+        style={{ ...inputStyle, width: '100%' }}
+      />
+      {suggestions.length > 0 && (
+        <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'white', border: '1.5px solid var(--border)', borderRadius: 8, marginTop: 4, zIndex: 200, boxShadow: '0 4px 12px rgba(0,0,0,0.08)', overflow: 'hidden' }}>
+          <div
+            onMouseDown={() => { onChange('France entière'); setSuggestions([]) }}
+            style={{ padding: '8px 14px', fontSize: 13, color: 'var(--teal)', cursor: 'pointer', fontWeight: 600, borderBottom: '0.5px solid var(--border)', display: 'flex', alignItems: 'center', gap: 6 }}
+          >
+            <i className="ti ti-map" style={{ fontSize: 12 }} /> France entière
+          </div>
+          {suggestions.map((s, i) => (
+            <div
+              key={i}
+              onMouseDown={() => { onChange(s); setSuggestions([]) }}
+              style={{ padding: '8px 14px', fontSize: 13, color: 'var(--navy)', cursor: 'pointer', borderBottom: i < suggestions.length - 1 ? '0.5px solid var(--border)' : 'none' }}
+              onMouseEnter={e => e.currentTarget.style.background = '#f7f5f0'}
+              onMouseLeave={e => e.currentTarget.style.background = 'white'}
+            >
+              <i className="ti ti-map-pin" style={{ fontSize: 11, color: 'var(--muted)', marginRight: 6 }} />{s}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── OffreForm : formulaire partagé création + édition ────────────────────────
+function OffreForm({ form, setForm, onSubmit, onCancel, saving, submitLabel }) {
+  const erreurs = []
+  if (!form.type_offre)        erreurs.push('type_offre')
+  if (!form.titre?.trim())     erreurs.push('titre')
+  if (!form.missions?.trim())  erreurs.push('missions')
+  if (!form.ville?.trim())     erreurs.push('ville')
+  const canSubmit = erreurs.length === 0
+
+  function toggleSoft(s) {
+    setForm(f => ({
+      ...f,
+      soft_skills: (f.soft_skills || []).includes(s)
+        ? f.soft_skills.filter(x => x !== s)
+        : [...(f.soft_skills || []), s],
+    }))
+  }
+
+  function toggleContrat(type) {
+    setForm(f => ({
+      ...f,
+      type_contrat: (f.type_contrat || []).includes(type)
+        ? f.type_contrat.filter(t => t !== type)
+        : [...(f.type_contrat || []), type],
+    }))
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+
+      {/* ── Type d'offre (obligatoire) ── */}
+      <div>
+        <div style={labelStyle}>Type d'offre <span style={{ color: 'var(--accent)' }}>*</span></div>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          {Object.entries(TYPE_OFFRE_CONFIG).map(([key, cfg]) => {
+            const selected = form.type_offre === key
+            return (
+              <button
+                key={key}
+                onClick={() => setForm(f => ({ ...f, type_offre: key }))}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 7,
+                  padding: '8px 14px', borderRadius: 10, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                  border: '1.5px solid ' + (selected ? cfg.color : 'var(--border)'),
+                  background: selected ? cfg.bg : 'white',
+                  color: selected ? cfg.color : 'var(--muted)',
+                  transition: 'all 0.15s',
+                }}
+              >
+                <i className={`ti ${cfg.icon}`} style={{ fontSize: 14 }} />
+                {cfg.label}
+                {selected && <i className="ti ti-check" style={{ fontSize: 11, marginLeft: 2 }} />}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* ── Titre + Niveau + Ville ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: 8 }}>
+        <div>
+          <div style={labelStyle}>Titre du poste <span style={{ color: 'var(--accent)' }}>*</span></div>
+          <input
+            placeholder="Ex : Chargé(e) de marketing digital"
+            value={form.titre || ''}
+            onChange={e => setForm(f => ({ ...f, titre: e.target.value }))}
+            style={{ ...inputStyle, width: '100%', borderColor: !form.titre?.trim() ? '#fca5a5' : undefined }}
+          />
+        </div>
+        <div>
+          <div style={labelStyle}>Niveau</div>
+          <select value={form.niveau || 'bach'} onChange={e => setForm(f => ({ ...f, niveau: e.target.value }))} style={{ ...inputStyle, width: '100%' }}>
+            <option value="cap">CAP</option>
+            <option value="bts">BTS / BUT</option>
+            <option value="bach">Bachelor</option>
+            <option value="master">Master</option>
+          </select>
+        </div>
+        <div>
+          <div style={labelStyle}>Ville <span style={{ color: 'var(--accent)' }}>*</span></div>
+          <CityAutocompleteOffre value={form.ville || ''} onChange={v => setForm(f => ({ ...f, ville: v }))} />
+        </div>
+      </div>
+
+      {/* ── Type de contrat ── */}
+      <div>
+        <div style={labelStyle}>Type de contrat</div>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          {["Contrat d'apprentissage", 'Contrat de professionnalisation'].map(type => {
+            const sel = (form.type_contrat || []).includes(type)
+            return (
+              <button
+                key={type}
+                onClick={() => toggleContrat(type)}
+                style={{
+                  padding: '7px 14px', borderRadius: 8, fontSize: 12, fontWeight: 500, cursor: 'pointer',
+                  border: '1.5px solid ' + (sel ? 'var(--accent)' : 'var(--border)'),
+                  background: sel ? 'var(--accent-soft)' : 'white',
+                  color: sel ? 'var(--accent)' : 'var(--muted)',
+                }}
+              >
+                {sel && <i className="ti ti-check" style={{ marginRight: 5 }} />}{type}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* ── Missions (obligatoire) ── */}
+      <div>
+        <div style={labelStyle}>Missions <span style={{ color: 'var(--accent)' }}>*</span></div>
+        <textarea
+          placeholder="Décrivez les principales missions du poste…"
+          value={form.missions || ''}
+          onChange={e => setForm(f => ({ ...f, missions: e.target.value }))}
+          rows={3}
+          style={{ ...inputStyle, width: '100%', resize: 'vertical', boxSizing: 'border-box', borderColor: !form.missions?.trim() ? '#fca5a5' : undefined }}
+        />
+      </div>
+
+      {/* ── Compétences techniques ── */}
+      <div>
+        <div style={labelStyle}>Compétences techniques attendues</div>
+        <textarea
+          placeholder="Ex : Maîtrise des réseaux sociaux, Excel, Adobe Suite…"
+          value={form.competences || ''}
+          onChange={e => setForm(f => ({ ...f, competences: e.target.value }))}
+          rows={2}
+          style={{ ...inputStyle, width: '100%', resize: 'vertical', boxSizing: 'border-box' }}
+        />
+      </div>
+
+      {/* ── Soft skills attendus ── */}
+      <div>
+        <div style={labelStyle}>Soft skills attendus</div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+          {SOFT_SKILLS_OFFRE.map(skill => {
+            const sel = (form.soft_skills || []).includes(skill)
+            return (
+              <button
+                key={skill}
+                onClick={() => toggleSoft(skill)}
+                style={{
+                  padding: '5px 12px', borderRadius: 20, fontSize: 12, cursor: 'pointer', border: 'none',
+                  fontFamily: 'DM Sans, sans-serif',
+                  background: sel ? 'var(--teal)' : 'var(--light)',
+                  color: sel ? 'white' : 'var(--navy)',
+                  fontWeight: sel ? 600 : 400,
+                  transition: 'all 0.15s',
+                }}
+              >
+                {sel && <i className="ti ti-check" style={{ marginRight: 4, fontSize: 11 }} />}{skill}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* ── Ce que nous recherchons ── */}
+      <div>
+        <div style={labelStyle}>Ce que nous recherchons</div>
+        <textarea
+          placeholder="Profil idéal, motivations attendues…"
+          value={form.recherche || ''}
+          onChange={e => setForm(f => ({ ...f, recherche: e.target.value }))}
+          rows={2}
+          style={{ ...inputStyle, width: '100%', resize: 'vertical', boxSizing: 'border-box' }}
+        />
+      </div>
+
+      {/* ── Contact pour postuler ── */}
+      <div>
+        <div style={labelStyle}>Comment postuler ?</div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+          <div>
+            <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 4 }}><i className="ti ti-mail" style={{ marginRight: 4 }} />Email</div>
+            <input type="email" placeholder="recrutement@entreprise.fr" value={form.email_contact || ''} onChange={e => setForm(f => ({ ...f, email_contact: e.target.value }))} style={{ ...inputStyle, width: '100%' }} />
+          </div>
+          <div>
+            <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 4 }}><i className="ti ti-phone" style={{ marginRight: 4 }} />Téléphone</div>
+            <input type="tel" placeholder="06 00 00 00 00" value={form.telephone_contact || ''} onChange={e => setForm(f => ({ ...f, telephone_contact: e.target.value }))} style={{ ...inputStyle, width: '100%' }} />
+          </div>
+          <div>
+            <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 4 }}><i className="ti ti-link" style={{ marginRight: 4 }} />Lien candidature</div>
+            <input type="url" placeholder="https://…" value={form.url_candidature || ''} onChange={e => setForm(f => ({ ...f, url_candidature: e.target.value }))} style={{ ...inputStyle, width: '100%' }} />
+          </div>
+        </div>
+      </div>
+
+      {/* ── Date + préférence école ── */}
+      <div style={{ display: 'flex', gap: 16, alignItems: 'flex-end', flexWrap: 'wrap' }}>
+        <div>
+          <div style={labelStyle}>Date de prise de poste</div>
+          <input type="date" value={form.date_prise_poste || ''} onChange={e => setForm(f => ({ ...f, date_prise_poste: e.target.value }))} style={{ ...inputStyle, width: 180 }} />
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingBottom: 2 }}>
+          <div>
+            <div style={labelStyle}>Préférence école partenaire ?</div>
+            <div style={{ fontSize: 12, color: 'var(--muted)' }}>Je souhaite travailler avec une école spécifique</div>
+          </div>
+          <button className={`toggle ${form.preference_ecole ? 'on' : ''}`} onClick={() => setForm(f => ({ ...f, preference_ecole: !f.preference_ecole }))} />
+        </div>
+      </div>
+
+      {/* ── Actions ── */}
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center', paddingTop: 4 }}>
+        <button className="btn-sm accent" onClick={onSubmit} disabled={saving || !canSubmit}>
+          <i className="ti ti-speakerphone" /> {saving ? 'Publication…' : submitLabel}
+        </button>
+        <button className="btn-sm" onClick={onCancel}>Annuler</button>
+        {!canSubmit && (
+          <span style={{ fontSize: 11, color: 'var(--muted)' }}>
+            Champs obligatoires manquants : {erreurs.map(e => ({ type_offre: 'type d\'offre', titre: 'titre', missions: 'missions', ville: 'ville' }[e])).join(', ')}
+          </span>
+        )}
+      </div>
+    </div>
+  )
+}
+
 // ── OFFRES ────────────────────────────────────────────────────────────────────
 export function PanelEntrepriseOffres({ entrepriseIdOverride, hideTopbar } = {}) {
   const supabase = createClient()
-  const [offres, setOffres]         = useState([])
-  const [loading, setLoading]       = useState(true)
+  const [offres, setOffres]             = useState([])
+  const [loading, setLoading]           = useState(true)
   const [entrepriseId, setEntrepriseId] = useState(entrepriseIdOverride || null)
-  const [showForm, setShowForm]     = useState(false)
+  const [showForm, setShowForm]         = useState(false)
+  const [saving, setSaving]             = useState(false)
+  const [msg, setMsg]                   = useState('')
+  const [editingId, setEditingId]       = useState(null)
+  const [editForm, setEditForm]         = useState({})
+
   const EMPTY_FORM = {
     titre: '', niveau: 'bach', secteur: '', ville: '', description: '',
     type_contrat: [], competences: '', missions: '', recherche: '',
     date_prise_poste: '', preference_ecole: false,
+    type_offre: '', email_contact: '', telephone_contact: '', url_candidature: '', soft_skills: [],
   }
-  const [form, setForm]             = useState(EMPTY_FORM)
-  const [saving, setSaving]         = useState(false)
-  const [msg, setMsg]               = useState('')
+  const [form, setForm] = useState(EMPTY_FORM)
 
   useEffect(() => {
     async function load() {
@@ -685,9 +971,6 @@ export function PanelEntrepriseOffres({ entrepriseIdOverride, hideTopbar } = {})
     setSaving(false)
   }
 
-  const [editingId, setEditingId] = useState(null)
-  const [editForm, setEditForm]   = useState({})
-
   function openEdit(o) {
     setEditingId(o.id)
     setEditForm({
@@ -696,6 +979,9 @@ export function PanelEntrepriseOffres({ entrepriseIdOverride, hideTopbar } = {})
       competences: o.competences || '', missions: o.missions || '',
       recherche: o.recherche || '', date_prise_poste: o.date_prise_poste || '',
       preference_ecole: o.preference_ecole || false,
+      type_offre: o.type_offre || '',
+      email_contact: o.email_contact || '', telephone_contact: o.telephone_contact || '',
+      url_candidature: o.url_candidature || '', soft_skills: o.soft_skills || [],
     })
   }
 
@@ -723,7 +1009,6 @@ export function PanelEntrepriseOffres({ entrepriseIdOverride, hideTopbar } = {})
   }
 
   const NIVEAUX = { cap: 'CAP', bts: 'BTS / BUT', bach: 'Bachelor', master: 'Master' }
-
   const STATUT_CONFIG = {
     active:   { label: 'Active',   color: 'var(--teal)',   dot: 'var(--teal)' },
     inactive: { label: 'En pause', color: 'var(--muted)',  dot: 'var(--muted)' },
@@ -734,6 +1019,7 @@ export function PanelEntrepriseOffres({ entrepriseIdOverride, hideTopbar } = {})
   if (loading) return <div style={{ padding: '2rem', color: 'var(--muted)', fontSize: 14 }}>Chargement…</div>
 
   const activeCount = offres.filter(o => o.statut === 'active').length
+
   return (
     <>
       {!hideTopbar && (
@@ -744,7 +1030,7 @@ export function PanelEntrepriseOffres({ entrepriseIdOverride, hideTopbar } = {})
           </div>
           <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
             {msg && <span style={{ fontSize: 13, color: 'var(--teal)', fontWeight: 500 }}>{msg}</span>}
-            <button className="btn-sm accent" onClick={() => setShowForm(v => !v)}><i className="ti ti-plus" /> Nouvelle offre</button>
+            <button className="btn-sm accent" onClick={() => { setShowForm(v => !v); setEditingId(null) }}><i className="ti ti-plus" /> Nouvelle offre</button>
           </div>
         </div>
       )}
@@ -754,7 +1040,7 @@ export function PanelEntrepriseOffres({ entrepriseIdOverride, hideTopbar } = {})
           <div style={{ fontSize: 13, color: 'var(--muted)' }}>{activeCount} offre{activeCount !== 1 ? 's' : ''} active{activeCount !== 1 ? 's' : ''}</div>
           <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
             {msg && <span style={{ fontSize: 12, color: 'var(--teal)', fontWeight: 500 }}>{msg}</span>}
-            <button className="btn-sm accent" onClick={() => setShowForm(v => !v)}><i className="ti ti-plus" /> Nouvelle offre</button>
+            <button className="btn-sm accent" onClick={() => { setShowForm(v => !v); setEditingId(null) }}><i className="ti ti-plus" /> Nouvelle offre</button>
           </div>
         </div>
       )}
@@ -765,130 +1051,21 @@ export function PanelEntrepriseOffres({ entrepriseIdOverride, hideTopbar } = {})
         </div>
       )}
 
+      {/* ── Formulaire création ── */}
       {showForm && entrepriseId && (
         <div className="s-card">
-          <div className="s-card-header">
+          <div className="s-card-header" style={{ marginBottom: 16 }}>
             <div className="s-card-title"><i className="ti ti-plus" /> Nouvelle offre</div>
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-
-            {/* Type de contrat */}
-            <div>
-              <div style={labelStyle}>Type de contrat</div>
-              <div style={{ display: 'flex', gap: 8 }}>
-                {['Contrat d\'apprentissage', 'Contrat de professionnalisation'].map(type => (
-                  <button
-                    key={type}
-                    onClick={() => setForm(f => ({
-                      ...f,
-                      type_contrat: f.type_contrat.includes(type)
-                        ? f.type_contrat.filter(t => t !== type)
-                        : [...f.type_contrat, type]
-                    }))}
-                    style={{
-                      padding: '7px 14px', borderRadius: 8, fontSize: 12, fontWeight: 500, cursor: 'pointer',
-                      border: '1.5px solid ' + (form.type_contrat.includes(type) ? 'var(--accent)' : 'var(--border)'),
-                      background: form.type_contrat.includes(type) ? 'var(--accent-soft)' : 'white',
-                      color: form.type_contrat.includes(type) ? 'var(--accent)' : 'var(--muted)',
-                    }}
-                  >
-                    {form.type_contrat.includes(type) && <i className="ti ti-check" style={{ marginRight: 5 }} />}
-                    {type}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Nom du poste + niveau + ville */}
-            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: 8 }}>
-              <div>
-                <div style={labelStyle}>Nom du poste *</div>
-                <input placeholder="Ex : Chargé(e) de marketing digital" value={form.titre} onChange={e => setForm(f => ({ ...f, titre: e.target.value }))} style={{ ...inputStyle, width: '100%' }} />
-              </div>
-              <div>
-                <div style={labelStyle}>Niveau</div>
-                <select value={form.niveau} onChange={e => setForm(f => ({ ...f, niveau: e.target.value }))} style={{ ...inputStyle, width: '100%' }}>
-                  <option value="cap">CAP</option>
-                  <option value="bts">BTS / BUT</option>
-                  <option value="bach">Bachelor</option>
-                  <option value="master">Master</option>
-                </select>
-              </div>
-              <div>
-                <div style={labelStyle}>Ville</div>
-                <input placeholder="Paris, Lyon…" value={form.ville} onChange={e => setForm(f => ({ ...f, ville: e.target.value }))} style={{ ...inputStyle, width: '100%' }} />
-              </div>
-            </div>
-
-            {/* Compétences attendues */}
-            <div>
-              <div style={labelStyle}>Compétences attendues</div>
-              <textarea
-                placeholder="Ex : Maîtrise des réseaux sociaux, Excel, sens du relationnel…"
-                value={form.competences}
-                onChange={e => setForm(f => ({ ...f, competences: e.target.value }))}
-                rows={2}
-                style={{ ...inputStyle, width: '100%', resize: 'vertical', boxSizing: 'border-box' }}
-              />
-            </div>
-
-            {/* Missions */}
-            <div>
-              <div style={labelStyle}>Missions</div>
-              <textarea
-                placeholder="Décrivez les principales missions du poste…"
-                value={form.missions}
-                onChange={e => setForm(f => ({ ...f, missions: e.target.value }))}
-                rows={3}
-                style={{ ...inputStyle, width: '100%', resize: 'vertical', boxSizing: 'border-box' }}
-              />
-            </div>
-
-            {/* Ce que l'entreprise recherche */}
-            <div>
-              <div style={labelStyle}>Ce que nous recherchons</div>
-              <textarea
-                placeholder="Profil idéal, qualités humaines, motivations attendues…"
-                value={form.recherche}
-                onChange={e => setForm(f => ({ ...f, recherche: e.target.value }))}
-                rows={2}
-                style={{ ...inputStyle, width: '100%', resize: 'vertical', boxSizing: 'border-box' }}
-              />
-            </div>
-
-            {/* Date de prise de poste + préférence école */}
-            <div style={{ display: 'flex', gap: 16, alignItems: 'flex-end', flexWrap: 'wrap' }}>
-              <div>
-                <div style={labelStyle}>Date de prise de poste</div>
-                <input
-                  type="date"
-                  value={form.date_prise_poste}
-                  onChange={e => setForm(f => ({ ...f, date_prise_poste: e.target.value }))}
-                  style={{ ...inputStyle, width: 180 }}
-                />
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingBottom: 2 }}>
-                <div>
-                  <div style={labelStyle}>Préférence école partenaire ?</div>
-                  <div style={{ fontSize: 12, color: 'var(--muted)' }}>Oui, je souhaite travailler avec une école spécifique</div>
-                </div>
-                <button
-                  className={`toggle ${form.preference_ecole ? 'on' : ''}`}
-                  onClick={() => setForm(f => ({ ...f, preference_ecole: !f.preference_ecole }))}
-                />
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', gap: 6, paddingTop: 4 }}>
-              <button className="btn-sm accent" onClick={handleCreate} disabled={saving || !form.titre}>
-                <i className="ti ti-speakerphone" /> {saving ? 'Publication…' : 'Publier l\'offre'}
-              </button>
-              <button className="btn-sm" onClick={() => setShowForm(false)}>Annuler</button>
-            </div>
-          </div>
+          <OffreForm
+            form={form} setForm={setForm}
+            onSubmit={handleCreate} onCancel={() => setShowForm(false)}
+            saving={saving} submitLabel="Publier l'offre"
+          />
         </div>
       )}
 
+      {/* ── Liste des offres ── */}
       <div className="s-card">
         <div className="s-card-header">
           <div className="s-card-title"><i className="ti ti-speakerphone" /> Toutes les offres</div>
@@ -896,73 +1073,68 @@ export function PanelEntrepriseOffres({ entrepriseIdOverride, hideTopbar } = {})
         {offres.length === 0 ? (
           <div style={{ fontSize: 13, color: 'var(--muted)', padding: '8px 0' }}>Aucune offre pour l'instant.</div>
         ) : offres.map(o => {
-          const st = STATUT_CONFIG[o.statut] || STATUT_CONFIG.inactive
-          const isEditing = editingId === o.id
+          const st     = STATUT_CONFIG[o.statut] || STATUT_CONFIG.inactive
+          const typeCfg = TYPE_OFFRE_CONFIG[o.type_offre]
+          const isEdit = editingId === o.id
           return (
-            <div key={o.id} className="offre-card" style={{ display: 'flex', gap: 0, padding: 0, overflow: 'hidden', borderRadius: 10, border: '1px solid var(--border)' }}>
-              {/* Barre statut */}
+            <div key={o.id} style={{ display: 'flex', gap: 0, padding: 0, overflow: 'hidden', borderRadius: 10, border: '1px solid var(--border)', marginBottom: 10 }}>
               <div style={{ width: 4, flexShrink: 0, background: st.dot, borderRadius: '10px 0 0 10px' }} />
               <div style={{ flex: 1, padding: '14px 16px' }}>
-              {isEditing ? (
-                /* ── Mode édition ── */
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: 8 }}>
-                    <input value={editForm.titre} onChange={e => setEditForm(f => ({ ...f, titre: e.target.value }))} placeholder="Titre du poste" style={{ ...inputStyle }} />
-                    <select value={editForm.niveau} onChange={e => setEditForm(f => ({ ...f, niveau: e.target.value }))} style={{ ...inputStyle }}>
-                      <option value="cap">CAP</option><option value="bts">BTS / BUT</option><option value="bach">Bachelor</option><option value="master">Master</option>
-                    </select>
-                    <input value={editForm.ville} onChange={e => setEditForm(f => ({ ...f, ville: e.target.value }))} placeholder="Ville" style={{ ...inputStyle }} />
+                {isEdit ? (
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--navy)', marginBottom: 14 }}>Modifier l'offre</div>
+                    <OffreForm
+                      form={editForm} setForm={setEditForm}
+                      onSubmit={handleUpdate} onCancel={() => setEditingId(null)}
+                      saving={saving} submitLabel="Enregistrer"
+                    />
                   </div>
-                  <textarea value={editForm.missions} onChange={e => setEditForm(f => ({ ...f, missions: e.target.value }))} placeholder="Missions…" rows={2} style={{ ...inputStyle, resize: 'vertical' }} />
-                  <textarea value={editForm.competences} onChange={e => setEditForm(f => ({ ...f, competences: e.target.value }))} placeholder="Compétences attendues…" rows={2} style={{ ...inputStyle, resize: 'vertical' }} />
-                  <textarea value={editForm.recherche} onChange={e => setEditForm(f => ({ ...f, recherche: e.target.value }))} placeholder="Ce que nous recherchons…" rows={2} style={{ ...inputStyle, resize: 'vertical' }} />
-                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                    <input type="date" value={editForm.date_prise_poste} onChange={e => setEditForm(f => ({ ...f, date_prise_poste: e.target.value }))} style={{ ...inputStyle, width: 180 }} />
-                    <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
-                      <button className={`toggle ${editForm.preference_ecole ? 'on' : ''}`} onClick={() => setEditForm(f => ({ ...f, preference_ecole: !f.preference_ecole }))} />
-                      Préférence école
-                    </label>
-                  </div>
-                  <div style={{ display: 'flex', gap: 6 }}>
-                    <button className="btn-sm teal" onClick={handleUpdate} disabled={saving}><i className="ti ti-check" /> {saving ? '…' : 'Enregistrer'}</button>
-                    <button className="btn-sm" onClick={() => setEditingId(null)}>Annuler</button>
-                  </div>
-                </div>
-              ) : (
-                /* ── Mode lecture ── */
-                <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                      <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--navy)' }}>{o.titre}</span>
-                      <span style={{ fontSize: 11, fontWeight: 600, color: st.color, background: st.color + '18', padding: '2px 8px', borderRadius: 100 }}>{st.label}</span>
-                    </div>
-                    <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>
-                      {[NIVEAUX[o.niveau], o.ville, o.secteur].filter(Boolean).join(' · ')}
-                    </div>
-                    {(o.type_contrat || []).length > 0 && (
-                      <div style={{ display: 'flex', gap: 5, marginTop: 6, flexWrap: 'wrap' }}>
-                        {o.type_contrat.map(t => <span key={t} className="pill accent" style={{ fontSize: 10 }}>{t}</span>)}
+                ) : (
+                  <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                    <div style={{ flex: 1 }}>
+                      {/* Badge type offre */}
+                      {typeCfg && (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 20, background: typeCfg.bg, color: typeCfg.color, marginBottom: 6 }}>
+                          <i className={`ti ${typeCfg.icon}`} style={{ fontSize: 10 }} />{typeCfg.label}
+                        </span>
+                      )}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--navy)' }}>{o.titre}</span>
+                        <span style={{ fontSize: 11, fontWeight: 600, color: st.color, background: st.color + '18', padding: '2px 8px', borderRadius: 100 }}>{st.label}</span>
                       </div>
-                    )}
-                    <div style={{ display: 'flex', gap: 10, marginTop: 4, flexWrap: 'wrap' }}>
-                      {o.date_prise_poste && <span style={{ fontSize: 11, color: 'var(--muted)' }}><i className="ti ti-calendar" style={{ marginRight: 3 }} />{new Date(o.date_prise_poste).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}</span>}
-                      {o.preference_ecole && <span style={{ fontSize: 11, color: 'var(--purple-mid)' }}><i className="ti ti-school" style={{ marginRight: 3 }} />Préférence école</span>}
-                      <span style={{ fontSize: 11, color: 'var(--muted)' }}>Actualisée le {new Date(o.updated_at).toLocaleDateString('fr-FR')}</span>
+                      <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>
+                        {[NIVEAUX[o.niveau], o.ville].filter(Boolean).join(' · ')}
+                      </div>
+                      {(o.type_contrat || []).length > 0 && (
+                        <div style={{ display: 'flex', gap: 5, marginTop: 5, flexWrap: 'wrap' }}>
+                          {o.type_contrat.map(t => <span key={t} className="pill accent" style={{ fontSize: 10 }}>{t}</span>)}
+                        </div>
+                      )}
+                      {/* Contact */}
+                      <div style={{ display: 'flex', gap: 10, marginTop: 5, flexWrap: 'wrap' }}>
+                        {o.email_contact && <span style={{ fontSize: 11, color: 'var(--teal)' }}><i className="ti ti-mail" style={{ marginRight: 3 }} />{o.email_contact}</span>}
+                        {o.telephone_contact && <span style={{ fontSize: 11, color: 'var(--muted)' }}><i className="ti ti-phone" style={{ marginRight: 3 }} />{o.telephone_contact}</span>}
+                        {o.url_candidature && <a href={o.url_candidature} target="_blank" rel="noopener noreferrer" style={{ fontSize: 11, color: 'var(--teal)', textDecoration: 'none' }}><i className="ti ti-link" style={{ marginRight: 3 }} />Lien candidature</a>}
+                      </div>
+                      <div style={{ display: 'flex', gap: 10, marginTop: 4, flexWrap: 'wrap' }}>
+                        {o.date_prise_poste && <span style={{ fontSize: 11, color: 'var(--muted)' }}><i className="ti ti-calendar" style={{ marginRight: 3 }} />{new Date(o.date_prise_poste).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}</span>}
+                        {o.preference_ecole && <span style={{ fontSize: 11, color: 'var(--purple-mid)' }}><i className="ti ti-school" style={{ marginRight: 3 }} />Préférence école</span>}
+                        <span style={{ fontSize: 11, color: 'var(--muted)' }}>Actualisée le {new Date(o.updated_at).toLocaleDateString('fr-FR')}</span>
+                      </div>
+                    </div>
+                    {/* Actions */}
+                    <div style={{ display: 'flex', gap: 4, flexShrink: 0, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                      <button className="btn-sm" style={{ fontSize: 11 }} onClick={() => openEdit(o)} title="Modifier"><i className="ti ti-pencil" /></button>
+                      <button className="btn-sm" style={{ fontSize: 11 }} onClick={() => handleActualiser(o.id)} title="Actualiser"><i className="ti ti-refresh" /></button>
+                      {o.statut !== 'active'  && <button className="btn-sm teal" style={{ fontSize: 11 }} onClick={() => handleStatut(o.id, 'active')}><i className="ti ti-player-play" /> Activer</button>}
+                      {o.statut === 'active'  && <button className="btn-sm"      style={{ fontSize: 11 }} onClick={() => handleStatut(o.id, 'inactive')}><i className="ti ti-pause" /> Pause</button>}
+                      {o.statut !== 'archive' && <button className="btn-sm"      style={{ fontSize: 11 }} onClick={() => handleStatut(o.id, 'archive')}><i className="ti ti-archive" /> Archiver</button>}
+                      {o.statut !== 'pourvue' && <button className="btn-sm"      style={{ fontSize: 11 }} onClick={() => handleStatut(o.id, 'pourvue')}><i className="ti ti-check" /> Pourvue</button>}
+                      <button className="btn-sm" style={{ fontSize: 11, color: 'var(--red)' }} onClick={() => handleDelete(o.id)}><i className="ti ti-trash" /></button>
                     </div>
                   </div>
-                  {/* Actions */}
-                  <div style={{ display: 'flex', gap: 4, flexShrink: 0, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-                    <button className="btn-sm" style={{ fontSize: 11 }} onClick={() => openEdit(o)} title="Modifier"><i className="ti ti-pencil" /></button>
-                    <button className="btn-sm" style={{ fontSize: 11 }} onClick={() => handleActualiser(o.id)} title="Actualiser"><i className="ti ti-refresh" /></button>
-                    {o.statut !== 'active'   && <button className="btn-sm teal"   style={{ fontSize: 11 }} onClick={() => handleStatut(o.id, 'active')}>  <i className="ti ti-player-play" /> Activer</button>}
-                    {o.statut === 'active'   && <button className="btn-sm"         style={{ fontSize: 11 }} onClick={() => handleStatut(o.id, 'inactive')}><i className="ti ti-pause" /> Pause</button>}
-                    {o.statut !== 'archive'  && <button className="btn-sm"         style={{ fontSize: 11 }} onClick={() => handleStatut(o.id, 'archive')}> <i className="ti ti-archive" /> Archiver</button>}
-                    {o.statut !== 'pourvue'  && <button className="btn-sm"         style={{ fontSize: 11 }} onClick={() => handleStatut(o.id, 'pourvue')}> <i className="ti ti-check" /> Pourvue</button>}
-                    <button className="btn-sm" style={{ fontSize: 11, color: 'var(--red)' }} onClick={() => handleDelete(o.id)}><i className="ti ti-trash" /></button>
-                  </div>
-                </div>
-              )}
-              </div>{/* fin padding wrapper */}
+                )}
+              </div>
             </div>
           )
         })}
