@@ -193,7 +193,6 @@ export default function PanelCandidatOffres({ onNavigateCandidatures, onNavigate
       notes:          '',
     })
     setSavedIds(prev => new Set([...prev, offre._id]))
-    if (onNavigateCandidatures) onNavigateCandidatures()
   }
 
   const resultatsAffiches = resultats
