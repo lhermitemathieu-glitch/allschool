@@ -4,8 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '../../lib/supabase/client'
 import { SECTEURS } from '../../lib/secteurs'
 import { typeInfo } from '../../lib/offre-types'
-
-const NIVEAUX = { cap: 'CAP', bts: 'BTS / BUT', bach: 'Bachelor', master: 'Master' }
+import { NIVEAUX, niveauLabel } from '../../lib/niveaux'
 
 // Géocode une ville → { lat, lng } via api-adresse.data.gouv.fr
 async function geocodeVille(nom) {
@@ -78,7 +77,7 @@ export default function PanelCandidatOffres() {
       entreprise:  o.entreprises?.raison_sociale || '',
       ville:       o.ville || '',
       contrat:     (o.type_contrat || []).join(', '),
-      niveau:      o.niveau ? NIVEAUX[o.niveau] : '',
+      niveau:      o.niveau ? niveauLabel(o.niveau) : '',
       description: o.description || '',
       missions:    o.missions || '',
       competences: o.competences || '',
@@ -174,7 +173,7 @@ export default function PanelCandidatOffres() {
             <div style={labelStyle}>Niveau</div>
             <select value={niveau} onChange={e => setNiveau(e.target.value)} style={{ width: '100%' }}>
               <option value="">Tous niveaux</option>
-              {Object.entries(NIVEAUX).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+              {NIVEAUX.map(n => <option key={n.key} value={n.key}>{n.label}</option>)}
             </select>
           </div>
           <div style={{ flex: '1 1 120px' }}>

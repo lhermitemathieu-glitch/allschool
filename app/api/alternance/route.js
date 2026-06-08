@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getRomesForSecteur } from '../../../lib/rome-mapping'
+import { lbaNiveauToKey, niveauLabel } from '../../../lib/niveaux'
 
 const LBA_BASE = 'https://api.apprentissage.beta.gouv.fr/api'
 const CALLER   = 'allschool'
@@ -88,7 +89,7 @@ function normalizeJob(item, tag) {
     contrat:      (item.contract?.type || []).join(', '),
     description:  item.offer?.description        || '',
     url:          item.apply?.url                || null,
-    niveau:       item.offer?.target_diploma?.label || '',
+    niveau:       niveauLabel(lbaNiveauToKey(item.offer?.target_diploma?.european)) || item.offer?.target_diploma?.label || '',
     date_creation: item.offer?.publication?.creation || null,
   }
 }

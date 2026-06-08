@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { createClient } from '../../lib/supabase/client'
 import { SECTEURS } from '../../lib/secteurs'
+import { NIVEAUX, niveauLabel } from '../../lib/niveaux'
 
 function AvatarPhoto({ url, initials, size = 64, bg = '#fff3e0', color = 'var(--accent)', onUpload, uploading }) {
   const inputRef = useRef(null)
@@ -771,10 +772,7 @@ function OffreForm({ form, setForm, onSubmit, onCancel, saving, submitLabel }) {
         <div>
           <div style={labelStyle}>Niveau</div>
           <select value={form.niveau || 'bach'} onChange={e => setForm(f => ({ ...f, niveau: e.target.value }))} style={{ ...inputStyle, width: '100%' }}>
-            <option value="cap">CAP</option>
-            <option value="bts">BTS / BUT</option>
-            <option value="bach">Bachelor</option>
-            <option value="master">Master</option>
+            {NIVEAUX.map(n => <option key={n.key} value={n.key}>{n.label}</option>)}
           </select>
         </div>
         <div>
@@ -1003,7 +1001,6 @@ export function PanelEntrepriseOffres({ entrepriseIdOverride, hideTopbar } = {})
     setOffres(prev => prev.filter(o => o.id !== id))
   }
 
-  const NIVEAUX = { cap: 'CAP', bts: 'BTS / BUT', bach: 'Bachelor', master: 'Master' }
   const STATUT_CONFIG = {
     active:   { label: 'Active',   color: 'var(--teal)',   dot: 'var(--teal)' },
     inactive: { label: 'En pause', color: 'var(--muted)',  dot: 'var(--muted)' },
@@ -1098,7 +1095,7 @@ export function PanelEntrepriseOffres({ entrepriseIdOverride, hideTopbar } = {})
                         <span style={{ fontSize: 11, fontWeight: 600, color: st.color, background: st.color + '18', padding: '2px 8px', borderRadius: 100 }}>{st.label}</span>
                       </div>
                       <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>
-                        {[NIVEAUX[o.niveau], o.ville].filter(Boolean).join(' · ')}
+                        {[niveauLabel(o.niveau), o.ville].filter(Boolean).join(' · ')}
                       </div>
                       {(o.type_contrat || []).length > 0 && (
                         <div style={{ display: 'flex', gap: 5, marginTop: 5, flexWrap: 'wrap' }}>
