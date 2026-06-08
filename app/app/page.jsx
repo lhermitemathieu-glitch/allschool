@@ -42,8 +42,6 @@ const SPACES = {
       { icon: 'ti-certificate',  label: 'Formations',        panel: 'candidat-formations',           cls: 'cand' },
       { icon: 'ti-school',       label: 'Écoles',            panel: 'candidat-ecoles',               cls: 'cand' },
       { section: 'Suivi' },
-      { icon: 'ti-bookmark',     label: 'Mes statuts',       panel: 'candidat-statuts',              cls: 'cand' },
-      { icon: 'ti-bell',         label: 'Mes actions',       panel: 'candidat-actions',              cls: 'cand' },
       { icon: 'ti-archive',      label: 'Offres archivées',  panel: 'candidat-offres-archivees',     cls: 'cand' },
       { icon: 'ti-archive',      label: 'Formations arch.',  panel: 'candidat-formations-archivees', cls: 'cand' },
       { section: 'Autre' },
