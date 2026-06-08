@@ -18,15 +18,17 @@ async function geocodeVille(nom) {
   } catch { return null }
 }
 
-export default function PanelCandidatOffres() {
+export default function PanelCandidatOffres({ onNavigateCandidatures, onNavigateArchives }) {
   const supabase = createClient()
 
-  const [resultats, setResultats] = useState([])   // liste unifiée
-  const [loading,   setLoading]   = useState(false)
-  const [lbaLoading, setLbaLoading] = useState(false)
-  const [searched,  setSearched]  = useState(false)
-  const [lbaError,  setLbaError]  = useState('')
-  const [total,     setTotal]     = useState(null)
+  const [resultats,   setResultats]   = useState([])
+  const [loading,     setLoading]     = useState(false)
+  const [lbaLoading,  setLbaLoading]  = useState(false)
+  const [searched,    setSearched]    = useState(false)
+  const [lbaError,    setLbaError]    = useState('')
+  const [total,       setTotal]       = useState(null)
+  const [cachedIds,   setCachedIds]   = useState(new Set())  // offres masquées
+  const [savedIds,    setSavedIds]    = useState(new Set())  // offres enregistrées
 
   // Filtres de recherche
   const [q,       setQ]       = useState('')
@@ -48,6 +50,15 @@ export default function PanelCandidatOffres() {
     supabase.from('offres').select('id', { count: 'exact', head: true })
       .eq('statut', 'active')
       .then(({ count }) => setTotal(count))
+
+    // Charger les offres déjà masquées
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) return
+      supabase.from('candidat_offres_cachees').select('offre_id').eq('candidat_id', user.id)
+        .then(({ data }) => {
+          if (data) setCachedIds(new Set(data.map(d => d.offre_id)))
+        })
+    })
   }, [])
 
   const search = useCallback(async () => {
@@ -150,7 +161,35 @@ export default function PanelCandidatOffres() {
     }
   }, [q, secteur, niveau, ville, contrat])
 
-  const resultatsAffiches = resultats.filter(o => typesFiltres.includes(o.tag))
+  async function masquer(offre) {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+    await supabase.from('candidat_offres_cachees').upsert({
+      candidat_id: user.id,
+      offre_id:    offre._id,
+      offre_data:  offre,
+    }, { onConflict: 'candidat_id,offre_id' })
+    setCachedIds(prev => new Set([...prev, offre._id]))
+  }
+
+  async function enregistrer(offre) {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+    await supabase.from('candidat_candidatures').insert({
+      candidat_id:    user.id,
+      nom_entreprise: offre.entreprise || 'Entreprise',
+      poste:          offre.titre,
+      url:            offre.url || '',
+      type:           offre.tag === 'allschool' ? 'allschool' : offre.tag,
+      statut:         'enregistre',
+      notes:          '',
+    })
+    setSavedIds(prev => new Set([...prev, offre._id]))
+  }
+
+  const resultatsAffiches = resultats
+    .filter(o => !cachedIds.has(o._id))
+    .filter(o => typesFiltres.includes(o.tag))
   const nbResultats = resultatsAffiches.length
 
   return (
@@ -277,13 +316,32 @@ export default function PanelCandidatOffres() {
           )}
 
           {/* Liste unifiée */}
+          {/* Lien offres archivées */}
+          {cachedIds.size > 0 && onNavigateArchives && (
+            <div style={{ marginBottom: 8, display: 'flex', justifyContent: 'flex-end' }}>
+              <button className="btn-sm" style={{ fontSize: 11 }} onClick={onNavigateArchives}>
+                <i className="ti ti-archive" style={{ marginRight: 4 }} />
+                {cachedIds.size} offre{cachedIds.size > 1 ? 's' : ''} archivée{cachedIds.size > 1 ? 's' : ''}
+              </button>
+            </div>
+          )}
+
           {resultatsAffiches.length === 0 && !lbaLoading ? (
             <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--muted)', fontSize: 14 }}>
               Aucune offre ne correspond à vos critères.
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {resultatsAffiches.map((o, i) => <OffreCard key={o._id || i} offre={o} />)}
+              {resultatsAffiches.map((o, i) => (
+                <OffreCard
+                  key={o._id || i}
+                  offre={o}
+                  saved={savedIds.has(o._id)}
+                  onMasquer={() => masquer(o)}
+                  onEnregistrer={() => enregistrer(o)}
+                  onVoirCandidatures={onNavigateCandidatures}
+                />
+              ))}
             </div>
           )}
         </>
@@ -293,7 +351,7 @@ export default function PanelCandidatOffres() {
 }
 
 // ── Carte offre unifiée ────────────────────────────────────────────────────────
-function OffreCard({ offre: o }) {
+function OffreCard({ offre: o, saved, onMasquer, onEnregistrer, onVoirCandidatures }) {
   const [open, setOpen] = useState(false)
   const tag = typeInfo(o.tag)
 
@@ -364,21 +422,42 @@ function OffreCard({ offre: o }) {
           </div>
 
           {/* Actions */}
-          <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+          <div style={{ display: 'flex', gap: 6, flexShrink: 0, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
             {hasDetails && (
               <button className="btn-sm" style={{ fontSize: 11 }} onClick={() => setOpen(v => !v)}>
                 <i className={`ti ti-chevron-${open ? 'up' : 'down'}`} /> {open ? 'Moins' : 'Détails'}
               </button>
             )}
-            {o.url ? (
-              <a href={o.url} target="_blank" rel="noopener noreferrer" className="btn-sm teal" style={{ fontSize: 11, textDecoration: 'none' }}>
+            {o.url && (
+              <a href={o.url} target="_blank" rel="noopener noreferrer" className="btn-sm" style={{ fontSize: 11, textDecoration: 'none' }}>
                 <i className="ti ti-external-link" /> Voir l'offre
               </a>
+            )}
+
+            {/* Enregistrer */}
+            {saved ? (
+              <button
+                className="btn-sm teal"
+                style={{ fontSize: 11, opacity: 0.7, cursor: 'default' }}
+                onClick={onVoirCandidatures}
+              >
+                <i className="ti ti-check" /> Enregistrée
+              </button>
             ) : (
-              <button className="btn-sm teal" style={{ fontSize: 11 }}>
-                <i className="ti ti-send" /> Postuler
+              <button className="btn-sm teal" style={{ fontSize: 11 }} onClick={onEnregistrer}>
+                <i className="ti ti-bookmark" /> Enregistrer
               </button>
             )}
+
+            {/* Ne plus voir */}
+            <button
+              className="btn-sm"
+              style={{ fontSize: 11, color: 'var(--muted)' }}
+              onClick={onMasquer}
+              title="Ne plus voir cette offre"
+            >
+              <i className="ti ti-eye-off" />
+            </button>
           </div>
         </div>
 

@@ -12,6 +12,7 @@ import PanelCandidatFormations from '../../components/panels/PanelCandidatFormat
 import PanelCandidatCandidatures from '../../components/panels/PanelCandidatCandidatures'
 import PanelCandidatBadges from '../../components/panels/PanelCandidatBadges'
 import PanelCandidatOffres from '../../components/panels/PanelCandidatOffres'
+import PanelCandidatOffresArchivees from '../../components/panels/PanelCandidatOffresArchivees'
 import PanelCandidatStatuts from '../../components/panels/PanelCandidatStatuts'
 import PanelCandidatActions from '../../components/panels/PanelCandidatActions'
 import { PanelEntrepriseSiret, PanelEntrepriseRecherche, PanelEntrepriseEcoles, PanelEntrepriseOffres, PanelEntrepriseSimulateur } from '../../components/panels/PanelEntreprise'
@@ -39,8 +40,9 @@ const SPACES = {
       { icon: 'ti-bookmark',    label: 'Mes statuts',       panel: 'candidat-statuts',      cls: 'cand' },
       { icon: 'ti-bell',        label: 'Mes actions',       panel: 'candidat-actions',      cls: 'cand' },
       { section: 'Explorer' },
-      { icon: 'ti-search', label: 'Offres alternance', panel: 'candidat-offres', cls: 'cand' },
-      { icon: 'ti-gift',   label: 'Bons plans',        panel: null, cls: 'cand' },
+      { icon: 'ti-search',  label: 'Offres alternance',  panel: 'candidat-offres',           cls: 'cand' },
+      { icon: 'ti-archive', label: 'Offres archivées',  panel: 'candidat-offres-archivees', cls: 'cand' },
+      { icon: 'ti-gift',    label: 'Bons plans',        panel: null, cls: 'cand' },
     ],
     firstPanel: 'candidat-profil',
   },
@@ -233,7 +235,11 @@ export default function Home() {
       case 'candidat-actions':      return <PanelCandidatActions
           onNavigateFormation={id => navigateTo('formation-publique', { formationId: id, from: 'candidat-actions' })}
         />
-      case 'candidat-offres':       return <PanelCandidatOffres />
+      case 'candidat-offres':       return <PanelCandidatOffres
+          onNavigateCandidatures={() => navigateTo('candidat-candidatures')}
+          onNavigateArchives={() => navigateTo('candidat-offres-archivees')}
+        />
+      case 'candidat-offres-archivees': return <PanelCandidatOffresArchivees />
       case 'entreprise-siret':      return <PanelEntrepriseSiret />
       case 'entreprise-recherche':  return <PanelEntrepriseRecherche onNavigate={setActivePanel} />
       case 'entreprise-ecoles':     return <PanelEntrepriseEcoles onNavigateEcole={id => navigateTo('ecole-publique', { ecoleId: id, from: 'entreprise-ecoles' })} />
