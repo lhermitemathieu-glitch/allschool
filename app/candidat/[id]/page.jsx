@@ -1,10 +1,10 @@
-import { createClient } from '../../../lib/supabase/server'
+import { createAdminClient } from '../../../lib/supabase/admin'
 import CVCandidatPublic from '../../../components/public/CVCandidatPublic'
 import { notFound } from 'next/navigation'
 
 export async function generateMetadata({ params }) {
   const { id } = await params
-  const supabase = await createClient()
+  const supabase = createAdminClient()
   const { data } = await supabase
     .from('candidats')
     .select('prenom, nom, formation, ville')
@@ -23,7 +23,7 @@ export async function generateMetadata({ params }) {
 
 export default async function PageCandidatPublic({ params }) {
   const { id } = await params
-  const supabase = await createClient()
+  const supabase = createAdminClient()
 
   const { data: profil } = await supabase
     .from('candidats')
