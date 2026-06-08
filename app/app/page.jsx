@@ -12,8 +12,7 @@ import PanelCandidatFormations from '../../components/panels/PanelCandidatFormat
 import PanelCandidatCandidatures from '../../components/panels/PanelCandidatCandidatures'
 import PanelCandidatBadges from '../../components/panels/PanelCandidatBadges'
 import PanelCandidatOffres from '../../components/panels/PanelCandidatOffres'
-import PanelCandidatOffresArchivees from '../../components/panels/PanelCandidatOffresArchivees'
-import PanelCandidatFormationsArchivees from '../../components/panels/PanelCandidatFormationsArchivees'
+import PanelCandidatArchives from '../../components/panels/PanelCandidatArchives'
 import PanelCandidatStatuts from '../../components/panels/PanelCandidatStatuts'
 import PanelCandidatActions from '../../components/panels/PanelCandidatActions'
 import { PanelEntrepriseSiret, PanelEntrepriseRecherche, PanelEntrepriseEcoles, PanelEntrepriseOffres, PanelEntrepriseSimulateur } from '../../components/panels/PanelEntreprise'
@@ -42,8 +41,7 @@ const SPACES = {
       { icon: 'ti-certificate',  label: 'Formations',        panel: 'candidat-formations',           cls: 'cand' },
       { icon: 'ti-school',       label: 'Écoles',            panel: 'candidat-ecoles',               cls: 'cand' },
       { section: 'Suivi' },
-      { icon: 'ti-archive',      label: 'Offres archivées',  panel: 'candidat-offres-archivees',     cls: 'cand' },
-      { icon: 'ti-archive',      label: 'Formations arch.',  panel: 'candidat-formations-archivees', cls: 'cand' },
+      { icon: 'ti-archive', label: 'Archives', panel: 'candidat-archives', cls: 'cand' },
       { section: 'Autre' },
       { icon: 'ti-gift',         label: 'Bons plans',        panel: null,                            cls: 'cand' },
     ],
@@ -229,7 +227,7 @@ export default function Home() {
           candidatId={candidatId}
           onNavigateFormation={(id, from, filters) => navigateTo('formation-publique', { formationId: id, from, filters })}
           onNavigateEcole={(id, from, filters) => navigateTo('ecole-publique', { ecoleId: id, from, filters })}
-          onNavigateArchives={() => navigateTo('candidat-formations-archivees')}
+          onNavigateArchives={() => navigateTo('candidat-archives')}
         />
       case 'candidat-candidatures': return <PanelCandidatCandidatures />
       case 'candidat-badges':       return <PanelCandidatBadges />
@@ -241,10 +239,9 @@ export default function Home() {
         />
       case 'candidat-offres':       return <PanelCandidatOffres
           onNavigateCandidatures={() => navigateTo('candidat-candidatures')}
-          onNavigateArchives={() => navigateTo('candidat-offres-archivees')}
+          onNavigateArchives={() => navigateTo('candidat-archives')}
         />
-      case 'candidat-offres-archivees':     return <PanelCandidatOffresArchivees />
-      case 'candidat-formations-archivees': return <PanelCandidatFormationsArchivees />
+      case 'candidat-archives': return <PanelCandidatArchives />
       case 'entreprise-siret':      return <PanelEntrepriseSiret />
       case 'entreprise-recherche':  return <PanelEntrepriseRecherche onNavigate={setActivePanel} />
       case 'entreprise-ecoles':     return <PanelEntrepriseEcoles onNavigateEcole={id => navigateTo('ecole-publique', { ecoleId: id, from: 'entreprise-ecoles' })} />
