@@ -28,12 +28,21 @@ export default function PanelCandidatOffres() {
   const [lbaError,  setLbaError]  = useState('')
   const [total,     setTotal]     = useState(null)
 
-  // Filtres
+  // Filtres de recherche
   const [q,       setQ]       = useState('')
   const [secteur, setSecteur] = useState('')
   const [niveau,  setNiveau]  = useState('')
   const [ville,   setVille]   = useState('')
   const [contrat, setContrat] = useState('')
+
+  // Filtre types d'offres (réactif sur les résultats)
+  const [typesFiltres, setTypesFiltres] = useState(['sourcee', 'spontanee', 'allschool'])
+
+  function toggleType(key) {
+    setTypesFiltres(prev =>
+      prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]
+    )
+  }
 
   useEffect(() => {
     supabase.from('offres').select('id', { count: 'exact', head: true })
@@ -141,7 +150,8 @@ export default function PanelCandidatOffres() {
     }
   }, [q, secteur, niveau, ville, contrat])
 
-  const nbResultats = resultats.length
+  const resultatsAffiches = resultats.filter(o => typesFiltres.includes(o.tag))
+  const nbResultats = resultatsAffiches.length
 
   return (
     <>
@@ -197,6 +207,37 @@ export default function PanelCandidatOffres() {
             <i className="ti ti-search" /> Rechercher
           </button>
         </div>
+
+        {/* Filtres types — réactifs */}
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--border)' }}>
+          <div style={labelStyle}>Type d'offre</div>
+          {[
+            { key: 'sourcee',  label: 'Offre sourcée',        icon: 'ti-search',       color: '#15803d', bg: '#f0fdf4' },
+            { key: 'spontanee', label: 'Candidature spontanée', icon: 'ti-mail-forward', color: '#c2410c', bg: '#fff7ed' },
+            { key: 'allschool', label: 'Offre Allschool',       icon: 'ti-rosette',      color: '#5b21b6', bg: '#ede9fe' },
+          ].map(t => {
+            const active = typesFiltres.includes(t.key)
+            return (
+              <label key={t.key} style={{
+                display: 'inline-flex', alignItems: 'center', gap: 6,
+                padding: '5px 12px', borderRadius: 100, cursor: 'pointer', fontSize: 12, fontWeight: 500,
+                border: `1.5px solid ${active ? t.color : 'var(--border)'}`,
+                background: active ? t.bg : 'white',
+                color: active ? t.color : 'var(--muted)',
+                transition: 'all 0.15s',
+              }}>
+                <input
+                  type="checkbox"
+                  checked={active}
+                  onChange={() => toggleType(t.key)}
+                  style={{ display: 'none' }}
+                />
+                <i className={`ti ${t.icon}`} style={{ fontSize: 12 }} />
+                {t.label}
+              </label>
+            )
+          })}
+        </div>
       </div>
 
       {/* État initial */}
@@ -236,13 +277,13 @@ export default function PanelCandidatOffres() {
           )}
 
           {/* Liste unifiée */}
-          {resultats.length === 0 && !lbaLoading ? (
+          {resultatsAffiches.length === 0 && !lbaLoading ? (
             <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--muted)', fontSize: 14 }}>
               Aucune offre ne correspond à vos critères.
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {resultats.map((o, i) => <OffreCard key={o._id || i} offre={o} />)}
+              {resultatsAffiches.map((o, i) => <OffreCard key={o._id || i} offre={o} />)}
             </div>
           )}
         </>
