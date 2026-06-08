@@ -108,24 +108,29 @@ export default function PanelCandidatOffres() {
         const json = await res.json()
         if (!res.ok) throw new Error(json.error || 'Erreur API')
 
-        const lbaOffres = (json.jobs || []).map(o => ({
-          _id:         `lba-${o.id || Math.random()}`,
-          _source:     'lba',
-          tag:         o.tag,
-          titre:       o.titre,
-          entreprise:  o.entreprise || '',
-          ville:       o.ville || '',
-          contrat:     o.contrat || '',
-          niveau:      o.niveau || '',
-          description: o.description || '',
-          missions:    '',
-          competences: '',
-          recherche:   '',
-          date:        o.date_creation,
-          url:         o.url,
-          preference_ecole: false,
-          date_prise_poste: null,
-        }))
+        const niveauFiltre = niveau ? niveauLabel(niveau) : null
+
+        const lbaOffres = (json.jobs || [])
+          .map(o => ({
+            _id:         `lba-${o.id || Math.random()}`,
+            _source:     'lba',
+            tag:         o.tag,
+            titre:       o.titre,
+            entreprise:  o.entreprise || '',
+            ville:       o.ville || '',
+            contrat:     o.contrat || '',
+            niveau:      o.niveau || '',
+            description: o.description || '',
+            missions:    '',
+            competences: '',
+            recherche:   '',
+            date:        o.date_creation,
+            url:         o.url,
+            preference_ecole: false,
+            date_prise_poste: null,
+          }))
+          // Filtre niveau côté client si sélectionné
+          .filter(o => !niveauFiltre || o.niveau === niveauFiltre || o.niveau === '')
 
         setResultats(prev => [...prev, ...lbaOffres])
       } catch (err) {
