@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '../../lib/supabase/client'
 import { SECTEURS } from '../../lib/secteurs'
+import { typeInfo, lbaTypeFromSource } from '../../lib/offre-types'
 
 const NIVEAUX = { cap: 'CAP', bts: 'BTS / BUT', bach: 'Bachelor', master: 'Master' }
 
@@ -21,16 +22,12 @@ async function geocodeVille(nom) {
 export default function PanelCandidatOffres() {
   const supabase = createClient()
 
-  // Offres Allschool
-  const [offres,   setOffres]   = useState([])
-  const [loading,  setLoading]  = useState(false)
-  const [searched, setSearched] = useState(false)
-  const [total,    setTotal]    = useState(null)
-
-  // Offres La Bonne Alternance
-  const [lbaOffres,  setLbaOffres]  = useState([])
+  const [resultats, setResultats] = useState([])   // liste unifiée
+  const [loading,   setLoading]   = useState(false)
   const [lbaLoading, setLbaLoading] = useState(false)
-  const [lbaError,   setLbaError]   = useState('')
+  const [searched,  setSearched]  = useState(false)
+  const [lbaError,  setLbaError]  = useState('')
+  const [total,     setTotal]     = useState(null)
 
   // Filtres
   const [q,       setQ]       = useState('')
@@ -47,9 +44,10 @@ export default function PanelCandidatOffres() {
 
   const search = useCallback(async () => {
     setLoading(true)
+    setLbaLoading(false)
     setSearched(true)
-    setLbaOffres([])
     setLbaError('')
+    setResultats([])
 
     // ── 1. Offres Allschool ────────────────────────────────────────────────
     let query = supabase
@@ -57,43 +55,80 @@ export default function PanelCandidatOffres() {
       .select(`
         id, titre, niveau, secteur, ville, description,
         type_contrat, competences, missions, recherche,
-        date_prise_poste, preference_ecole, updated_at,
+        date_prise_poste, preference_ecole, updated_at, type_offre,
         entreprises ( raison_sociale, ville )
       `)
       .eq('statut', 'active')
       .order('updated_at', { ascending: false })
       .limit(50)
 
-    if (q.trim())    query = query.ilike('titre',   `%${q.trim()}%`)
-    if (secteur)     query = query.ilike('secteur', `%${secteur}%`)
-    if (niveau)      query = query.eq('niveau', niveau)
-    if (ville.trim()) query = query.ilike('ville',  `%${ville.trim()}%`)
-    if (contrat)     query = query.contains('type_contrat', [contrat])
+    if (q.trim())     query = query.ilike('titre',   `%${q.trim()}%`)
+    if (secteur)      query = query.ilike('secteur', `%${secteur}%`)
+    if (niveau)       query = query.eq('niveau', niveau)
+    if (ville.trim()) query = query.ilike('ville',   `%${ville.trim()}%`)
+    if (contrat)      query = query.contains('type_contrat', [contrat])
 
-    const { data } = await query
-    setOffres(data || [])
+    const { data: allschoolData } = await query
+
+    const allschoolOffres = (allschoolData || []).map(o => ({
+      _id:         `allschool-${o.id}`,
+      _source:     'allschool',
+      tag:         o.type_offre || 'allschool',
+      titre:       o.titre,
+      entreprise:  o.entreprises?.raison_sociale || '',
+      ville:       o.ville || '',
+      contrat:     (o.type_contrat || []).join(', '),
+      niveau:      o.niveau ? NIVEAUX[o.niveau] : '',
+      description: o.description || '',
+      missions:    o.missions || '',
+      competences: o.competences || '',
+      recherche:   o.recherche || '',
+      date:        o.updated_at,
+      url:         null,
+      preference_ecole: o.preference_ecole,
+      date_prise_poste: o.date_prise_poste,
+      // données brutes pour la modale détail
+      _raw: o,
+    }))
+
+    setResultats(allschoolOffres)
     setLoading(false)
 
-    // ── 2. Offres La Bonne Alternance (si secteur + ville renseignés) ──────
+    // ── 2. Offres La Bonne Alternance (si secteur + ville) ─────────────────
     if (secteur && ville.trim()) {
       setLbaLoading(true)
       try {
         const geo = await geocodeVille(ville.trim())
         if (!geo) {
-          setLbaError('Ville introuvable pour La Bonne Alternance.')
+          setLbaError('Ville introuvable pour la recherche nationale.')
           setLbaLoading(false)
           return
         }
-        const params = new URLSearchParams({
-          secteur,
-          latitude:  geo.lat,
-          longitude: geo.lng,
-          radius:    '30',
-        })
+        const params = new URLSearchParams({ secteur, latitude: geo.lat, longitude: geo.lng, radius: '30' })
         const res  = await fetch(`/api/alternance?${params}`)
         const json = await res.json()
         if (!res.ok) throw new Error(json.error || 'Erreur API')
-        setLbaOffres(json.jobs || [])
+
+        const lbaOffres = (json.jobs || []).map(o => ({
+          _id:         `lba-${o.id || Math.random()}`,
+          _source:     'lba',
+          tag:         lbaTypeFromSource(o.source),
+          titre:       o.titre,
+          entreprise:  o.entreprise || '',
+          ville:       o.ville || '',
+          contrat:     o.contrat || '',
+          niveau:      o.niveau || '',
+          description: o.description || '',
+          missions:    '',
+          competences: '',
+          recherche:   '',
+          date:        o.date_creation,
+          url:         o.url,
+          preference_ecole: false,
+          date_prise_poste: null,
+        }))
+
+        setResultats(prev => [...prev, ...lbaOffres])
       } catch (err) {
         setLbaError(err.message || 'Impossible de charger les offres nationales.')
       } finally {
@@ -102,7 +137,7 @@ export default function PanelCandidatOffres() {
     }
   }, [q, secteur, niveau, ville, contrat])
 
-  const totalLba = lbaOffres.length
+  const nbResultats = resultats.length
 
   return (
     <>
@@ -111,10 +146,9 @@ export default function PanelCandidatOffres() {
           <div className="page-title">Offres d'alternance</div>
           <div className="page-sub">
             {searched
-              ? loading
-                ? 'Recherche…'
-                : `${offres.length} offre${offres.length !== 1 ? 's' : ''} Allschool`
-                  + (secteur && ville ? ` · ${lbaLoading ? '…' : totalLba + ' offre' + (totalLba !== 1 ? 's' : '') + ' nationales'}` : '')
+              ? (loading || lbaLoading)
+                ? 'Recherche en cours…'
+                : `${nbResultats} offre${nbResultats !== 1 ? 's' : ''} trouvée${nbResultats !== 1 ? 's' : ''}`
               : total !== null
                 ? `${total} offre${total !== 1 ? 's' : ''} disponible${total !== 1 ? 's' : ''} — utilisez les filtres pour rechercher`
                 : 'Chargement…'}
@@ -167,63 +201,44 @@ export default function PanelCandidatOffres() {
           <i className="ti ti-briefcase" style={{ fontSize: 32, display: 'block', marginBottom: 12, opacity: 0.3 }} />
           Utilisez les filtres et cliquez sur <strong>Rechercher</strong> pour voir les offres.
           <div style={{ marginTop: 8, fontSize: 12, opacity: 0.7 }}>
-            Ajoutez un <strong>secteur</strong> et une <strong>ville</strong> pour voir aussi les offres nationales La Bonne Alternance.
+            Ajoutez un <strong>secteur</strong> et une <strong>ville</strong> pour inclure les offres nationales La Bonne Alternance.
           </div>
         </div>
+      ) : loading ? (
+        <div style={{ padding: '2rem', color: 'var(--muted)', fontSize: 14 }}>Chargement…</div>
       ) : (
         <>
-          {/* ── Offres Allschool ── */}
-          <SectionHeader
-            icon="ti-building"
-            label="Offres Allschool"
-            count={loading ? null : offres.length}
-            color="var(--teal)"
-          />
-          {loading ? (
-            <div style={{ padding: '1.5rem', color: 'var(--muted)', fontSize: 14 }}>Chargement…</div>
-          ) : offres.length === 0 ? (
-            <div style={{ padding: '1rem 0', color: 'var(--muted)', fontSize: 13 }}>
-              Aucune offre Allschool ne correspond à vos critères.
+          {/* Chargement LBA en cours */}
+          {lbaLoading && (
+            <div style={{ padding: '10px 0', fontSize: 12, color: 'var(--muted)', display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+              <i className="ti ti-loader" style={{ animation: 'spin 1s linear infinite' }} />
+              Recherche des offres nationales en cours…
+            </div>
+          )}
+
+          {/* Erreur LBA */}
+          {lbaError && (
+            <div style={{ padding: '8px 12px', borderRadius: 8, background: '#fff1f2', color: '#be123c', fontSize: 12, marginBottom: 10 }}>
+              <i className="ti ti-alert-circle" style={{ marginRight: 6 }} />{lbaError}
+            </div>
+          )}
+
+          {/* Hint si pas secteur+ville */}
+          {searched && (!secteur || !ville) && (
+            <div style={{ marginBottom: 12, padding: '10px 14px', borderRadius: 10, background: 'var(--purple-soft)', fontSize: 12, color: 'var(--purple-mid)' }}>
+              <i className="ti ti-info-circle" style={{ marginRight: 6 }} />
+              Ajoutez un <strong>secteur</strong> et une <strong>ville</strong> pour inclure les offres nationales La Bonne Alternance.
+            </div>
+          )}
+
+          {/* Liste unifiée */}
+          {resultats.length === 0 && !lbaLoading ? (
+            <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--muted)', fontSize: 14 }}>
+              Aucune offre ne correspond à vos critères.
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 32 }}>
-              {offres.map(o => <OffreCard key={o.id} offre={o} />)}
-            </div>
-          )}
-
-          {/* ── Offres La Bonne Alternance ── */}
-          {(secteur && ville) && (
-            <>
-              <SectionHeader
-                icon="ti-world"
-                label="Offres nationales · La Bonne Alternance"
-                count={lbaLoading ? null : totalLba}
-                color="var(--purple-mid)"
-                sublabel="Offres issues de France Travail et partenaires, dans un rayon de 30 km"
-              />
-              {lbaLoading ? (
-                <div style={{ padding: '1.5rem', color: 'var(--muted)', fontSize: 14 }}>Chargement des offres nationales…</div>
-              ) : lbaError ? (
-                <div style={{ padding: '1rem 0', color: 'var(--red, #e05)', fontSize: 13 }}>
-                  <i className="ti ti-alert-circle" style={{ marginRight: 6 }} />{lbaError}
-                </div>
-              ) : lbaOffres.length === 0 ? (
-                <div style={{ padding: '1rem 0', color: 'var(--muted)', fontSize: 13 }}>
-                  Aucune offre nationale trouvée pour ce secteur et cette ville.
-                </div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  {lbaOffres.map((o, i) => <LbaOffreCard key={o.id || i} offre={o} />)}
-                </div>
-              )}
-            </>
-          )}
-
-          {/* Hint si pas de ville/secteur */}
-          {searched && (!secteur || !ville) && (
-            <div style={{ marginTop: 24, padding: '12px 16px', borderRadius: 10, background: 'var(--purple-soft)', fontSize: 12, color: 'var(--purple-mid)' }}>
-              <i className="ti ti-info-circle" style={{ marginRight: 6 }} />
-              Ajoutez un <strong>secteur</strong> et une <strong>ville</strong> pour afficher aussi les offres nationales La Bonne Alternance.
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {resultats.map((o, i) => <OffreCard key={o._id || i} offre={o} />)}
             </div>
           )}
         </>
@@ -232,52 +247,57 @@ export default function PanelCandidatOffres() {
   )
 }
 
-// ── Section header ─────────────────────────────────────────────────────────────
-function SectionHeader({ icon, label, count, color, sublabel }) {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12, paddingBottom: 8, borderBottom: `2px solid ${color}` }}>
-      <i className={`ti ${icon}`} style={{ fontSize: 16, color }} />
-      <div>
-        <span style={{ fontFamily: 'Syne, sans-serif', fontSize: 13, fontWeight: 700, color: 'var(--navy)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-          {label}
-        </span>
-        {count !== null && (
-          <span style={{ marginLeft: 8, fontSize: 12, color: 'var(--muted)' }}>
-            {count} résultat{count !== 1 ? 's' : ''}
-          </span>
-        )}
-        {sublabel && (
-          <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 1 }}>{sublabel}</div>
-        )}
-      </div>
-    </div>
-  )
-}
-
-// ── Carte offre Allschool ──────────────────────────────────────────────────────
+// ── Carte offre unifiée ────────────────────────────────────────────────────────
 function OffreCard({ offre: o }) {
   const [open, setOpen] = useState(false)
+  const tag = typeInfo(o.tag)
+
+  const hasDetails = o.description || o.missions || o.competences || o.recherche
 
   return (
-    <div style={{ display: 'flex', gap: 0, overflow: 'hidden', borderRadius: 10, border: '1px solid var(--border)', background: 'white' }}>
-      <div style={{ width: 4, flexShrink: 0, background: 'var(--teal)', borderRadius: '10px 0 0 10px' }} />
-      <div style={{ flex: 1, padding: '16px 18px' }}>
+    <div style={{ display: 'flex', overflow: 'hidden', borderRadius: 10, border: '1px solid var(--border)', background: 'white' }}>
+      {/* Barre colorée gauche selon tag */}
+      <div style={{ width: 4, flexShrink: 0, background: tag.color, borderRadius: '10px 0 0 10px' }} />
+
+      <div style={{ flex: 1, padding: '14px 16px' }}>
         <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-          <div style={{ flex: 1 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+
+            {/* Titre + tag */}
             <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginBottom: 4 }}>
-              <span style={{ fontFamily: 'Syne, sans-serif', fontSize: 15, fontWeight: 700, color: 'var(--navy)' }}>{o.titre}</span>
-              {o.niveau && <span className="pill teal" style={{ fontSize: 10 }}>{NIVEAUX[o.niveau]}</span>}
+              <span style={{ fontFamily: 'Syne, sans-serif', fontSize: 15, fontWeight: 700, color: 'var(--navy)' }}>
+                {o.titre}
+              </span>
+              {/* Tag type */}
+              <span style={{
+                display: 'inline-flex', alignItems: 'center', gap: 4,
+                fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 100,
+                background: tag.bg, color: tag.color,
+              }}>
+                <i className={`ti ${tag.icon}`} style={{ fontSize: 10 }} />
+                {tag.label}
+              </span>
+              {/* Niveau si dispo */}
+              {o.niveau && (
+                <span className="pill teal" style={{ fontSize: 10 }}>{o.niveau}</span>
+              )}
             </div>
+
+            {/* Entreprise + ville */}
             <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 6 }}>
               <i className="ti ti-building" style={{ marginRight: 4 }} />
-              {o.entreprises?.raison_sociale || 'Entreprise'}
+              {o.entreprise || 'Entreprise'}
               {o.ville ? ` · ${o.ville}` : ''}
             </div>
-            {(o.type_contrat || []).length > 0 && (
-              <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginBottom: 6 }}>
-                {o.type_contrat.map(t => <span key={t} className="pill accent" style={{ fontSize: 10 }}>{t}</span>)}
+
+            {/* Contrat */}
+            {o.contrat && (
+              <div style={{ marginBottom: 6 }}>
+                <span className="pill accent" style={{ fontSize: 10 }}>{o.contrat}</span>
               </div>
             )}
+
+            {/* Infos bas */}
             <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
               {o.date_prise_poste && (
                 <span style={{ fontSize: 11, color: 'var(--muted)' }}>
@@ -290,21 +310,34 @@ function OffreCard({ offre: o }) {
                   <i className="ti ti-school" style={{ marginRight: 3 }} />Préférence école
                 </span>
               )}
-              <span style={{ fontSize: 11, color: 'var(--muted)' }}>
-                Actualisée le {new Date(o.updated_at).toLocaleDateString('fr-FR')}
-              </span>
+              {o.date && (
+                <span style={{ fontSize: 11, color: 'var(--muted)' }}>
+                  {o._source === 'allschool' ? 'Actualisée' : 'Publiée'} le {new Date(o.date).toLocaleDateString('fr-FR')}
+                </span>
+              )}
             </div>
           </div>
+
+          {/* Actions */}
           <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-            <button className="btn-sm" style={{ fontSize: 11 }} onClick={() => setOpen(v => !v)}>
-              <i className={`ti ti-chevron-${open ? 'up' : 'down'}`} /> {open ? 'Moins' : 'Détails'}
-            </button>
-            <button className="btn-sm teal" style={{ fontSize: 11 }}>
-              <i className="ti ti-send" /> Postuler
-            </button>
+            {hasDetails && (
+              <button className="btn-sm" style={{ fontSize: 11 }} onClick={() => setOpen(v => !v)}>
+                <i className={`ti ti-chevron-${open ? 'up' : 'down'}`} /> {open ? 'Moins' : 'Détails'}
+              </button>
+            )}
+            {o.url ? (
+              <a href={o.url} target="_blank" rel="noopener noreferrer" className="btn-sm teal" style={{ fontSize: 11, textDecoration: 'none' }}>
+                <i className="ti ti-external-link" /> Voir l'offre
+              </a>
+            ) : (
+              <button className="btn-sm teal" style={{ fontSize: 11 }}>
+                <i className="ti ti-send" /> Postuler
+              </button>
+            )}
           </div>
         </div>
 
+        {/* Détails dépliables */}
         {open && (
           <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 12 }}>
             {o.missions && (
@@ -331,69 +364,6 @@ function OffreCard({ offre: o }) {
                 <div style={sectionText}>{o.description}</div>
               </div>
             )}
-          </div>
-        )}
-      </div>
-    </div>
-  )
-}
-
-// ── Carte offre La Bonne Alternance ───────────────────────────────────────────
-function LbaOffreCard({ offre: o }) {
-  const [open, setOpen] = useState(false)
-
-  return (
-    <div style={{ display: 'flex', gap: 0, overflow: 'hidden', borderRadius: 10, border: '1px solid var(--border)', background: 'white' }}>
-      <div style={{ width: 4, flexShrink: 0, background: 'var(--purple-mid)', borderRadius: '10px 0 0 10px' }} />
-      <div style={{ flex: 1, padding: '16px 18px' }}>
-        <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-          <div style={{ flex: 1 }}>
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginBottom: 4 }}>
-              <span style={{ fontFamily: 'Syne, sans-serif', fontSize: 15, fontWeight: 700, color: 'var(--navy)' }}>{o.titre}</span>
-              {o.niveau && <span className="pill purple" style={{ fontSize: 10 }}>{o.niveau}</span>}
-              <span style={{ fontSize: 10, color: 'var(--purple-mid)', background: 'var(--purple-soft)', borderRadius: 6, padding: '2px 7px', fontWeight: 500 }}>
-                {o.source === 'offres_emploi' ? 'France Travail' : 'La Bonne Alternance'}
-              </span>
-            </div>
-            <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 6 }}>
-              <i className="ti ti-building" style={{ marginRight: 4 }} />
-              {o.entreprise || 'Entreprise'}
-              {o.ville ? ` · ${o.ville}` : ''}
-            </div>
-            {o.contrat && (
-              <div style={{ marginBottom: 6 }}>
-                <span className="pill accent" style={{ fontSize: 10 }}>{o.contrat}</span>
-              </div>
-            )}
-            {o.date_creation && (
-              <span style={{ fontSize: 11, color: 'var(--muted)' }}>
-                <i className="ti ti-calendar" style={{ marginRight: 3 }} />
-                Publiée le {new Date(o.date_creation).toLocaleDateString('fr-FR')}
-              </span>
-            )}
-          </div>
-          <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-            {o.description && (
-              <button className="btn-sm" style={{ fontSize: 11 }} onClick={() => setOpen(v => !v)}>
-                <i className={`ti ti-chevron-${open ? 'up' : 'down'}`} /> {open ? 'Moins' : 'Détails'}
-              </button>
-            )}
-            {o.url ? (
-              <a href={o.url} target="_blank" rel="noopener noreferrer" className="btn-sm teal" style={{ fontSize: 11, textDecoration: 'none' }}>
-                <i className="ti ti-external-link" /> Voir l'offre
-              </a>
-            ) : (
-              <button className="btn-sm teal" style={{ fontSize: 11 }} disabled>
-                <i className="ti ti-send" /> Postuler
-              </button>
-            )}
-          </div>
-        </div>
-
-        {open && o.description && (
-          <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--border)' }}>
-            <div style={sectionLabel}>Description</div>
-            <div style={sectionText}>{o.description}</div>
           </div>
         )}
       </div>

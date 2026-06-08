@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { createClient } from '../../lib/supabase/client'
+import { TYPES, typeInfo } from '../../lib/offre-types'
 
 const STATUTS = [
   { key: 'enregistre', label: 'Enregistré',           color: 'var(--muted)',   bg: '#f1f5f9' },
@@ -10,15 +11,7 @@ const STATUTS = [
   { key: 'archive',    label: 'Archivé',                color: '#9e9e9e',        bg: '#f5f5f5' },
 ]
 
-const TYPES = [
-  { key: 'externe',   label: 'Offre externe',          icon: 'ti-world',        hint: 'Indeed, WTJ, LinkedIn…' },
-  { key: 'spontanee', label: 'Candidature spontanée',  icon: 'ti-mail-forward', hint: 'Page recrutement entreprise' },
-  { key: 'physique',  label: 'Prospection physique',   icon: 'ti-map-pin',      hint: 'Visite directe en personne' },
-  { key: 'allschool', label: 'Offre Allschool',        icon: 'ti-rosette',      hint: 'Offre publiée sur la plateforme' },
-]
-
 function statutInfo(key) { return STATUTS.find(s => s.key === key) || STATUTS[0] }
-function typeInfo(key)   { return TYPES.find(t => t.key === key)   || TYPES[0] }
 
 function sigle(nom) {
   return nom.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) || '?'
@@ -183,7 +176,7 @@ export default function PanelCandidatCandidatures() {
             />
           </div>
 
-          {form.type !== 'physique' && (
+          {form.type !== 'prospection' && (
             <input
               placeholder={form.type === 'allschool' ? 'URL de l\'offre Allschool' : 'URL de l\'annonce ou de la page recrutement'}
               value={form.url}
