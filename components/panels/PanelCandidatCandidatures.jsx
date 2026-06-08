@@ -23,7 +23,7 @@ const TYPES_FORMATIONS = TYPES.filter(t => t.key === 'formation')
 
 const EMPTY_FORM = { nom_entreprise: '', poste: '', url: '', type: 'externe', statut: 'a_faire', notes: '' }
 
-export default function PanelCandidatCandidatures() {
+export default function PanelCandidatCandidatures({ onNavigateEcole }) {
   const supabase = createClient()
 
   const [items,    setItems]    = useState([])
@@ -42,7 +42,7 @@ export default function PanelCandidatCandidatures() {
     if (!user) return
     const { data } = await supabase
       .from('candidat_candidatures')
-      .select('*, formations(nom, ecoles(nom, ville, region))')
+      .select('*, formations(nom, ecoles(id, nom, ville, region))')
       .eq('candidat_id', user.id)
       .order('created_at', { ascending: false })
     if (data) setItems(data)
@@ -225,6 +225,7 @@ export default function PanelCandidatCandidatures() {
               onEdit={() => openEdit(item)}
               onDelete={() => handleDelete(item.id)}
               onStatut={s => quickStatut(item.id, s)}
+              onNavigateEcole={onNavigateEcole}
             />
           ))}
         </div>
@@ -247,6 +248,7 @@ export default function PanelCandidatCandidatures() {
                     onEdit={() => openEdit(item)}
                     onDelete={() => handleDelete(item.id)}
                     onStatut={st => quickStatut(item.id, st)}
+                    onNavigateEcole={onNavigateEcole}
                   />
                 ))}
               </div>
@@ -258,13 +260,14 @@ export default function PanelCandidatCandidatures() {
   )
 }
 
-function ListRow({ item, onglet, onEdit, onDelete, onStatut }) {
+function ListRow({ item, onglet, onEdit, onDelete, onStatut, onNavigateEcole }) {
   const st = statutInfo(item.statut)
   const ty = typeInfo(item.type)
   const isFormation = item.type === 'formation' || item.type === 'ecole'
   // Données enrichies via join
   const formationNom = item.formations?.nom || item.poste || ''
   const ecole        = item.formations?.ecoles || null
+  const ecoleId      = ecole?.id || null
   const ecoleNom     = ecole?.nom || item.nom_entreprise || ''
   const ecoleVille   = ecole?.ville || ''
 
@@ -284,9 +287,15 @@ function ListRow({ item, onglet, onEdit, onDelete, onStatut }) {
           <>
             <div className="e-name" style={{ marginBottom: 2 }}>{formationNom || ecoleNom}</div>
             {ecoleNom && (
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '2px 8px', borderRadius: 6, background: 'var(--light)', fontSize: 11, color: 'var(--navy)', fontWeight: 500 }}>
+              <div
+                onClick={() => ecoleId && onNavigateEcole?.(ecoleId)}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '2px 8px', borderRadius: 6, background: 'var(--light)', fontSize: 11, color: 'var(--navy)', fontWeight: 500, cursor: ecoleId && onNavigateEcole ? 'pointer' : 'default' }}
+                onMouseEnter={e => { if (ecoleId && onNavigateEcole) e.currentTarget.style.background = 'var(--border)' }}
+                onMouseLeave={e => e.currentTarget.style.background = 'var(--light)'}
+              >
                 <i className="ti ti-school" style={{ fontSize: 10, color: 'var(--purple)' }} />
                 {ecoleNom}{ecoleVille ? ` · ${ecoleVille}` : ''}
+                {ecoleId && onNavigateEcole && <i className="ti ti-chevron-right" style={{ fontSize: 9, color: 'var(--muted)' }} />}
               </div>
             )}
           </>
@@ -318,12 +327,13 @@ function ListRow({ item, onglet, onEdit, onDelete, onStatut }) {
   )
 }
 
-function KanbanCard({ item, onEdit, onDelete, onStatut }) {
+function KanbanCard({ item, onEdit, onDelete, onStatut, onNavigateEcole }) {
   const ty = typeInfo(item.type)
   const [open, setOpen] = useState(false)
   const isFormation = item.type === 'formation' || item.type === 'ecole'
   const formationNom = item.formations?.nom || item.poste || ''
   const ecole        = item.formations?.ecoles || null
+  const ecoleId      = ecole?.id || null
   const ecoleNom     = ecole?.nom || item.nom_entreprise || ''
   const ecoleVille   = ecole?.ville || ''
   return (
@@ -334,9 +344,13 @@ function KanbanCard({ item, onEdit, onDelete, onStatut }) {
             {isFormation ? formationNom || ecoleNom : item.nom_entreprise}
           </div>
           {isFormation && ecoleNom && (
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 3, padding: '2px 7px', borderRadius: 5, background: 'var(--light)', fontSize: 10, color: 'var(--navy)' }}>
+            <div
+              onClick={() => ecoleId && onNavigateEcole?.(ecoleId)}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 3, padding: '2px 7px', borderRadius: 5, background: 'var(--light)', fontSize: 10, color: 'var(--navy)', cursor: ecoleId && onNavigateEcole ? 'pointer' : 'default' }}
+            >
               <i className="ti ti-school" style={{ fontSize: 9, color: 'var(--purple)' }} />
               {ecoleNom}{ecoleVille ? ` · ${ecoleVille}` : ''}
+              {ecoleId && onNavigateEcole && <i className="ti ti-chevron-right" style={{ fontSize: 9, color: 'var(--muted)' }} />}
             </div>
           )}
           {!isFormation && item.poste && <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>{item.poste}</div>}
