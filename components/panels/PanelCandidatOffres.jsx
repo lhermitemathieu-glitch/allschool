@@ -30,20 +30,25 @@ export default function PanelCandidatOffres({ onNavigateCandidatures, onNavigate
   const [cachedIds,   setCachedIds]   = useState(new Set())  // offres masquées
   const [savedIds,    setSavedIds]    = useState(new Set())  // offres enregistrées
 
-  // Filtres de recherche
-  const [q,       setQ]       = useState('')
-  const [secteur, setSecteur] = useState('')
-  const [niveau,  setNiveau]  = useState('')
-  const [ville,   setVille]   = useState('')
-  const [contrat, setContrat] = useState('')
+  // Filtres de recherche — restaurés depuis localStorage
+  const saved = typeof window !== 'undefined'
+    ? JSON.parse(localStorage.getItem('allschool_offres_filtres') || '{}')
+    : {}
+  const [q,       setQ]       = useState(saved.q       || '')
+  const [secteur, setSecteur] = useState(saved.secteur || '')
+  const [niveau,  setNiveau]  = useState(saved.niveau  || '')
+  const [ville,   setVille]   = useState(saved.ville   || '')
+  const [contrat, setContrat] = useState(saved.contrat || '')
 
   // Filtre types d'offres (réactif sur les résultats)
-  const [typesFiltres, setTypesFiltres] = useState(['sourcee', 'spontanee', 'allschool'])
+  const [typesFiltres, setTypesFiltres] = useState(saved.typesFiltres || ['sourcee', 'spontanee', 'allschool'])
 
   function toggleType(key) {
-    setTypesFiltres(prev =>
-      prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]
-    )
+    setTypesFiltres(prev => {
+      const next = prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]
+      localStorage.setItem('allschool_offres_filtres', JSON.stringify({ q, secteur, niveau, ville, contrat, typesFiltres: next }))
+      return next
+    })
   }
 
   useEffect(() => {
@@ -62,6 +67,9 @@ export default function PanelCandidatOffres({ onNavigateCandidatures, onNavigate
   }, [])
 
   const search = useCallback(async () => {
+    // Persister les critères
+    localStorage.setItem('allschool_offres_filtres', JSON.stringify({ q, secteur, niveau, ville, contrat, typesFiltres }))
+
     setLoading(true)
     setLbaLoading(false)
     setSearched(true)
@@ -185,6 +193,7 @@ export default function PanelCandidatOffres({ onNavigateCandidatures, onNavigate
       notes:          '',
     })
     setSavedIds(prev => new Set([...prev, offre._id]))
+    if (onNavigateCandidatures) onNavigateCandidatures()
   }
 
   const resultatsAffiches = resultats
