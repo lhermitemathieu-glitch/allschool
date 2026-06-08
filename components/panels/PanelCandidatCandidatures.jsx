@@ -8,6 +8,7 @@ const STATUTS = [
   { key: 'a_faire',   label: 'À faire',             color: '#0369a1',       bg: '#e0f2fe' },
   { key: 'envoyee',   label: 'Candidature envoyée', color: 'var(--teal)',   bg: 'var(--teal-soft)' },
   { key: 'entretien', label: 'Entretien',            color: 'var(--accent)', bg: '#fff3e0' },
+  { key: 'admis',     label: 'Admis',               color: '#15803d',       bg: '#dcfce7' },
   { key: 'archive',   label: 'Archivé',              color: '#9e9e9e',       bg: '#f5f5f5' },
 ]
 
@@ -41,7 +42,7 @@ export default function PanelCandidatCandidatures() {
     if (!user) return
     const { data } = await supabase
       .from('candidat_candidatures')
-      .select('*')
+      .select('*, formations(nom, ecoles(nom, ville, region))')
       .eq('candidat_id', user.id)
       .order('created_at', { ascending: false })
     if (data) setItems(data)
@@ -260,24 +261,49 @@ export default function PanelCandidatCandidatures() {
 function ListRow({ item, onglet, onEdit, onDelete, onStatut }) {
   const st = statutInfo(item.statut)
   const ty = typeInfo(item.type)
+  const isFormation = item.type === 'formation' || item.type === 'ecole'
+  // Données enrichies via join
+  const formationNom = item.formations?.nom || item.poste || ''
+  const ecole        = item.formations?.ecoles || null
+  const ecoleNom     = ecole?.nom || item.nom_entreprise || ''
+  const ecoleVille   = ecole?.ville || ''
+
   return (
-    <div className="entry-row" style={{ alignItems: 'flex-start', gap: 10, padding: '10px 0' }}>
-      <div className="e-av accent" style={{ flexShrink: 0 }}>{sigle(item.nom_entreprise)}</div>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-          <span className="e-name">{onglet === 'formations' ? item.poste || item.nom_entreprise : item.nom_entreprise}</span>
-          {onglet === 'formations' && item.nom_entreprise && item.poste && (
-            <span style={{ fontSize: 11, color: 'var(--muted)' }}><i className="ti ti-school" style={{ marginRight: 3 }} />{item.nom_entreprise}</span>
-          )}
-          {onglet === 'offres' && (
-            <span style={{ fontSize: 11, color: 'var(--muted)' }}><i className={`ti ${ty.icon}`} style={{ marginRight: 3 }} />{ty.label}</span>
-          )}
+    <div className="entry-row" style={{ alignItems: 'center', gap: 10, padding: '10px 0' }}>
+      {/* Avatar */}
+      {isFormation ? (
+        <div style={{ width: 36, height: 36, borderRadius: 8, background: 'var(--purple-soft)', color: 'var(--purple)', fontSize: 10, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          {sigle(ecoleNom)}
         </div>
-        {onglet === 'offres' && item.poste && <div className="e-meta">{item.poste}</div>}
+      ) : (
+        <div className="e-av accent" style={{ flexShrink: 0 }}>{sigle(item.nom_entreprise)}</div>
+      )}
+
+      <div style={{ flex: 1, minWidth: 0 }}>
+        {isFormation ? (
+          <>
+            <div className="e-name" style={{ marginBottom: 2 }}>{formationNom || ecoleNom}</div>
+            {ecoleNom && (
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '2px 8px', borderRadius: 6, background: 'var(--light)', fontSize: 11, color: 'var(--navy)', fontWeight: 500 }}>
+                <i className="ti ti-school" style={{ fontSize: 10, color: 'var(--purple)' }} />
+                {ecoleNom}{ecoleVille ? ` · ${ecoleVille}` : ''}
+              </div>
+            )}
+          </>
+        ) : (
+          <>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+              <span className="e-name">{item.nom_entreprise}</span>
+              <span style={{ fontSize: 11, color: 'var(--muted)' }}><i className={`ti ${ty.icon}`} style={{ marginRight: 3 }} />{ty.label}</span>
+            </div>
+            {item.poste && <div className="e-meta">{item.poste}</div>}
+          </>
+        )}
         {item.notes && <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>{item.notes}</div>}
       </div>
+
       <select value={item.statut} onChange={e => onStatut(e.target.value)}
-        style={{ fontSize: 11, fontWeight: 600, padding: '4px 8px', borderRadius: 100, border: 'none', background: st.bg, color: st.color, cursor: 'pointer', outline: 'none', fontFamily: 'DM Sans, sans-serif' }}
+        style={{ fontSize: 11, fontWeight: 600, padding: '4px 8px', borderRadius: 100, border: 'none', background: st.bg, color: st.color, cursor: 'pointer', outline: 'none', fontFamily: 'DM Sans, sans-serif', flexShrink: 0 }}
       >
         {STATUTS.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
       </select>
@@ -296,15 +322,22 @@ function KanbanCard({ item, onEdit, onDelete, onStatut }) {
   const ty = typeInfo(item.type)
   const [open, setOpen] = useState(false)
   const isFormation = item.type === 'formation' || item.type === 'ecole'
+  const formationNom = item.formations?.nom || item.poste || ''
+  const ecole        = item.formations?.ecoles || null
+  const ecoleNom     = ecole?.nom || item.nom_entreprise || ''
+  const ecoleVille   = ecole?.ville || ''
   return (
     <div style={{ background: 'white', borderRadius: 10, padding: '10px 12px', marginBottom: 8, boxShadow: '0 1px 4px rgba(0,0,0,0.07)' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div style={{ flex: 1 }}>
           <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--navy)', lineHeight: 1.3 }}>
-            {isFormation ? item.poste || item.nom_entreprise : item.nom_entreprise}
+            {isFormation ? formationNom || ecoleNom : item.nom_entreprise}
           </div>
-          {isFormation && item.poste && item.nom_entreprise && (
-            <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}><i className="ti ti-school" style={{ marginRight: 3 }} />{item.nom_entreprise}</div>
+          {isFormation && ecoleNom && (
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 3, padding: '2px 7px', borderRadius: 5, background: 'var(--light)', fontSize: 10, color: 'var(--navy)' }}>
+              <i className="ti ti-school" style={{ fontSize: 9, color: 'var(--purple)' }} />
+              {ecoleNom}{ecoleVille ? ` · ${ecoleVille}` : ''}
+            </div>
           )}
           {!isFormation && item.poste && <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>{item.poste}</div>}
         </div>
