@@ -80,6 +80,7 @@ function safeData(data) {
     profil_visible_ecoles: data.profil_visible_ecoles  ?? false,
     masquer_experiences:   data.masquer_experiences    ?? false,
     pas_experience_pro:    data.pas_experience_pro     ?? false,
+    alternance_trouvee:    data.alternance_trouvee     ?? false,
   }
 }
 
@@ -473,6 +474,28 @@ export default function PanelCandidatProfil({ candidatIdOverride, onBack }) {
               onClick={() => saveImmediate('masquer_experiences', !data.masquer_experiences)}
             />
           </div>
+        </div>
+      </div>
+
+      {/* ── Alternance trouvée ── */}
+      <div
+        className="s-card"
+        style={{ background: data.alternance_trouvee ? '#fdf4ff' : 'white', border: data.alternance_trouvee ? '1.5px solid #d8b4fe' : '1px solid var(--border)', transition: 'all 0.2s' }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: data.alternance_trouvee ? '#7e22ce' : 'var(--navy)', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <i className="ti ti-confetti" style={{ fontSize: 15 }} />
+              J'ai trouvé mon alternance !
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>
+              {data.alternance_trouvee ? '🎉 Félicitations — badge débloqué !' : 'Coche cette case quand tu as trouvé ton alternance'}
+            </div>
+          </div>
+          <button
+            className={`toggle ${data.alternance_trouvee ? 'on' : ''}`}
+            onClick={() => saveImmediate('alternance_trouvee', !data.alternance_trouvee)}
+          />
         </div>
       </div>
 
