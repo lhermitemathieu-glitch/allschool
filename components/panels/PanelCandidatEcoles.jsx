@@ -2,28 +2,12 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '../../lib/supabase/client'
+import { SECTEURS } from '../../lib/secteurs'
 
 function sigle(nom) {
   return (nom || '').split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 3) || '?'
 }
 
-const SECTEURS = [
-  'Agriculture & Environnement',
-  'Alimentation & Restauration',
-  'Arts & Culture',
-  'BTP & Immobilier',
-  'Commerce & Vente',
-  'Communication & Marketing',
-  'Finance & Comptabilité',
-  'Hôtellerie & Tourisme',
-  'Industrie & Production',
-  'Informatique & Numérique',
-  'Juridique & Droit',
-  'Logistique & Transport',
-  'Ressources Humaines',
-  'Santé & Social',
-  'Sport & Animation',
-]
 
 const NIVEAU_LABEL = {
   cap: 'CAP', bac: 'Bac Pro', bts: 'BTS', bts_agri: 'BTS Agricole',

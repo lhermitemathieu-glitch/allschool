@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { createClient } from '../../lib/supabase/client'
+import { SECTEURS } from '../../lib/secteurs'
 
 function AvatarPhoto({ url, initials, size = 64, bg = '#fff3e0', color = 'var(--accent)', onUpload, uploading }) {
   const inputRef = useRef(null)
@@ -436,13 +437,7 @@ export function PanelEntrepriseRecherche({ onNavigate }) {
 }
 
 // ── ÉCOLES ────────────────────────────────────────────────────────────────────
-const SECTEURS_ENT = [
-  'Agriculture & Environnement', 'Alimentation & Restauration', 'Arts & Culture',
-  'BTP & Immobilier', 'Commerce & Vente', 'Communication & Marketing',
-  'Finance & Comptabilité', 'Hôtellerie & Tourisme', 'Industrie & Production',
-  'Informatique & Numérique', 'Juridique & Droit', 'Logistique & Transport',
-  'Ressources Humaines', 'Santé & Social', 'Sport & Animation',
-]
+const SECTEURS_ENT = SECTEURS
 
 async function geocodeVilleEnt(nom) {
   const res = await fetch(`https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(nom)}&type=municipality&limit=1`)

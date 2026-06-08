@@ -2,24 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { createClient } from '../../lib/supabase/client'
-
-const SECTEURS = [
-  'Agriculture & Environnement',
-  'Alimentation & Restauration',
-  'Arts & Culture',
-  'BTP & Immobilier',
-  'Commerce & Vente',
-  'Communication & Marketing',
-  'Finance & Comptabilité',
-  'Hôtellerie & Tourisme',
-  'Industrie & Production',
-  'Informatique & Numérique',
-  'Juridique & Droit',
-  'Logistique & Transport',
-  'Ressources Humaines',
-  'Santé & Social',
-  'Sport & Animation',
-]
+import { SECTEURS } from '../../lib/secteurs'
 
 const REGIONS_FR = [
   'Auvergne-Rhône-Alpes',
