@@ -129,8 +129,11 @@ export default function PanelCandidatBadges() {
       const admis = (candidatures || []).some(c => (c.type === 'formation' || c.type === 'ecole') && c.statut === 'admis')
       if (admis) e.add('ecole_admis')
 
-      // 5. Paliers offres (hors formations/écoles)
-      const offres = (candidatures || []).filter(c => c.type !== 'formation' && c.type !== 'ecole').length
+      // 5. Paliers offres (hors formations/écoles, uniquement statuts actifs)
+      const offres = (candidatures || []).filter(c =>
+        c.type !== 'formation' && c.type !== 'ecole' &&
+        ['envoyee', 'entretien', 'admis', 'archive'].includes(c.statut)
+      ).length
       setNbOffres(offres)
       for (const p of PALIERS) {
         if (offres >= p.min) e.add(p.key)
