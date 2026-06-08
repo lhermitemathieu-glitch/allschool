@@ -189,7 +189,7 @@ export default function PanelCandidatOffres({ onNavigateCandidatures, onNavigate
       poste:          offre.titre,
       url:            offre.url || '',
       type:           offre.tag === 'allschool' ? 'allschool' : offre.tag,
-      statut:         'enregistre',
+      statut:         'a_faire',
       notes:          '',
     })
     setSavedIds(prev => new Set([...prev, offre._id]))

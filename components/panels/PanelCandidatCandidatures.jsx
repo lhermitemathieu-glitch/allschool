@@ -5,10 +5,10 @@ import { createClient } from '../../lib/supabase/client'
 import { TYPES, typeInfo } from '../../lib/offre-types'
 
 const STATUTS = [
-  { key: 'enregistre', label: 'Enregistré',           color: 'var(--muted)',   bg: '#f1f5f9' },
-  { key: 'envoyee',    label: 'Candidature envoyée',   color: 'var(--teal)',    bg: 'var(--teal-soft)' },
-  { key: 'entretien',  label: 'Entretien',              color: 'var(--accent)',  bg: '#fff3e0' },
-  { key: 'archive',    label: 'Archivé',                color: '#9e9e9e',        bg: '#f5f5f5' },
+  { key: 'a_faire',  label: 'À faire',              color: '#0369a1', bg: '#e0f2fe' },
+  { key: 'envoyee',  label: 'Candidature envoyée',  color: 'var(--teal)',   bg: 'var(--teal-soft)' },
+  { key: 'entretien', label: 'Entretien',            color: 'var(--accent)', bg: '#fff3e0' },
+  { key: 'archive',  label: 'Archivé',               color: '#9e9e9e', bg: '#f5f5f5' },
 ]
 
 function statutInfo(key) { return STATUTS.find(s => s.key === key) || STATUTS[0] }
@@ -17,7 +17,7 @@ function sigle(nom) {
   return nom.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) || '?'
 }
 
-const EMPTY_FORM = { nom_entreprise: '', poste: '', url: '', type: 'externe', statut: 'enregistre', notes: '' }
+const EMPTY_FORM = { nom_entreprise: '', poste: '', url: '', type: 'externe', statut: 'a_faire', notes: '' }
 
 export default function PanelCandidatCandidatures() {
   const supabase = createClient()
