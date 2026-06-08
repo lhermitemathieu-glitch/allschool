@@ -17,7 +17,7 @@ const BADGES_DEF = [
     icon:  'ti-user-check',
     color: '#15803d',
     bg:    '#dcfce7',
-    desc:  'Prénom, nom, ville, bio, photo et contact renseignés',
+    desc:  'Prénom, nom, ville, bio et contact renseignés',
   },
   {
     key:   'cv_en_ligne',
@@ -115,7 +115,7 @@ export default function PanelCandidatBadges() {
       const e = new Set()
 
       // 1. Profil complété
-      if (profil?.prenom && profil?.nom && profil?.ville && profil?.bio && profil?.photo_url && (profil?.email || profil?.telephone)) {
+      if (profil?.prenom && profil?.nom && profil?.ville && profil?.bio && (profil?.email || profil?.telephone)) {
         e.add('profil_complete')
       }
 
