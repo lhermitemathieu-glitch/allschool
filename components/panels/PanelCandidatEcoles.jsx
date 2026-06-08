@@ -27,7 +27,7 @@ const inputStyle = {
   outline: 'none',
 }
 
-export default function PanelCandidatEcoles({ onNavigateEcole, onNavigateFormation, onNavigateArchives, initialFilters }) {
+export default function PanelCandidatEcoles({ onNavigateEcole, onNavigateFormation, initialFilters }) {
   const supabase = createClient()
 
   const [ecoles,    setEcoles]    = useState([])
@@ -38,10 +38,6 @@ export default function PanelCandidatEcoles({ onNavigateEcole, onNavigateFormati
   const [formations, setFormations] = useState([])
   const [loadingF,  setLoadingF]  = useState(false)
   const [regions,   setRegions]   = useState([])
-
-  const [savedIds,  setSavedIds]  = useState(new Set())   // ecole_id des candidatures type='ecole'
-  const [cachedIds, setCachedIds] = useState(new Set())   // ecole_id des écoles masquées
-  const [saving,    setSaving]    = useState(new Set())   // IDs en cours d'enregistrement
 
   const [q,        setQ]        = useState(initialFilters?.q        || '')
   const [region,   setRegion]   = useState(initialFilters?.region   || '')
@@ -55,8 +51,7 @@ export default function PanelCandidatEcoles({ onNavigateEcole, onNavigateFormati
   const [geoLoading, setGeoLoading] = useState(false)
 
   useEffect(() => {
-    async function init() {
-      // Régions
+    async function loadRegions() {
       const all = new Set()
       let from = 0
       while (true) {
@@ -67,21 +62,9 @@ export default function PanelCandidatEcoles({ onNavigateEcole, onNavigateFormati
         from += 1000
       }
       setRegions([...all].sort())
-
-      supabase.from('ecoles').select('id', { count: 'exact', head: true }).then(({ count }) => setTotal(count))
-
-      // Écoles déjà enregistrées (type='ecole' dans candidatures)
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
-
-      const [{ data: candidatures }, { data: cachees }] = await Promise.all([
-        supabase.from('candidat_candidatures').select('ecole_id').eq('candidat_id', user.id).eq('type', 'ecole').not('ecole_id', 'is', null),
-        supabase.from('candidat_ecoles_cachees').select('ecole_id').eq('candidat_id', user.id),
-      ])
-      if (candidatures) setSavedIds(new Set(candidatures.map(c => c.ecole_id)))
-      if (cachees)      setCachedIds(new Set(cachees.map(c => c.ecole_id)))
     }
-    init()
+    loadRegions()
+    supabase.from('ecoles').select('id', { count: 'exact', head: true }).then(({ count }) => setTotal(count))
   }, [])
 
   async function fetchSuggestions(val) {
@@ -157,10 +140,9 @@ export default function PanelCandidatEcoles({ onNavigateEcole, onNavigateFormati
     if (modalite)    ecolesQuery = ecolesQuery.contains('modalites', [modalite])
 
     const { data } = await ecolesQuery
-    // Exclure les écoles masquées
-    setEcoles((data || []).filter(e => !cachedIds.has(e.id)))
+    setEcoles(data || [])
     setLoading(false)
-  }, [q, region, secteur, modalite, ville, villeCity, rayon, cachedIds])
+  }, [q, region, secteur, modalite, ville, villeCity, rayon])
 
   async function selectEcole(ecole) {
     setSelected(ecole)
@@ -174,39 +156,6 @@ export default function PanelCandidatEcoles({ onNavigateEcole, onNavigateFormati
     setLoadingF(false)
   }
 
-  async function enregistrer(ecole, e) {
-    e.stopPropagation()
-    if (savedIds.has(ecole.id) || saving.has(ecole.id)) return
-    setSaving(prev => new Set([...prev, ecole.id]))
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) { setSaving(prev => { const s = new Set(prev); s.delete(ecole.id); return s }); return }
-    await supabase.from('candidat_candidatures').insert({
-      candidat_id:    user.id,
-      nom_entreprise: ecole.nom,
-      poste:          'Candidature école',
-      type:           'ecole',
-      statut:         'a_faire',
-      notes:          '',
-      ecole_id:       ecole.id,
-    })
-    setSavedIds(prev => new Set([...prev, ecole.id]))
-    setSaving(prev => { const s = new Set(prev); s.delete(ecole.id); return s })
-  }
-
-  async function masquer(ecole, e) {
-    e.stopPropagation()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
-    await supabase.from('candidat_ecoles_cachees').upsert({
-      candidat_id: user.id,
-      ecole_id:    ecole.id,
-      ecole_data:  { id: ecole.id, nom: ecole.nom, ville: ecole.ville, region: ecole.region },
-    }, { onConflict: 'candidat_id,ecole_id' })
-    setCachedIds(prev => new Set([...prev, ecole.id]))
-    setEcoles(prev => prev.filter(e => e.id !== ecole.id))
-    if (selected?.id === ecole.id) setSelected(null)
-  }
-
   const filters = { q, region, secteur, modalite, ville, villeCity, rayon }
 
   return (
@@ -216,17 +165,9 @@ export default function PanelCandidatEcoles({ onNavigateEcole, onNavigateFormati
           <div className="page-title">Écoles</div>
           <div className="page-sub">{total !== null ? `${total} écoles disponibles — utilisez les filtres pour rechercher` : 'Chargement…'}</div>
         </div>
-        {onNavigateArchives && cachedIds.size > 0 && (
-          <button className="btn-sm" style={{ fontSize: 11 }} onClick={onNavigateArchives}>
-            <i className="ti ti-archive" /> Archivées ({cachedIds.size})
-          </button>
-        )}
       </div>
 
-      {/* Barre de recherche */}
       <div className="s-card" style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: '1rem' }}>
-
-        {/* Ligne 1 */}
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
           <input
             placeholder="Nom de l'école…"
@@ -251,7 +192,6 @@ export default function PanelCandidatEcoles({ onNavigateEcole, onNavigateFormati
           </select>
         </div>
 
-        {/* Ligne 2 : géographique */}
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
           <div style={{ position: 'relative', flex: 1, minWidth: 200 }}>
             <div style={{ display: 'flex', alignItems: 'center', border: '1.5px solid var(--border)', borderRadius: 8, overflow: 'hidden', background: 'white' }}>
@@ -299,7 +239,6 @@ export default function PanelCandidatEcoles({ onNavigateEcole, onNavigateFormati
         </div>
       </div>
 
-      {/* Résultats */}
       <div style={{ display: 'grid', gridTemplateColumns: selected ? '1fr 1fr' : '1fr', gap: '1rem' }}>
         <div className="s-card" style={{ marginBottom: 0 }}>
           {!searched ? (
@@ -311,47 +250,23 @@ export default function PanelCandidatEcoles({ onNavigateEcole, onNavigateFormati
             <div style={{ fontSize: 13, color: 'var(--muted)' }}>Recherche en cours…</div>
           ) : ecoles.length === 0 ? (
             <div style={{ fontSize: 13, color: 'var(--muted)' }}>Aucun résultat. Essayez d'autres filtres.</div>
-          ) : ecoles.map(e => {
-            const isSaved  = savedIds.has(e.id)
-            const isSaving = saving.has(e.id)
-            return (
-              <div
-                key={e.id}
-                className="entry-row"
-                style={{ cursor: 'pointer', background: selected?.id === e.id ? 'var(--light)' : 'transparent', borderRadius: 8, padding: '6px 4px' }}
-                onClick={() => selectEcole(e)}
-              >
-                <div className="e-av purple">{sigle(e.nom)}</div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div className="e-name">{e.nom}</div>
-                  <div className="e-meta">{[e.ville, e.region].filter(Boolean).join(' · ')}</div>
-                </div>
-                <div style={{ display: 'flex', gap: 4, flexShrink: 0 }} onClick={ev => ev.stopPropagation()}>
-                  <button
-                    className="btn-sm"
-                    style={{ fontSize: 10, padding: '3px 8px', opacity: isSaved ? 0.5 : 1, background: isSaved ? 'var(--teal-soft)' : undefined, color: isSaved ? 'var(--teal)' : undefined }}
-                    onClick={ev => enregistrer(e, ev)}
-                    disabled={isSaved || isSaving}
-                    title={isSaved ? 'Déjà enregistrée' : 'Enregistrer cette école'}
-                  >
-                    <i className={`ti ${isSaved ? 'ti-check' : isSaving ? 'ti-loader' : 'ti-bookmark'}`} />
-                    {isSaved ? ' Enregistrée' : ' Enregistrer'}
-                  </button>
-                  <button
-                    className="btn-sm"
-                    style={{ fontSize: 10, padding: '3px 8px', color: 'var(--muted)' }}
-                    onClick={ev => masquer(e, ev)}
-                    title="Ne plus voir cette école"
-                  >
-                    <i className="ti ti-eye-off" />
-                  </button>
-                </div>
+          ) : ecoles.map(e => (
+            <div
+              key={e.id}
+              className="entry-row"
+              style={{ cursor: 'pointer', background: selected?.id === e.id ? 'var(--light)' : 'transparent', borderRadius: 8, padding: '6px 4px' }}
+              onClick={() => selectEcole(e)}
+            >
+              <div className="e-av purple">{sigle(e.nom)}</div>
+              <div style={{ flex: 1 }}>
+                <div className="e-name">{e.nom}</div>
+                <div className="e-meta">{[e.ville, e.region].filter(Boolean).join(' · ')}</div>
               </div>
-            )
-          })}
+              <i className="ti ti-chevron-right" style={{ fontSize: 14, color: 'var(--muted)' }} />
+            </div>
+          ))}
         </div>
 
-        {/* Détail école */}
         {selected && (
           <div className="s-card" style={{ marginBottom: 0 }}>
             <div className="s-card-header">
@@ -365,35 +280,6 @@ export default function PanelCandidatEcoles({ onNavigateEcole, onNavigateFormati
                 <button className="btn-sm" style={{ fontSize: 11 }} onClick={() => setSelected(null)}><i className="ti ti-x" /></button>
               </div>
             </div>
-
-            {/* Boutons enregistrer / masquer dans le détail */}
-            <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
-              {(() => {
-                const isSaved  = savedIds.has(selected.id)
-                const isSaving = saving.has(selected.id)
-                return (
-                  <>
-                    <button
-                      className="btn-sm"
-                      style={{ fontSize: 11, background: isSaved ? 'var(--teal-soft)' : undefined, color: isSaved ? 'var(--teal)' : undefined, opacity: isSaved ? 0.7 : 1 }}
-                      onClick={ev => enregistrer(selected, ev)}
-                      disabled={isSaved || isSaving}
-                    >
-                      <i className={`ti ${isSaved ? 'ti-check' : isSaving ? 'ti-loader' : 'ti-bookmark'}`} />
-                      {isSaved ? ' Enregistrée dans mes candidatures' : ' Enregistrer cette école'}
-                    </button>
-                    <button
-                      className="btn-sm"
-                      style={{ fontSize: 11, color: 'var(--muted)' }}
-                      onClick={ev => masquer(selected, ev)}
-                    >
-                      <i className="ti ti-eye-off" /> Ne plus voir
-                    </button>
-                  </>
-                )
-              })()}
-            </div>
-
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 12 }}>
               {selected.ville      && <span className="pill"><i className="ti ti-map-pin" style={{ fontSize: 10 }} /> {selected.ville}</span>}
               {selected.region     && <span className="pill">{selected.region}</span>}
@@ -426,7 +312,7 @@ export default function PanelCandidatEcoles({ onNavigateEcole, onNavigateFormati
                 <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
                   {f.niveau && f.niveau !== 'autre' && <span className="pill">{NIVEAU_LABEL[f.niveau] || f.niveau}</span>}
                   {f.localite_formation && <span className="pill"><i className="ti ti-map-pin" style={{ fontSize: 10 }} /> {f.localite_formation}</span>}
-                  {f.url_onisep && <span className="pill teal" style={{ cursor: 'pointer' }} onClick={ev => { ev.stopPropagation(); window.open(f.url_onisep, '_blank') }}><i className="ti ti-external-link" style={{ fontSize: 10 }} /> ONISEP</span>}
+                  {f.url_onisep && <span className="pill teal" style={{ cursor: 'pointer' }} onClick={e => { e.stopPropagation(); window.open(f.url_onisep, '_blank') }}><i className="ti ti-external-link" style={{ fontSize: 10 }} /> ONISEP</span>}
                 </div>
               </div>
             ))}

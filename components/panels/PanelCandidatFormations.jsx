@@ -66,14 +66,13 @@ const inputStyle = {
   color: 'var(--navy)', background: 'white', outline: 'none',
 }
 
-// ── Sélecteur de statut compact (pour la liste) ───────────────────────────────
+// ── Sélecteur de statut compact ───────────────────────────────────────────────
 function StatutPicker({ formationId, currentStatut, candidatId, onChange }) {
   const supabase = createClient()
   const [open, setOpen]     = useState(false)
   const [saving, setSaving] = useState(false)
   const ref = useRef(null)
 
-  // Fermer en cliquant dehors
   useEffect(() => {
     if (!open) return
     function handle(e) { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
@@ -149,7 +148,7 @@ function StatutPicker({ formationId, currentStatut, candidatId, onChange }) {
 }
 
 // ── Panel principal ───────────────────────────────────────────────────────────
-export default function PanelCandidatFormations({ candidatId, onNavigateFormation, onNavigateEcole, initialFilters }) {
+export default function PanelCandidatFormations({ candidatId, onNavigateFormation, onNavigateEcole, onNavigateArchives, initialFilters }) {
   const supabase = createClient()
 
   const [formations, setFormations] = useState([])
@@ -157,8 +156,10 @@ export default function PanelCandidatFormations({ candidatId, onNavigateFormatio
   const [searched, setSearched]     = useState(false)
   const [total, setTotal]           = useState(null)
 
-  // statuts : { [formation_id]: statut_key }
-  const [statuts, setStatuts] = useState({})
+  const [statuts,    setStatuts]    = useState({})
+  const [savedIds,   setSavedIds]   = useState(new Set())   // formation_id enregistrées
+  const [cachedIds,  setCachedIds]  = useState(new Set())   // formation_id masquées
+  const [saving,     setSaving]     = useState(new Set())   // IDs en cours d'enregistrement
 
   const [q,        setQ]        = useState(initialFilters?.q        || '')
   const [diplome,  setDiplome]  = useState(initialFilters?.diplome  || '')
@@ -171,6 +172,20 @@ export default function PanelCandidatFormations({ candidatId, onNavigateFormatio
   const [suggestions, setSuggestions] = useState([])
   const [geoErr,      setGeoErr]      = useState('')
   const [geoLoading,  setGeoLoading]  = useState(false)
+
+  useEffect(() => {
+    supabase.from('formations').select('id', { count: 'exact', head: true }).then(({ count }) => setTotal(count))
+
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
+      if (!user) return
+      const [{ data: cands }, { data: cachees }] = await Promise.all([
+        supabase.from('candidat_candidatures').select('formation_id').eq('candidat_id', user.id).eq('type', 'formation').not('formation_id', 'is', null),
+        supabase.from('candidat_formations_cachees').select('formation_id').eq('candidat_id', user.id),
+      ])
+      if (cands)  setSavedIds(new Set(cands.map(c => c.formation_id)))
+      if (cachees) setCachedIds(new Set(cachees.map(c => c.formation_id)))
+    })
+  }, [])
 
   async function fetchSuggestions(val) {
     if (val.length < 2) { setSuggestions([]); return }
@@ -248,10 +263,12 @@ export default function PanelCandidatFormations({ candidatId, onNavigateFormatio
     const { data: eData } = await supabase.from('ecoles').select('id, nom, ville, region, modalites').in('id', ids)
     const ecoleMap = Object.fromEntries((eData || []).map(e => [e.id, e]))
 
-    const result = (fData || []).map(f => ({ ...f, ecole: ecoleMap[f.ecole_id] }))
+    const result = (fData || [])
+      .map(f => ({ ...f, ecole: ecoleMap[f.ecole_id] }))
+      .filter(f => !cachedIds.has(f.id))
+
     setFormations(result)
 
-    // Charger les statuts du candidat pour ces formations
     if (candidatId && result.length > 0) {
       const formationIds = result.map(f => f.id)
       const { data: sData } = await supabase
@@ -259,19 +276,46 @@ export default function PanelCandidatFormations({ candidatId, onNavigateFormatio
         .select('formation_id, statut')
         .eq('candidat_id', candidatId)
         .in('formation_id', formationIds)
-      const map = Object.fromEntries((sData || []).map(s => [s.formation_id, s.statut]))
-      setStatuts(map)
+      setStatuts(Object.fromEntries((sData || []).map(s => [s.formation_id, s.statut])))
     }
 
     setLoading(false)
-  }, [q, diplome, niveau, modalite, ville, villeCity, rayon, candidatId])
-
-  useEffect(() => {
-    supabase.from('formations').select('id', { count: 'exact', head: true }).then(({ count }) => setTotal(count))
-  }, [])
+  }, [q, diplome, niveau, modalite, ville, villeCity, rayon, candidatId, cachedIds])
 
   function handleStatutChange(formationId, newStatut) {
     setStatuts(prev => ({ ...prev, [formationId]: newStatut }))
+  }
+
+  async function enregistrer(f, e) {
+    e.stopPropagation()
+    if (savedIds.has(f.id) || saving.has(f.id)) return
+    setSaving(prev => new Set([...prev, f.id]))
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) { setSaving(prev => { const s = new Set(prev); s.delete(f.id); return s }); return }
+    await supabase.from('candidat_candidatures').insert({
+      candidat_id:    user.id,
+      nom_entreprise: f.ecole?.nom || 'École',
+      poste:          f.nom,
+      type:           'formation',
+      statut:         'a_faire',
+      notes:          '',
+      formation_id:   f.id,
+    })
+    setSavedIds(prev => new Set([...prev, f.id]))
+    setSaving(prev => { const s = new Set(prev); s.delete(f.id); return s })
+  }
+
+  async function masquer(f, e) {
+    e.stopPropagation()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+    await supabase.from('candidat_formations_cachees').upsert({
+      candidat_id:    user.id,
+      formation_id:   f.id,
+      formation_data: { id: f.id, nom: f.nom, niveau: f.niveau, ecole_nom: f.ecole?.nom, ecole_ville: f.ecole?.ville },
+    }, { onConflict: 'candidat_id,formation_id' })
+    setCachedIds(prev => new Set([...prev, f.id]))
+    setFormations(prev => prev.filter(x => x.id !== f.id))
   }
 
   const filters = { q, diplome, niveau, modalite, ville, villeCity, rayon }
@@ -283,6 +327,11 @@ export default function PanelCandidatFormations({ candidatId, onNavigateFormatio
           <div className="page-title">Formations</div>
           <div className="page-sub">{total !== null ? `${total} formations disponibles — utilisez les filtres pour rechercher` : 'Chargement…'}</div>
         </div>
+        {onNavigateArchives && cachedIds.size > 0 && (
+          <button className="btn-sm" style={{ fontSize: 11 }} onClick={onNavigateArchives}>
+            <i className="ti ti-archive" /> Archivées ({cachedIds.size})
+          </button>
+        )}
       </div>
 
       {/* Barre de recherche */}
@@ -361,69 +410,92 @@ export default function PanelCandidatFormations({ candidatId, onNavigateFormatio
           <>
             <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 10 }}>{formations.length} formation{formations.length > 1 ? 's' : ''}</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
-              {formations.map(f => (
-                <div key={f.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 4px', borderBottom: '0.5px solid var(--border)' }}>
+              {formations.map(f => {
+                const isSaved  = savedIds.has(f.id)
+                const isSaving = saving.has(f.id)
+                return (
+                  <div key={f.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 4px', borderBottom: '0.5px solid var(--border)' }}>
 
-                  {/* Niveau */}
-                  <div style={{ flexShrink: 0, width: 80, textAlign: 'center' }}>
-                    {f.niveau && f.niveau !== 'autre' && (
-                      <span style={{ ...niveauStyle(f.niveau), fontSize: 10, padding: '3px 8px', borderRadius: 20, whiteSpace: 'nowrap' }}>
-                        {NIVEAU_LABEL[f.niveau] || f.niveau}
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Nom + localité */}
-                  <div style={{ flex: 1, minWidth: 0, cursor: onNavigateFormation ? 'pointer' : 'default' }} onClick={() => onNavigateFormation?.(f.id, 'candidat-formations', filters)}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: onNavigateFormation ? 'var(--teal)' : 'var(--navy)', lineHeight: 1.4 }}>
-                      {f.nom}
-                      {onNavigateFormation && <i className="ti ti-chevron-right" style={{ fontSize: 11, marginLeft: 4 }} />}
-                    </div>
-                    <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 2 }}>
-                      {f.localite_formation && (
-                        <span style={{ fontSize: 11, color: 'var(--muted)' }}>
-                          <i className="ti ti-map-pin" style={{ fontSize: 10 }} /> {f.localite_formation}
+                    {/* Niveau */}
+                    <div style={{ flexShrink: 0, width: 80, textAlign: 'center' }}>
+                      {f.niveau && f.niveau !== 'autre' && (
+                        <span style={{ ...niveauStyle(f.niveau), fontSize: 10, padding: '3px 8px', borderRadius: 20, whiteSpace: 'nowrap' }}>
+                          {NIVEAU_LABEL[f.niveau] || f.niveau}
                         </span>
                       )}
-                      <ModaliteTag value={f.modalite || f.ecole?.modalites?.[0]} />
                     </div>
-                  </div>
 
-                  {/* École */}
-                  {f.ecole && (
-                    <div
-                      style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, cursor: onNavigateEcole ? 'pointer' : 'default', padding: '4px 8px', borderRadius: 8, background: 'var(--light)' }}
-                      onClick={() => onNavigateEcole?.(f.ecole.id, 'candidat-formations', filters)}
+                    {/* Nom + localité */}
+                    <div style={{ flex: 1, minWidth: 0, cursor: onNavigateFormation ? 'pointer' : 'default' }} onClick={() => onNavigateFormation?.(f.id, 'candidat-formations', filters)}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: onNavigateFormation ? 'var(--teal)' : 'var(--navy)', lineHeight: 1.4 }}>
+                        {f.nom}
+                        {onNavigateFormation && <i className="ti ti-chevron-right" style={{ fontSize: 11, marginLeft: 4 }} />}
+                      </div>
+                      <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 2 }}>
+                        {f.localite_formation && (
+                          <span style={{ fontSize: 11, color: 'var(--muted)' }}>
+                            <i className="ti ti-map-pin" style={{ fontSize: 10 }} /> {f.localite_formation}
+                          </span>
+                        )}
+                        <ModaliteTag value={f.modalite || f.ecole?.modalites?.[0]} />
+                      </div>
+                    </div>
+
+                    {/* École */}
+                    {f.ecole && (
+                      <div
+                        style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, cursor: onNavigateEcole ? 'pointer' : 'default', padding: '4px 8px', borderRadius: 8, background: 'var(--light)' }}
+                        onClick={() => onNavigateEcole?.(f.ecole.id, 'candidat-formations', filters)}
+                      >
+                        <div style={{ width: 22, height: 22, borderRadius: 5, background: 'var(--purple-soft)', color: 'var(--purple)', fontSize: 8, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          {sigle(f.ecole.nom)}
+                        </div>
+                        <div style={{ maxWidth: 160 }}>
+                          <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--navy)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{f.ecole.nom}</div>
+                          <div style={{ fontSize: 10, color: 'var(--muted)' }}>{[f.ecole.ville, f.ecole.region].filter(Boolean).join(' · ')}</div>
+                        </div>
+                        {onNavigateEcole && <i className="ti ti-chevron-right" style={{ fontSize: 11, color: 'var(--teal)' }} />}
+                      </div>
+                    )}
+
+                    {/* ONISEP */}
+                    {f.url_onisep && (
+                      <button className="btn-sm teal" style={{ fontSize: 11, flexShrink: 0 }} onClick={() => window.open(f.url_onisep, '_blank')}>
+                        <i className="ti ti-external-link" /> ONISEP
+                      </button>
+                    )}
+
+                    {/* Statut */}
+                    {candidatId && (
+                      <StatutPicker
+                        formationId={f.id}
+                        currentStatut={statuts[f.id] || null}
+                        candidatId={candidatId}
+                        onChange={handleStatutChange}
+                      />
+                    )}
+
+                    {/* Enregistrer / Masquer */}
+                    <button
+                      className="btn-sm"
+                      style={{ fontSize: 10, padding: '3px 8px', flexShrink: 0, background: isSaved ? 'var(--teal-soft)' : undefined, color: isSaved ? 'var(--teal)' : undefined, opacity: isSaved ? 0.7 : 1 }}
+                      onClick={ev => enregistrer(f, ev)}
+                      disabled={isSaved || isSaving}
+                      title={isSaved ? 'Déjà dans mes candidatures' : 'Enregistrer dans mes candidatures'}
                     >
-                      <div style={{ width: 22, height: 22, borderRadius: 5, background: 'var(--purple-soft)', color: 'var(--purple)', fontSize: 8, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                        {sigle(f.ecole.nom)}
-                      </div>
-                      <div style={{ maxWidth: 160 }}>
-                        <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--navy)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{f.ecole.nom}</div>
-                        <div style={{ fontSize: 10, color: 'var(--muted)' }}>{[f.ecole.ville, f.ecole.region].filter(Boolean).join(' · ')}</div>
-                      </div>
-                      {onNavigateEcole && <i className="ti ti-chevron-right" style={{ fontSize: 11, color: 'var(--teal)' }} />}
-                    </div>
-                  )}
-
-                  {/* ONISEP */}
-                  {f.url_onisep && (
-                    <button className="btn-sm teal" style={{ fontSize: 11, flexShrink: 0 }} onClick={() => window.open(f.url_onisep, '_blank')}>
-                      <i className="ti ti-external-link" /> ONISEP
+                      <i className={`ti ${isSaved ? 'ti-check' : isSaving ? 'ti-loader' : 'ti-bookmark'}`} />
                     </button>
-                  )}
-
-                  {/* Statut — visible uniquement pour les candidats */}
-                  {candidatId && (
-                    <StatutPicker
-                      formationId={f.id}
-                      currentStatut={statuts[f.id] || null}
-                      candidatId={candidatId}
-                      onChange={handleStatutChange}
-                    />
-                  )}
-                </div>
-              ))}
+                    <button
+                      className="btn-sm"
+                      style={{ fontSize: 10, padding: '3px 8px', flexShrink: 0, color: 'var(--muted)' }}
+                      onClick={ev => masquer(f, ev)}
+                      title="Ne plus voir cette formation"
+                    >
+                      <i className="ti ti-eye-off" />
+                    </button>
+                  </div>
+                )
+              })}
             </div>
           </>
         )}

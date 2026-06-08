@@ -13,7 +13,7 @@ import PanelCandidatCandidatures from '../../components/panels/PanelCandidatCand
 import PanelCandidatBadges from '../../components/panels/PanelCandidatBadges'
 import PanelCandidatOffres from '../../components/panels/PanelCandidatOffres'
 import PanelCandidatOffresArchivees from '../../components/panels/PanelCandidatOffresArchivees'
-import PanelCandidatEcolesArchivees from '../../components/panels/PanelCandidatEcolesArchivees'
+import PanelCandidatFormationsArchivees from '../../components/panels/PanelCandidatFormationsArchivees'
 import PanelCandidatStatuts from '../../components/panels/PanelCandidatStatuts'
 import PanelCandidatActions from '../../components/panels/PanelCandidatActions'
 import { PanelEntrepriseSiret, PanelEntrepriseRecherche, PanelEntrepriseEcoles, PanelEntrepriseOffres, PanelEntrepriseSimulateur } from '../../components/panels/PanelEntreprise'
@@ -33,18 +33,18 @@ const SPACES = {
     label: 'Espace Candidat', dot: 'var(--teal)',
     user: { av: 'TM', bg: 'var(--teal)', name: 'Thomas Martin', role: 'Candidat' },
     nav: [
-      { icon: 'ti-user-circle', label: 'Mon profil',      panel: 'candidat-profil',      cls: 'cand' },
-      { icon: 'ti-school',      label: 'Écoles',            panel: 'candidat-ecoles',       cls: 'cand' },
-      { icon: 'ti-certificate', label: 'Formations',        panel: 'candidat-formations',   cls: 'cand' },
-      { icon: 'ti-building',    label: 'Mes candidatures', panel: 'candidat-candidatures', cls: 'cand' },
-      { icon: 'ti-trophy',      label: 'Mes badges',        panel: 'candidat-badges',       cls: 'cand' },
-      { icon: 'ti-bookmark',    label: 'Mes statuts',       panel: 'candidat-statuts',      cls: 'cand' },
-      { icon: 'ti-bell',        label: 'Mes actions',       panel: 'candidat-actions',      cls: 'cand' },
+      { icon: 'ti-user-circle', label: 'Mon profil',       panel: 'candidat-profil',       cls: 'cand' },
+      { icon: 'ti-building',   label: 'Mes candidatures', panel: 'candidat-candidatures', cls: 'cand' },
+      { icon: 'ti-trophy',     label: 'Mes badges',       panel: 'candidat-badges',       cls: 'cand' },
+      { icon: 'ti-bookmark',   label: 'Mes statuts',      panel: 'candidat-statuts',      cls: 'cand' },
+      { icon: 'ti-bell',       label: 'Mes actions',      panel: 'candidat-actions',      cls: 'cand' },
       { section: 'Explorer' },
-      { icon: 'ti-search',  label: 'Offres alternance',  panel: 'candidat-offres',              cls: 'cand' },
-      { icon: 'ti-archive', label: 'Offres archivées',  panel: 'candidat-offres-archivees',   cls: 'cand' },
-      { icon: 'ti-archive', label: 'Écoles archivées',  panel: 'candidat-ecoles-archivees',   cls: 'cand' },
-      { icon: 'ti-gift',    label: 'Bons plans',        panel: null, cls: 'cand' },
+      { icon: 'ti-search',      label: 'Offres alternance',      panel: 'candidat-offres',                 cls: 'cand' },
+      { icon: 'ti-archive',     label: 'Offres archivées',       panel: 'candidat-offres-archivees',       cls: 'cand' },
+      { icon: 'ti-school',      label: 'Écoles',                 panel: 'candidat-ecoles',                 cls: 'cand' },
+      { icon: 'ti-certificate', label: 'Formations',             panel: 'candidat-formations',             cls: 'cand' },
+      { icon: 'ti-archive',     label: 'Formations archivées',   panel: 'candidat-formations-archivees',   cls: 'cand' },
+      { icon: 'ti-gift',        label: 'Bons plans',             panel: null,                              cls: 'cand' },
     ],
     firstPanel: 'candidat-profil',
   },
@@ -222,13 +222,13 @@ export default function Home() {
           initialFilters={activePanelData?.filters}
           onNavigateEcole={(id, tab, filters) => navigateTo('ecole-publique', { ecoleId: id, from: 'candidat-ecoles', fromTab: tab, filters })}
           onNavigateFormation={(id, tab, filters) => navigateTo('formation-publique', { formationId: id, from: 'candidat-ecoles', fromTab: tab, filters })}
-          onNavigateArchives={() => navigateTo('candidat-ecoles-archivees')}
         />
       case 'candidat-formations':   return <PanelCandidatFormations
           initialFilters={activePanelData?.filters}
           candidatId={candidatId}
           onNavigateFormation={(id, from, filters) => navigateTo('formation-publique', { formationId: id, from, filters })}
           onNavigateEcole={(id, from, filters) => navigateTo('ecole-publique', { ecoleId: id, from, filters })}
+          onNavigateArchives={() => navigateTo('candidat-formations-archivees')}
         />
       case 'candidat-candidatures': return <PanelCandidatCandidatures />
       case 'candidat-badges':       return <PanelCandidatBadges />
@@ -242,8 +242,8 @@ export default function Home() {
           onNavigateCandidatures={() => navigateTo('candidat-candidatures')}
           onNavigateArchives={() => navigateTo('candidat-offres-archivees')}
         />
-      case 'candidat-offres-archivees': return <PanelCandidatOffresArchivees />
-      case 'candidat-ecoles-archivees': return <PanelCandidatEcolesArchivees />
+      case 'candidat-offres-archivees':     return <PanelCandidatOffresArchivees />
+      case 'candidat-formations-archivees': return <PanelCandidatFormationsArchivees />
       case 'entreprise-siret':      return <PanelEntrepriseSiret />
       case 'entreprise-recherche':  return <PanelEntrepriseRecherche onNavigate={setActivePanel} />
       case 'entreprise-ecoles':     return <PanelEntrepriseEcoles onNavigateEcole={id => navigateTo('ecole-publique', { ecoleId: id, from: 'entreprise-ecoles' })} />
