@@ -60,8 +60,10 @@ export async function GET(request) {
 
     const data = await res.json()
 
-    const jobs       = (data.jobs       || []).map(normalizeJob)
-    const recruiters = (data.recruiters || []).map(normalizeJob)
+    // jobs = vraies offres (France Travail, etc.) → tag "sourcee"
+    // recruiters = entreprises ouvertes aux candidatures → tag "spontanee"
+    const jobs       = (data.jobs       || []).map(item => normalizeJob(item, 'sourcee'))
+    const recruiters = (data.recruiters || []).map(item => normalizeJob(item, 'spontanee'))
 
     return NextResponse.json({
       jobs: [...jobs, ...recruiters],
@@ -75,17 +77,18 @@ export async function GET(request) {
 
 // ── Normalisateur ─────────────────────────────────────────────────────────────
 
-function normalizeJob(item) {
+function normalizeJob(item, tag) {
   return {
-    id:          item.identifier?.id            || item.identifier?.partner_job_id || null,
-    source:      item.identifier?.partner_label || 'lba',
-    titre:       item.offer?.title              || item.workplace?.name            || 'Offre sans titre',
-    entreprise:  item.workplace?.brand          || item.workplace?.legal_name      || item.workplace?.name || '',
-    ville:       item.workplace?.location?.address || '',
-    contrat:     (item.contract?.type || []).join(', '),
-    description: item.offer?.description        || '',
-    url:         item.apply?.url                || null,
-    niveau:      item.offer?.target_diploma?.label || '',
+    id:           item.identifier?.id            || item.identifier?.partner_job_id || null,
+    source:       item.identifier?.partner_label || 'lba',
+    tag,          // 'sourcee' ou 'spontanee' — déterminé par le tableau d'origine
+    titre:        item.offer?.title              || item.workplace?.name            || 'Offre sans titre',
+    entreprise:   item.workplace?.brand          || item.workplace?.legal_name      || item.workplace?.name || '',
+    ville:        item.workplace?.location?.address || '',
+    contrat:      (item.contract?.type || []).join(', '),
+    description:  item.offer?.description        || '',
+    url:          item.apply?.url                || null,
+    niveau:       item.offer?.target_diploma?.label || '',
     date_creation: item.offer?.publication?.creation || null,
   }
 }

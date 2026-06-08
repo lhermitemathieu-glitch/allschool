@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '../../lib/supabase/client'
 import { SECTEURS } from '../../lib/secteurs'
-import { typeInfo, lbaTypeFromSource } from '../../lib/offre-types'
+import { typeInfo } from '../../lib/offre-types'
 
 const NIVEAUX = { cap: 'CAP', bts: 'BTS / BUT', bach: 'Bachelor', master: 'Master' }
 
@@ -112,7 +112,7 @@ export default function PanelCandidatOffres() {
         const lbaOffres = (json.jobs || []).map(o => ({
           _id:         `lba-${o.id || Math.random()}`,
           _source:     'lba',
-          tag:         lbaTypeFromSource(o.source),
+          tag:         o.tag,
           titre:       o.titre,
           entreprise:  o.entreprise || '',
           ville:       o.ville || '',
