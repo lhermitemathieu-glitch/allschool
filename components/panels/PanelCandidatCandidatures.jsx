@@ -142,7 +142,7 @@ export default function PanelCandidatCandidatures() {
 
           {/* Type */}
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
-            {TYPES.map(t => (
+            {TYPES.filter(t => t.key !== 'ecole').map(t => (
               <button
                 key={t.key}
                 onClick={() => setForm(f => ({ ...f, type: t.key }))}

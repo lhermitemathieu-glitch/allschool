@@ -13,6 +13,7 @@ import PanelCandidatCandidatures from '../../components/panels/PanelCandidatCand
 import PanelCandidatBadges from '../../components/panels/PanelCandidatBadges'
 import PanelCandidatOffres from '../../components/panels/PanelCandidatOffres'
 import PanelCandidatOffresArchivees from '../../components/panels/PanelCandidatOffresArchivees'
+import PanelCandidatEcolesArchivees from '../../components/panels/PanelCandidatEcolesArchivees'
 import PanelCandidatStatuts from '../../components/panels/PanelCandidatStatuts'
 import PanelCandidatActions from '../../components/panels/PanelCandidatActions'
 import { PanelEntrepriseSiret, PanelEntrepriseRecherche, PanelEntrepriseEcoles, PanelEntrepriseOffres, PanelEntrepriseSimulateur } from '../../components/panels/PanelEntreprise'
@@ -40,8 +41,9 @@ const SPACES = {
       { icon: 'ti-bookmark',    label: 'Mes statuts',       panel: 'candidat-statuts',      cls: 'cand' },
       { icon: 'ti-bell',        label: 'Mes actions',       panel: 'candidat-actions',      cls: 'cand' },
       { section: 'Explorer' },
-      { icon: 'ti-search',  label: 'Offres alternance',  panel: 'candidat-offres',           cls: 'cand' },
-      { icon: 'ti-archive', label: 'Offres archivées',  panel: 'candidat-offres-archivees', cls: 'cand' },
+      { icon: 'ti-search',  label: 'Offres alternance',  panel: 'candidat-offres',              cls: 'cand' },
+      { icon: 'ti-archive', label: 'Offres archivées',  panel: 'candidat-offres-archivees',   cls: 'cand' },
+      { icon: 'ti-archive', label: 'Écoles archivées',  panel: 'candidat-ecoles-archivees',   cls: 'cand' },
       { icon: 'ti-gift',    label: 'Bons plans',        panel: null, cls: 'cand' },
     ],
     firstPanel: 'candidat-profil',
@@ -220,6 +222,7 @@ export default function Home() {
           initialFilters={activePanelData?.filters}
           onNavigateEcole={(id, tab, filters) => navigateTo('ecole-publique', { ecoleId: id, from: 'candidat-ecoles', fromTab: tab, filters })}
           onNavigateFormation={(id, tab, filters) => navigateTo('formation-publique', { formationId: id, from: 'candidat-ecoles', fromTab: tab, filters })}
+          onNavigateArchives={() => navigateTo('candidat-ecoles-archivees')}
         />
       case 'candidat-formations':   return <PanelCandidatFormations
           initialFilters={activePanelData?.filters}
@@ -240,6 +243,7 @@ export default function Home() {
           onNavigateArchives={() => navigateTo('candidat-offres-archivees')}
         />
       case 'candidat-offres-archivees': return <PanelCandidatOffresArchivees />
+      case 'candidat-ecoles-archivees': return <PanelCandidatEcolesArchivees />
       case 'entreprise-siret':      return <PanelEntrepriseSiret />
       case 'entreprise-recherche':  return <PanelEntrepriseRecherche onNavigate={setActivePanel} />
       case 'entreprise-ecoles':     return <PanelEntrepriseEcoles onNavigateEcole={id => navigateTo('ecole-publique', { ecoleId: id, from: 'entreprise-ecoles' })} />
