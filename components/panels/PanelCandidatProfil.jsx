@@ -57,7 +57,13 @@ function formatDispo(d) {
   return d.disponibilite || null
 }
 
-function newExp()  { return { id: Date.now(), entreprise: '', poste: '', mois_debut: '', annee_debut: '', mois_fin: '', annee_fin: '', en_cours: false } }
+function formatTel(raw) {
+  const digits = (raw || '').replace(/\D/g, '').slice(0, 10)
+  if (digits.length === 0) return ''
+  return digits.match(/.{1,2}/g).join('.')
+}
+
+function newExp()  { return { id: Date.now(), entreprise: '', poste: '', mois_debut: '', annee_debut: '', mois_fin: '', annee_fin: '', en_cours: false, missions: [] } }
 function newLang() { return { id: Date.now(), langue: '', niveau: 'Intermédiaire' } }
 
 function safeData(data) {
@@ -534,9 +540,9 @@ export default function PanelCandidatProfil({ candidatIdOverride, onBack }) {
           <div style={{ flex: '1 1 160px' }}>
             <div style={labelStyle}><i className="ti ti-phone" style={{ marginRight: 4 }} />Téléphone</div>
             {editing ? (
-              <input type="tel" placeholder="06 00 00 00 00" value={form.telephone || ''} onChange={e => setField('telephone', e.target.value)} style={inputStyle} />
+              <input type="tel" placeholder="06.00.00.00.00" value={form.telephone || ''} onChange={e => setField('telephone', formatTel(e.target.value))} style={inputStyle} />
             ) : data.telephone ? (
-              <a href={`tel:${data.telephone}`} style={{ fontSize: 13, color: 'var(--teal)', marginTop: 4, display: 'block' }}>{data.telephone}</a>
+              <a href={`tel:${(data.telephone).replace(/\./g, '')}`} style={{ fontSize: 13, color: 'var(--teal)', marginTop: 4, display: 'block' }}>{formatTel(data.telephone)}</a>
             ) : (
               <div style={{ fontSize: 13, color: 'var(--muted)', marginTop: 4 }}>Non renseigné</div>
             )}
@@ -703,6 +709,37 @@ export default function PanelCandidatProfil({ candidatIdOverride, onBack }) {
                       En cours
                     </label>
                   </div>
+                  {/* Missions */}
+                  <div style={{ marginTop: 10 }}>
+                    <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Missions</div>
+                    {(exp.missions || []).map((m, mi) => (
+                      <div key={mi} style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 5 }}>
+                        <span style={{ color: 'var(--teal)', fontSize: 14, flexShrink: 0 }}>•</span>
+                        <input
+                          value={m}
+                          onChange={e => {
+                            const updated = [...(exp.missions || [])]
+                            updated[mi] = e.target.value
+                            updateExp(exp.id, 'missions', updated)
+                          }}
+                          placeholder="Ex : Gestion des réseaux sociaux"
+                          style={{ ...inputStyle, marginBottom: 0, flex: 1 }}
+                        />
+                        <button onClick={() => {
+                          const updated = (exp.missions || []).filter((_, i) => i !== mi)
+                          updateExp(exp.id, 'missions', updated)
+                        }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626', fontSize: 14, flexShrink: 0 }}>
+                          <i className="ti ti-x" />
+                        </button>
+                      </div>
+                    ))}
+                    <button
+                      onClick={() => updateExp(exp.id, 'missions', [...(exp.missions || []), ''])}
+                      style={{ background: 'none', border: '1px dashed var(--border)', borderRadius: 6, padding: '4px 10px', fontSize: 12, color: 'var(--teal)', cursor: 'pointer', marginTop: 2 }}
+                    >
+                      <i className="ti ti-plus" style={{ marginRight: 4 }} />Ajouter une mission
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -721,6 +758,15 @@ export default function PanelCandidatProfil({ candidatIdOverride, onBack }) {
                         {duree && <span style={{ fontWeight: 400, color: 'var(--muted)', marginLeft: 6 }}>({duree} mois)</span>}
                       </div>
                       <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>{formatPeriode(exp)}</div>
+                      {(exp.missions || []).filter(Boolean).length > 0 && (
+                        <ul style={{ margin: '6px 0 0 0', padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 3 }}>
+                          {exp.missions.filter(Boolean).map((m, i) => (
+                            <li key={i} style={{ fontSize: 12, color: 'var(--navy)', display: 'flex', gap: 6, alignItems: 'flex-start' }}>
+                              <span style={{ color: 'var(--teal)', flexShrink: 0 }}>•</span>{m}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
                     </div>
                   </div>
                 )

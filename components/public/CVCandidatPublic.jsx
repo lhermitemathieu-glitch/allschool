@@ -6,6 +6,12 @@ import { useRef } from 'react'
 const MOIS_LABELS = ['Janv.', 'Févr.', 'Mars', 'Avr.', 'Mai', 'Juin', 'Juil.', 'Août', 'Sept.', 'Oct.', 'Nov.', 'Déc.']
 const MOIS_FULL   = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre']
 
+function formatTel(raw) {
+  const digits = (raw || '').replace(/\D/g, '').slice(0, 10)
+  if (digits.length === 0) return ''
+  return digits.match(/.{1,2}/g).join('.')
+}
+
 function formatDispo(p) {
   if (p.dispo_mois && p.dispo_annee) return `Disponible en ${MOIS_FULL[p.dispo_mois - 1]} ${p.dispo_annee}`
   return p.disponibilite || null
@@ -184,7 +190,7 @@ export default function CVCandidatPublic({ profil, publicUrl }) {
                   </a>
                 </SideItem>
               )}
-              {profil.telephone && <SideItem icon="ti-phone">{profil.telephone}</SideItem>}
+              {profil.telephone && <SideItem icon="ti-phone">{formatTel(profil.telephone)}</SideItem>}
               {profil.ville && <SideItem icon="ti-map-pin">{profil.ville}</SideItem>}
               {dispo && <SideItem icon="ti-calendar">{dispo}</SideItem>}
               {profil.linkedin_url && (
@@ -286,6 +292,15 @@ export default function CVCandidatPublic({ profil, publicUrl }) {
                           <div style={{ fontSize: 11, color: '#6B7A8D', marginTop: 2 }}>
                             {formatPeriode(exp)}{duree ? ` (${duree})` : ''}
                           </div>
+                          {(exp.missions || []).filter(Boolean).length > 0 && (
+                            <ul style={{ margin: '5px 0 0 0', padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 2 }}>
+                              {exp.missions.filter(Boolean).map((m, mi) => (
+                                <li key={mi} style={{ fontSize: 11, color: '#0E1B2E', display: 'flex', gap: 5, alignItems: 'flex-start' }}>
+                                  <span style={{ color: '#085041', flexShrink: 0 }}>•</span>{m}
+                                </li>
+                              ))}
+                            </ul>
+                          )}
                         </div>
                       </div>
                     )
