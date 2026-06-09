@@ -368,8 +368,9 @@ export default function PanelCandidatProfil({ candidatIdOverride, onBack }) {
         </div>
       )}
 
-      {/* ── Carte identité ── */}
-      <div className="s-card" style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
+      {/* ── Carte identité + Complétion ── */}
+      <div className="grid2" style={{ marginBottom: 0, alignItems: 'stretch' }}>
+      <div className="s-card" style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start', marginBottom: 0 }}>
         <AvatarPhoto
           url={dispUrl}
           initials={initiales(data.prenom, data.nom)}
@@ -417,6 +418,18 @@ export default function PanelCandidatProfil({ candidatIdOverride, onBack }) {
             </div>
           </div>
         )}
+      </div>
+
+      <div className="s-card" style={{ marginBottom: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+        <div className="s-card-header">
+          <div className="s-card-title"><i className="ti ti-chart-bar" /> Complétion du profil</div>
+        </div>
+        <div style={{ fontSize: 36, fontFamily: 'Syne, sans-serif', fontWeight: 800, color: 'var(--teal)' }}>{pct}%</div>
+        <div style={{ background: 'var(--light)', borderRadius: 100, height: 8, marginTop: 8 }}>
+          <div style={{ width: `${pct}%`, height: 8, borderRadius: 100, background: 'var(--teal)', transition: 'width 0.4s' }} />
+        </div>
+        <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 8 }}>{pct < 100 ? 'Complète ton profil pour plus de visibilité' : '🎉 Profil complet !'}</div>
+      </div>
       </div>
 
       {/* ── Visibilité + Pause ── */}
@@ -610,38 +623,6 @@ export default function PanelCandidatProfil({ candidatIdOverride, onBack }) {
               </div>
             )}
           </div>
-        </div>
-      </div>
-
-      {/* ── Centres d'intérêt / Complétion ── */}
-      <div className="grid3" style={{ marginBottom: '1rem' }}>
-        <div className="s-card" style={{ marginBottom: 0, gridColumn: 'span 2' }}>
-          <div className="s-card-header">
-            <div className="s-card-title"><i className="ti ti-heart" /> Centres d'intérêt</div>
-          </div>
-          {editing ? (
-            <>
-              <input placeholder="Musique, Running, Social media, Photo…" value={interetsStr} onChange={e => setInteretsStr(e.target.value)} style={inputStyle} />
-              <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 4 }}>Sépare les mots-clés par des virgules</div>
-            </>
-          ) : (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
-              {[...(profil.passions || []), ...(profil.loisirs || [])].length
-                ? [...(profil.passions || []), ...(profil.loisirs || [])].map(t => <span key={t} className="tag hi">{t}</span>)
-                : <span style={{ fontSize: 13, color: 'var(--muted)' }}>Aucun centre d'intérêt renseigné</span>}
-            </div>
-          )}
-        </div>
-
-        <div className="s-card" style={{ marginBottom: 0 }}>
-          <div className="s-card-header">
-            <div className="s-card-title"><i className="ti ti-chart-bar" /> Complétion</div>
-          </div>
-          <div style={{ fontSize: 32, fontFamily: 'Syne, sans-serif', fontWeight: 800, color: 'var(--teal)' }}>{pct}%</div>
-          <div style={{ background: 'var(--light)', borderRadius: 100, height: 8, marginTop: 8 }}>
-            <div style={{ width: `${pct}%`, height: 8, borderRadius: 100, background: 'var(--teal)', transition: 'width 0.4s' }} />
-          </div>
-          <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 8 }}>{pct < 100 ? 'Complète ton profil pour plus de visibilité' : 'Profil complet !'}</div>
         </div>
       </div>
 
@@ -866,9 +847,9 @@ export default function PanelCandidatProfil({ candidatIdOverride, onBack }) {
         </div>
       )}
 
-      {/* ── Compétences techniques / Soft skills / Langues — masquées si expériences masquées ── */}
-      {!data.masquer_experiences && (<>
-        <div className="s-card">
+      {/* ── Compétences techniques / Soft skills / Centres d'intérêt / Langues ── */}
+      {!data.masquer_experiences && (<div className="grid2">
+        <div className="s-card" style={{ marginBottom: 0 }}>
           <div className="s-card-header">
             <div className="s-card-title"><i className="ti ti-tool" /> Compétences techniques</div>
           </div>
@@ -888,7 +869,7 @@ export default function PanelCandidatProfil({ candidatIdOverride, onBack }) {
         </div>
 
         {/* ── Soft skills ── */}
-        <div className="s-card">
+        <div className="s-card" style={{ marginBottom: 0 }}>
           <div className="s-card-header">
             <div className="s-card-title"><i className="ti ti-mood-smile" /> Soft skills</div>
           </div>
@@ -915,8 +896,27 @@ export default function PanelCandidatProfil({ candidatIdOverride, onBack }) {
           )}
         </div>
 
+        {/* ── Centres d'intérêt ── */}
+        <div className="s-card" style={{ marginBottom: 0 }}>
+          <div className="s-card-header">
+            <div className="s-card-title"><i className="ti ti-heart" /> Centres d'intérêt</div>
+          </div>
+          {editing ? (
+            <>
+              <input placeholder="Musique, Running, Social media, Photo…" value={interetsStr} onChange={e => setInteretsStr(e.target.value)} style={inputStyle} />
+              <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 4 }}>Sépare les mots-clés par des virgules</div>
+            </>
+          ) : (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+              {[...(profil.passions || []), ...(profil.loisirs || [])].length
+                ? [...(profil.passions || []), ...(profil.loisirs || [])].map(t => <span key={t} className="tag hi">{t}</span>)
+                : <span style={{ fontSize: 13, color: 'var(--muted)' }}>Aucun centre d'intérêt renseigné</span>}
+            </div>
+          )}
+        </div>
+
         {/* ── Langues ── */}
-        <div className="s-card">
+        <div className="s-card" style={{ marginBottom: 0 }}>
           <div className="s-card-header">
             <div className="s-card-title"><i className="ti ti-world" /> Langues</div>
             {editing && <button className="btn-sm teal" onClick={addLang}><i className="ti ti-plus" /> Ajouter</button>}
@@ -947,7 +947,7 @@ export default function PanelCandidatProfil({ candidatIdOverride, onBack }) {
             </div>
           )}
         </div>
-      </>)}
+      </div>)}
     </>
   )
 }
