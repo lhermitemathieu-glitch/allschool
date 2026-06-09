@@ -285,12 +285,12 @@ export default function CVCandidatPublic({ profil, publicUrl }) {
                           <i className="ti ti-building" style={{ fontSize: 15, color: '#085041' }} />
                         </div>
                         <div style={{ flex: 1 }}>
-                          <div style={{ fontSize: 13, fontWeight: 700, color: '#0E1B2E', lineHeight: 1.3 }}>
-                            {exp.poste || '—'}
-                            {exp.entreprise && <span style={{ fontWeight: 500, color: '#6B7A8D' }}> · {exp.entreprise}</span>}
+                          <div style={{ fontSize: 13, fontWeight: 700, color: '#0E1B2E', lineHeight: 1.3, display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 6 }}>
+                            <span>{exp.poste || '—'}{exp.entreprise && <span style={{ fontWeight: 500, color: '#6B7A8D' }}> · {exp.entreprise}</span>}</span>
+                            {exp.contrat && <span style={{ fontSize: 10, fontWeight: 600, color: '#085041', background: '#E1F5EE', padding: '1px 6px', borderRadius: 4 }}>{exp.contrat}</span>}
                           </div>
                           <div style={{ fontSize: 11, color: '#6B7A8D', marginTop: 2 }}>
-                            {formatPeriode(exp)}{duree ? ` (${duree})` : ''}
+                            {formatPeriode(exp)}{duree ? ` (${duree})` : ''}{exp.ville ? ` · ${exp.ville}` : ''}
                           </div>
                           {(exp.missions || []).filter(Boolean).length > 0 && (
                             <ul style={{ margin: '5px 0 0 0', padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 2 }}>

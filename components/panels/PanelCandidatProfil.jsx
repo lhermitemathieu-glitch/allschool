@@ -63,7 +63,9 @@ function formatTel(raw) {
   return digits.match(/.{1,2}/g).join('.')
 }
 
-function newExp()  { return { id: Date.now(), entreprise: '', poste: '', mois_debut: '', annee_debut: '', mois_fin: '', annee_fin: '', en_cours: false, missions: [] } }
+const CONTRATS_EXP = ['CDI', 'CDD', 'Alternance', 'Intérim', 'Bénévolat', 'Autre']
+
+function newExp()  { return { id: Date.now(), entreprise: '', poste: '', contrat: '', ville: '', mois_debut: '', annee_debut: '', mois_fin: '', annee_fin: '', en_cours: false, missions: [] } }
 function newLang() { return { id: Date.now(), langue: '', niveau: 'Intermédiaire' } }
 
 function safeData(data) {
@@ -675,6 +677,13 @@ export default function PanelCandidatProfil({ candidatIdOverride, onBack }) {
                   <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
                     <input placeholder="Entreprise"   value={exp.entreprise} onChange={e => updateExp(exp.id, 'entreprise', e.target.value)} style={inputStyle} />
                     <input placeholder="Poste occupé" value={exp.poste}      onChange={e => updateExp(exp.id, 'poste',      e.target.value)} style={inputStyle} />
+                    <select value={exp.contrat || ''} onChange={e => updateExp(exp.id, 'contrat', e.target.value)} style={{ ...selectStyle, width: 'auto', flexShrink: 0 }}>
+                      <option value="">Contrat</option>
+                      {CONTRATS_EXP.map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                  </div>
+                  <div style={{ marginBottom: 8 }}>
+                    <input placeholder="Ville" value={exp.ville || ''} onChange={e => updateExp(exp.id, 'ville', e.target.value)} style={{ ...inputStyle, maxWidth: 200 }} />
                   </div>
                   <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
                     <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
@@ -755,9 +764,12 @@ export default function PanelCandidatProfil({ candidatIdOverride, onBack }) {
                     <div style={{ flex: 1 }}>
                       <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--navy)' }}>
                         {exp.poste || '—'}{exp.entreprise ? ` · ${exp.entreprise}` : ''}
+                        {exp.contrat && <span style={{ fontWeight: 500, fontSize: 11, color: 'var(--teal)', marginLeft: 6, background: 'var(--teal-soft)', padding: '1px 6px', borderRadius: 4 }}>{exp.contrat}</span>}
                         {duree && <span style={{ fontWeight: 400, color: 'var(--muted)', marginLeft: 6 }}>({duree} mois)</span>}
                       </div>
-                      <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>{formatPeriode(exp)}</div>
+                      <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>
+                        {formatPeriode(exp)}{exp.ville ? ` · ${exp.ville}` : ''}
+                      </div>
                       {(exp.missions || []).filter(Boolean).length > 0 && (
                         <ul style={{ margin: '6px 0 0 0', padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 3 }}>
                           {exp.missions.filter(Boolean).map((m, i) => (
