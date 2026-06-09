@@ -86,9 +86,14 @@ function safeData(data) {
     dispo_annee:           data.dispo_annee            ?? '',
     profil_en_pause:       data.profil_en_pause        ?? false,
     profil_visible_ecoles: data.profil_visible_ecoles  ?? false,
-    masquer_experiences:   data.masquer_experiences    ?? false,
-    pas_experience_pro:    data.pas_experience_pro     ?? false,
-    alternance_trouvee:    data.alternance_trouvee     ?? false,
+    masquer_experiences:        data.masquer_experiences        ?? false,
+    pas_experience_pro:         data.pas_experience_pro         ?? false,
+    alternance_trouvee:         data.alternance_trouvee         ?? false,
+    cv_masquer_apropos:         data.cv_masquer_apropos         ?? false,
+    cv_masquer_competences_hard: data.cv_masquer_competences_hard ?? false,
+    cv_masquer_soft_skills:     data.cv_masquer_soft_skills     ?? false,
+    cv_masquer_langues:         data.cv_masquer_langues         ?? false,
+    cv_masquer_interets:        data.cv_masquer_interets        ?? false,
   }
 }
 
@@ -200,9 +205,8 @@ export default function PanelCandidatProfil({ candidatIdOverride, onBack }) {
   const [uploading, setUploading] = useState(false)
   const [showQR, setShowQR]       = useState(false)
 
-  // Inputs bruts passions/loisirs (préserve les espaces pendant la saisie)
-  const [passionsStr, setPassionsStr] = useState('')
-  const [loisirsStr,  setLoisirsStr]  = useState('')
+  // Input brut centres d'intérêt (fusion passions + loisirs)
+  const [interetsStr, setInteretsStr] = useState('')
 
   useEffect(() => {
     async function load() {
@@ -216,8 +220,7 @@ export default function PanelCandidatProfil({ candidatIdOverride, onBack }) {
       if (data) {
         const d = safeData(data)
         setProfil(d); setForm(d)
-        setPassionsStr((d.passions || []).join(', '))
-        setLoisirsStr((d.loisirs  || []).join(', '))
+        setInteretsStr([...(d.passions || []), ...(d.loisirs || [])].join(', '))
       } else {
         const vide = safeData({
           id: uid, prenom: '', nom: '', ville: '', formation: '', disponibilite: '', bio: '',
@@ -227,7 +230,7 @@ export default function PanelCandidatProfil({ candidatIdOverride, onBack }) {
           masquer_experiences: false, pas_experience_pro: false,
         })
         setProfil(vide); setForm(vide)
-        setPassionsStr(''); setLoisirsStr('')
+        setInteretsStr('')
         setEditing(true)
       }
     }
@@ -235,16 +238,14 @@ export default function PanelCandidatProfil({ candidatIdOverride, onBack }) {
   }, [candidatIdOverride])
 
   function startEdit() {
-    setPassionsStr((form.passions || []).join(', '))
-    setLoisirsStr((form.loisirs  || []).join(', '))
+    setInteretsStr([...(form.passions || []), ...(form.loisirs || [])].join(', '))
     setEditing(true)
   }
 
   async function handleSave() {
     setSaving(true); setMessage('')
-    const passions = passionsStr.split(',').map(s => s.trim()).filter(Boolean)
-    const loisirs  = loisirsStr.split(',').map(s => s.trim()).filter(Boolean)
-    const payload  = { ...form, passions, loisirs, updated_at: new Date().toISOString() }
+    const interets = interetsStr.split(',').map(s => s.trim()).filter(Boolean)
+    const payload  = { ...form, passions: interets, loisirs: [], updated_at: new Date().toISOString() }
     let error
     if (candidatIdOverride) {
       ({ error } = await supabase.from('candidats').update(payload).eq('id', candidatIdOverride))
@@ -507,6 +508,36 @@ export default function PanelCandidatProfil({ candidatIdOverride, onBack }) {
         </div>
       </div>
 
+      {/* ── Personnaliser mon CV ── */}
+      <div className="s-card">
+        <div className="s-card-header">
+          <div className="s-card-title"><i className="ti ti-file-cv" /> Personnaliser mon CV</div>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {[
+            { key: 'cv_masquer_apropos',          icon: 'ti-user',       label: 'À propos' },
+            { key: 'cv_masquer_competences_hard',  icon: 'ti-tool',       label: 'Compétences techniques' },
+            { key: 'cv_masquer_soft_skills',       icon: 'ti-stars',      label: 'Soft skills' },
+            { key: 'cv_masquer_langues',           icon: 'ti-language',   label: 'Langues' },
+            { key: 'cv_masquer_interets',          icon: 'ti-heart',      label: "Centres d'intérêt" },
+          ].map(({ key, icon, label }, i) => (
+            <div key={key} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', ...(i > 0 ? { paddingTop: 12, borderTop: '0.5px solid var(--border)' } : {}) }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--navy)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <i className={`ti ${icon}`} />
+                {label}
+                <span style={{ fontWeight: 400, fontSize: 12, color: 'var(--muted)' }}>
+                  {data[key] ? '— masqué dans le CV' : '— affiché dans le CV'}
+                </span>
+              </div>
+              <button
+                className={`toggle ${!data[key] ? 'on' : ''}`}
+                onClick={() => saveImmediate(key, !data[key])}
+              />
+            </div>
+          ))}
+        </div>
+      </div>
+
       {/* ── Infos pratiques ── */}
       <div className="s-card">
         <div className="s-card-header">
@@ -582,36 +613,22 @@ export default function PanelCandidatProfil({ candidatIdOverride, onBack }) {
         </div>
       </div>
 
-      {/* ── Passions / Loisirs / Complétion ── */}
+      {/* ── Centres d'intérêt / Complétion ── */}
       <div className="grid3" style={{ marginBottom: '1rem' }}>
-        <div className="s-card" style={{ marginBottom: 0 }}>
+        <div className="s-card" style={{ marginBottom: 0, gridColumn: 'span 2' }}>
           <div className="s-card-header">
-            <div className="s-card-title"><i className="ti ti-heart" /> Passions</div>
+            <div className="s-card-title"><i className="ti ti-heart" /> Centres d'intérêt</div>
           </div>
           {editing ? (
             <>
-              <input placeholder="Social media, Copywriting, UX Design…" value={passionsStr} onChange={e => setPassionsStr(e.target.value)} style={inputStyle} />
+              <input placeholder="Musique, Running, Social media, Photo…" value={interetsStr} onChange={e => setInteretsStr(e.target.value)} style={inputStyle} />
               <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 4 }}>Sépare les mots-clés par des virgules</div>
             </>
           ) : (
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
-              {(profil.passions || []).length ? profil.passions.map(p => <span key={p} className="tag hi">{p}</span>) : <span style={{ fontSize: 13, color: 'var(--muted)' }}>Aucune passion renseignée</span>}
-            </div>
-          )}
-        </div>
-
-        <div className="s-card" style={{ marginBottom: 0 }}>
-          <div className="s-card-header">
-            <div className="s-card-title"><i className="ti ti-confetti" /> Loisirs</div>
-          </div>
-          {editing ? (
-            <>
-              <input placeholder="Musique, Running, Photo…" value={loisirsStr} onChange={e => setLoisirsStr(e.target.value)} style={inputStyle} />
-              <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 4 }}>Sépare les mots-clés par des virgules</div>
-            </>
-          ) : (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
-              {(profil.loisirs || []).length ? profil.loisirs.map(l => <span key={l} className="tag">{l}</span>) : <span style={{ fontSize: 13, color: 'var(--muted)' }}>Aucun loisir renseigné</span>}
+              {[...(profil.passions || []), ...(profil.loisirs || [])].length
+                ? [...(profil.passions || []), ...(profil.loisirs || [])].map(t => <span key={t} className="tag hi">{t}</span>)
+                : <span style={{ fontSize: 13, color: 'var(--muted)' }}>Aucun centre d'intérêt renseigné</span>}
             </div>
           )}
         </div>

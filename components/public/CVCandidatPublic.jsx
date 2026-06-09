@@ -62,9 +62,10 @@ export default function CVCandidatPublic({ profil, publicUrl }) {
 
   const dispo = formatDispo(profil)
   const exps  = profil.masquer_experiences ? [] : (profil.experiences || []).filter(e => e.poste || e.entreprise)
-  const hasSoftSkills = (profil.competences_soft || []).length > 0
-  const hasHardSkills = !!profil.competences_hard?.trim()
-  const hasLangues    = (profil.langues || []).length > 0
+  const hasSoftSkills = (profil.competences_soft || []).length > 0 && !profil.cv_masquer_soft_skills
+  const hasHardSkills = !!profil.competences_hard?.trim() && !profil.cv_masquer_competences_hard
+  const hasLangues    = (profil.langues || []).length > 0 && !profil.cv_masquer_langues
+  const hasInterets   = ([...(profil.passions || []), ...(profil.loisirs || [])].length > 0) && !profil.cv_masquer_interets
 
   function handlePrint() {
     window.print()
@@ -264,7 +265,7 @@ export default function CVCandidatPublic({ profil, publicUrl }) {
             </div>
 
             {/* Bio */}
-            {profil.bio && (
+            {profil.bio && !profil.cv_masquer_apropos && (
               <Section title="À propos" icon="ti-user">
                 <p style={{ fontSize: 12.5, color: '#3a4557', lineHeight: 1.75, margin: 0 }}>{profil.bio}</p>
               </Section>
@@ -318,8 +319,8 @@ export default function CVCandidatPublic({ profil, publicUrl }) {
               </Section>
             )}
 
-            {/* Passions / loisirs */}
-            {((profil.passions || []).length > 0 || (profil.loisirs || []).length > 0) && (
+            {/* Centres d'intérêt */}
+            {hasInterets && (
               <Section title="Centres d'intérêt" icon="ti-heart">
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                   {[...(profil.passions || []), ...(profil.loisirs || [])].map((t, i) => (
