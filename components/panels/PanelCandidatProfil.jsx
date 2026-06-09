@@ -481,21 +481,6 @@ export default function PanelCandidatProfil({ candidatIdOverride, onBack }) {
               onClick={() => saveImmediate('profil_visible_ecoles', !data.profil_visible_ecoles)}
             />
           </div>
-          {/* Visibilité expériences / compétences */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 12, borderTop: '0.5px solid var(--border)' }}>
-            <div>
-              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--navy)' }}>
-                <i className="ti ti-briefcase" style={{ marginRight: 6 }} />Visibilité de l'expérience professionnelle
-              </div>
-              <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>
-                {data.masquer_experiences ? 'Masqué dans mon profil — expériences, compétences, langues cachées' : 'Affiché dans mon profil'}
-              </div>
-            </div>
-            <button
-              className={`toggle ${!data.masquer_experiences ? 'on' : ''}`}
-              onClick={() => saveImmediate('masquer_experiences', !data.masquer_experiences)}
-            />
-          </div>
         </div>
       </div>
 
@@ -505,14 +490,28 @@ export default function PanelCandidatProfil({ candidatIdOverride, onBack }) {
           <div className="s-card-title"><i className="ti ti-file-cv" /> Personnaliser mon CV</div>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {/* Toggle expériences — logique inversée : masquer_experiences=true → caché */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--navy)', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <i className="ti ti-briefcase" />
+              Expériences professionnelles
+              <span style={{ fontWeight: 400, fontSize: 12, color: 'var(--muted)' }}>
+                {data.masquer_experiences ? '— masqué dans le CV' : '— affiché dans le CV'}
+              </span>
+            </div>
+            <button
+              className={`toggle ${!data.masquer_experiences ? 'on' : ''}`}
+              onClick={() => saveImmediate('masquer_experiences', !data.masquer_experiences)}
+            />
+          </div>
           {[
             { key: 'cv_masquer_apropos',          icon: 'ti-user',       label: 'À propos' },
             { key: 'cv_masquer_competences_hard',  icon: 'ti-tool',       label: 'Compétences techniques' },
             { key: 'cv_masquer_soft_skills',       icon: 'ti-stars',      label: 'Soft skills' },
             { key: 'cv_masquer_langues',           icon: 'ti-language',   label: 'Langues' },
             { key: 'cv_masquer_interets',          icon: 'ti-heart',      label: "Centres d'intérêt" },
-          ].map(({ key, icon, label }, i) => (
-            <div key={key} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', ...(i > 0 ? { paddingTop: 12, borderTop: '0.5px solid var(--border)' } : {}) }}>
+          ].map(({ key, icon, label }) => (
+            <div key={key} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 12, borderTop: '0.5px solid var(--border)' }}>
               <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--navy)', display: 'flex', alignItems: 'center', gap: 6 }}>
                 <i className={`ti ${icon}`} />
                 {label}
