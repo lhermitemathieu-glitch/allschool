@@ -181,7 +181,6 @@ export default function PanelCandidatFormations({ candidatId, onNavigateFormatio
   const [lbaSavedIds, setLbaSavedIds] = useState(new Set()) // lba_id enregistrés
   const [cachedIds,  setCachedIds]  = useState(new Set())   // formation_id masquées
   const [saving,     setSaving]     = useState(new Set())   // IDs en cours d'enregistrement
-  const [debugInfo,  setDebugInfo]  = useState(null)
 
   // Filtres
   const [keyword,  setKeyword]  = useState(initialFilters?.keyword || initialFilters?.q || '')
@@ -260,8 +259,6 @@ export default function PanelCandidatFormations({ candidatId, onNavigateFormatio
 
   const search = useCallback(async () => {
     setLoading(true); setSearched(true); setGeoErr('')
-    setDebugInfo({ step: 'start', ville, villeLat, villeLng, rayon, region })
-
     try {
       // ── 1. Géolocalisation ──────────────────────────────────────────────────
       let geoCoords = null
@@ -351,13 +348,6 @@ export default function PanelCandidatFormations({ candidatId, onNavigateFormatio
         } catch { /* LBA non disponible, on affiche juste Allschool */ }
       }
 
-      setDebugInfo({
-        geoCoords: geoCoords ? `lat=${geoCoords.lat.toFixed(4)}, lng=${geoCoords.lng.toFixed(4)}` : 'null',
-        region,
-        ecoleIds: ecoleIds === null ? 'null' : `${ecoleIds.length} écoles`,
-        allschool: allschoolRows.length,
-        lba: lbaRows.length,
-      })
       setFormations([...allschoolRows, ...lbaRows])
 
       // Statuts pour les formations Allschool
@@ -369,7 +359,7 @@ export default function PanelCandidatFormations({ candidatId, onNavigateFormatio
         setStatuts(Object.fromEntries((sData || []).map(s => [s.formation_id, s.statut])))
       }
     } catch (err) {
-      setDebugInfo({ step: 'ERROR', message: String(err) })
+      console.error('[formations]', err)
     } finally {
       setLoading(false)
     }
@@ -438,11 +428,6 @@ export default function PanelCandidatFormations({ candidatId, onNavigateFormatio
 
   return (
     <>
-      {debugInfo && (
-        <div style={{ fontSize: 10, color: '#7c3aed', background: '#ede9fe', padding: '4px 10px', fontFamily: 'monospace', wordBreak: 'break-all' }}>
-          DEBUG: {JSON.stringify(debugInfo)}
-        </div>
-      )}
       <div className="topbar">
         <div>
           <div className="page-title">Formations</div>
@@ -575,11 +560,6 @@ export default function PanelCandidatFormations({ candidatId, onNavigateFormatio
           <div style={{ fontSize: 13, color: 'var(--muted)' }}>Recherche en cours…</div>
         ) : (
           <>
-            {debugInfo && (
-              <div style={{ fontSize: 11, color: '#7c3aed', background: '#ede9fe', padding: '6px 10px', borderRadius: 6, marginBottom: 8, fontFamily: 'monospace', wordBreak: 'break-all' }}>
-                {JSON.stringify(debugInfo)}
-              </div>
-            )}
             {formations.length === 0 ? (
               <div style={{ fontSize: 13, color: 'var(--muted)' }}>Aucune formation trouvée.</div>
             ) : (
