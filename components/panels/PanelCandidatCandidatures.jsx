@@ -23,29 +23,120 @@ const TYPES_FORMATIONS = TYPES.filter(t => t.key === 'formation')
 
 const EMPTY_FORM = { nom_entreprise: '', poste: '', url: '', type: 'externe', statut: 'a_faire', notes: '' }
 
+function isOverdue(echeance) {
+  if (!echeance) return false
+  return new Date(echeance) < new Date(new Date().toDateString())
+}
+
+function formatDate(d) {
+  return new Date(d).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
+}
+
+function ActionModal({ action, onSave, onClose }) {
+  const [texte,    setTexte]    = useState(action?.texte || '')
+  const [echeance, setEcheance] = useState(action?.echeance || '')
+  const [saving,   setSaving]   = useState(false)
+
+  async function handleSave() {
+    if (!texte.trim()) return
+    setSaving(true)
+    await onSave({ texte: texte.trim(), echeance: echeance || null })
+    setSaving(false)
+  }
+
+  return (
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(14,27,46,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: 14, padding: 24, width: 360, boxShadow: '0 8px 40px rgba(14,27,46,0.15)' }}>
+        <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--navy)', marginBottom: 16 }}>
+          <i className="ti ti-bell" style={{ marginRight: 8, color: 'var(--teal)' }} />
+          {action ? 'Modifier le rappel' : 'Fixer un rappel'}
+        </div>
+        <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 6 }}>Prochaine action *</div>
+        <input
+          autoFocus
+          value={texte}
+          onChange={e => setTexte(e.target.value)}
+          placeholder="Ex : Relancer l'école, préparer un dossier…"
+          style={{ ...inputStyle, width: '100%', marginBottom: 12, boxSizing: 'border-box' }}
+        />
+        <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 6 }}>Échéance (optionnelle)</div>
+        <input
+          type="date"
+          value={echeance}
+          onChange={e => setEcheance(e.target.value)}
+          style={{ ...inputStyle, width: '100%', marginBottom: 16, boxSizing: 'border-box' }}
+        />
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button className="btn-sm teal" onClick={handleSave} disabled={saving || !texte.trim()} style={{ flex: 1 }}>
+            {saving ? '…' : action ? 'Mettre à jour' : 'Enregistrer'}
+          </button>
+          <button className="btn-sm" onClick={onClose}>Annuler</button>
+          {action && (
+            <button className="btn-sm" style={{ color: 'var(--red)' }} onClick={() => onSave(null)}>
+              <i className="ti ti-trash" />
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function PanelCandidatCandidatures({ onNavigateEcole }) {
   const supabase = createClient()
 
-  const [items,    setItems]    = useState([])
-  const [onglet,   setOnglet]   = useState('offres')  // 'offres' | 'formations'
-  const [view,     setView]     = useState('liste')    // 'liste' | 'kanban'
-  const [adding,   setAdding]   = useState(false)
-  const [editing,  setEditing]  = useState(null)
-  const [form,     setForm]     = useState(EMPTY_FORM)
-  const [saving,   setSaving]   = useState(false)
-  const [filterSt, setFilterSt] = useState('all')
+  const [items,       setItems]       = useState([])
+  const [actions,     setActions]     = useState({}) // { candidature_id: action }
+  const [onglet,      setOnglet]      = useState('offres')
+  const [view,        setView]        = useState('liste')
+  const [adding,      setAdding]      = useState(false)
+  const [editing,     setEditing]     = useState(null)
+  const [form,        setForm]        = useState(EMPTY_FORM)
+  const [saving,      setSaving]      = useState(false)
+  const [filterSt,    setFilterSt]    = useState('all')
+  const [actionModal, setActionModal] = useState(null) // candidature_id en cours
 
   useEffect(() => { load() }, [])
 
   async function load() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
-    const { data } = await supabase
-      .from('candidat_candidatures')
-      .select('*, formations(nom, ecoles(id, nom, ville, region))')
-      .eq('candidat_id', user.id)
-      .order('created_at', { ascending: false })
-    if (data) setItems(data)
+    const [{ data: candidatures }, { data: acts }] = await Promise.all([
+      supabase.from('candidat_candidatures')
+        .select('*, formations(nom, ecoles(id, nom, ville, region))')
+        .eq('candidat_id', user.id)
+        .order('created_at', { ascending: false }),
+      supabase.from('candidature_actions')
+        .select('*')
+        .eq('candidat_id', user.id)
+        .eq('fait', false),
+    ])
+    if (candidatures) setItems(candidatures)
+    if (acts) {
+      const map = {}
+      acts.forEach(a => { map[a.candidature_id] = a })
+      setActions(map)
+    }
+  }
+
+  async function handleSaveAction(candidatureId, payload) {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+    if (payload === null) {
+      // Supprimer
+      await supabase.from('candidature_actions').delete().eq('candidat_id', user.id).eq('candidature_id', candidatureId)
+      setActions(prev => { const n = { ...prev }; delete n[candidatureId]; return n })
+    } else {
+      const existing = actions[candidatureId]
+      if (existing) {
+        const { data } = await supabase.from('candidature_actions').update({ ...payload, updated_at: new Date().toISOString() }).eq('id', existing.id).select().single()
+        if (data) setActions(prev => ({ ...prev, [candidatureId]: data }))
+      } else {
+        const { data } = await supabase.from('candidature_actions').insert({ ...payload, candidat_id: user.id, candidature_id: candidatureId }).select().single()
+        if (data) setActions(prev => ({ ...prev, [candidatureId]: data }))
+      }
+    }
+    setActionModal(null)
   }
 
   function openAdd() {
@@ -226,9 +317,20 @@ export default function PanelCandidatCandidatures({ onNavigateEcole }) {
               onDelete={() => handleDelete(item.id)}
               onStatut={s => quickStatut(item.id, s)}
               onNavigateEcole={onNavigateEcole}
+              action={actions[item.id] || null}
+              onAction={() => setActionModal(item.id)}
             />
           ))}
         </div>
+      )}
+
+      {/* Modale action */}
+      {actionModal && (
+        <ActionModal
+          action={actions[actionModal] || null}
+          onSave={payload => handleSaveAction(actionModal, payload)}
+          onClose={() => setActionModal(null)}
+        />
       )}
 
       {/* VUE KANBAN */}
@@ -260,7 +362,7 @@ export default function PanelCandidatCandidatures({ onNavigateEcole }) {
   )
 }
 
-function ListRow({ item, onglet, onEdit, onDelete, onStatut, onNavigateEcole }) {
+function ListRow({ item, onglet, onEdit, onDelete, onStatut, onNavigateEcole, action, onAction }) {
   const st = statutInfo(item.statut)
   const ty = typeInfo(item.type)
   const isFormation = item.type === 'formation' || item.type === 'ecole'
@@ -316,6 +418,21 @@ function ListRow({ item, onglet, onEdit, onDelete, onStatut, onNavigateEcole }) 
       >
         {STATUTS.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
       </select>
+      {isFormation && (
+        <button
+          onClick={onAction}
+          title={action ? `Rappel : ${action.texte}${action.echeance ? ' — ' + formatDate(action.echeance) : ''}` : 'Fixer un rappel'}
+          style={{
+            background: action ? (isOverdue(action.echeance) ? '#fee2e2' : 'var(--teal-soft)') : 'var(--light)',
+            color: action ? (isOverdue(action.echeance) ? '#dc2626' : 'var(--teal)') : 'var(--muted)',
+            border: 'none', borderRadius: 8, padding: '5px 8px', cursor: 'pointer', fontSize: 13, flexShrink: 0,
+            display: 'flex', alignItems: 'center', gap: 4,
+          }}
+        >
+          <i className={`ti ${action ? 'ti-bell-ringing' : 'ti-bell'}`} />
+          {action && <span style={{ fontSize: 10, fontWeight: 600 }}>{action.echeance ? formatDate(action.echeance).split(' ').slice(0,2).join(' ') : '!'}</span>}
+        </button>
+      )}
       {item.url && (
         <a href={item.url} target="_blank" rel="noopener noreferrer" className="btn-sm" style={{ fontSize: 11, textDecoration: 'none', flexShrink: 0 }}>
           <i className="ti ti-external-link" />
