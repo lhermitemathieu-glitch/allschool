@@ -69,6 +69,7 @@ export default function CVCandidatPublic({ profil, publicUrl }) {
       {/* ── Print styles ── */}
       <style>{`
         @media print {
+          * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
           body { background: white !important; margin: 0 !important; padding: 0 !important; }
           .cv-no-print { display: none !important; }
           .cv-wrapper { padding: 0 !important; margin: 0 !important; display: block !important; }
@@ -83,6 +84,7 @@ export default function CVCandidatPublic({ profil, publicUrl }) {
             overflow: hidden !important;
             page-break-after: avoid !important;
             break-after: avoid !important;
+            transform-origin: top left !important;
           }
         }
         @page { size: A4 portrait; margin: 0; }
@@ -128,18 +130,19 @@ export default function CVCandidatPublic({ profil, publicUrl }) {
             fontFamily: 'DM Sans, sans-serif',
             overflow: 'hidden',
             minHeight: '297mm',
+            printColorAdjust: 'exact',
           }}
         >
           {/* ══ COLONNE GAUCHE ══ */}
           <div style={{
-            width: 210,
+            width: 200,
             flexShrink: 0,
             background: '#0E1B2E',
             color: 'white',
-            padding: '24px 18px',
+            padding: '20px 16px',
             display: 'flex',
             flexDirection: 'column',
-            gap: 18,
+            gap: 14,
           }}>
             {/* Photo + identité */}
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, textAlign: 'center' }}>
@@ -242,7 +245,7 @@ export default function CVCandidatPublic({ profil, publicUrl }) {
           </div>
 
           {/* ══ COLONNE DROITE ══ */}
-          <div style={{ flex: 1, padding: '24px 28px', display: 'flex', flexDirection: 'column', gap: 20, minWidth: 0 }}>
+          <div style={{ flex: 1, padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 16, minWidth: 0 }}>
             {/* En-tête nom + trait */}
             <div>
               <h1 style={{ fontFamily: 'Plus Jakarta Sans, sans-serif', fontWeight: 800, fontSize: 26, color: '#0E1B2E', lineHeight: 1.1, marginBottom: 6 }}>
