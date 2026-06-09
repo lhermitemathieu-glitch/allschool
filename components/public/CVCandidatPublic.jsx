@@ -52,6 +52,29 @@ function qrUrl(url) {
 /* ── composant principal ─────────────────────────────────────────────────── */
 export default function CVCandidatPublic({ profil, publicUrl }) {
   const cvRef = useRef(null)
+  const wrapperRef = useRef(null)
+
+  // Scale le CV pour tenir dans la largeur de l'écran sur mobile
+  useEffect(() => {
+    function applyScale() {
+      if (!cvRef.current || !wrapperRef.current) return
+      const cvWidth = cvRef.current.offsetWidth
+      const screenWidth = window.innerWidth
+      if (screenWidth < 820 && cvWidth > screenWidth) {
+        const scale = screenWidth / cvWidth
+        cvRef.current.style.setProperty('--cv-scale', scale)
+        cvRef.current.style.transform = `scale(${scale})`
+        cvRef.current.style.transformOrigin = 'top left'
+        wrapperRef.current.style.height = `${cvRef.current.offsetHeight * scale}px`
+      } else {
+        cvRef.current.style.transform = ''
+        if (wrapperRef.current) wrapperRef.current.style.height = ''
+      }
+    }
+    applyScale()
+    window.addEventListener('resize', applyScale)
+    return () => window.removeEventListener('resize', applyScale)
+  }, [])
 
   const dispo = formatDispo(profil)
   const exps  = profil.masquer_experiences ? [] : (profil.experiences || []).filter(e => e.poste || e.entreprise)
@@ -70,52 +93,36 @@ export default function CVCandidatPublic({ profil, publicUrl }) {
         @media print {
           body { background: white !important; }
           .cv-no-print { display: none !important; }
+          .cv-wrapper { padding: 0 !important; }
           .cv-page {
             box-shadow: none !important;
             border-radius: 0 !important;
             margin: 0 !important;
-            max-width: 100% !important;
             width: 210mm !important;
-            flex-direction: row !important;
-          }
-          .cv-sidebar {
-            width: 220px !important;
-            flex-direction: column !important;
+            max-width: 210mm !important;
+            transform: none !important;
+            transform-origin: unset !important;
           }
         }
         @page {
-          size: A4;
+          size: A4 portrait;
           margin: 0;
         }
-        @media screen and (min-width: 641px) {
+        @media screen {
           .cv-page { max-width: 210mm; }
         }
-        @media screen and (max-width: 640px) {
+        @media screen and (max-width: 820px) {
+          .cv-wrapper {
+            display: flex;
+            justify-content: flex-start;
+            overflow-x: auto;
+            padding: 0 !important;
+          }
           .cv-page {
-            flex-direction: column !important;
-            min-height: unset !important;
-            border-radius: 0 !important;
-            box-shadow: none !important;
+            transform-origin: top left;
+            transform: scale(var(--cv-scale, 1));
+            flex-shrink: 0;
           }
-          .cv-sidebar {
-            width: 100% !important;
-            flex-direction: row !important;
-            flex-wrap: wrap !important;
-            gap: 20px !important;
-            padding: 24px 20px !important;
-          }
-          .cv-sidebar-identity {
-            flex-direction: row !important;
-            text-align: left !important;
-            gap: 16px !important;
-            width: 100% !important;
-          }
-          .cv-sidebar-section {
-            flex: 1 1 calc(50% - 10px) !important;
-            min-width: 140px !important;
-          }
-          .cv-sidebar-qr { display: none !important; }
-          .cv-main { padding: 24px 20px !important; }
         }
       `}</style>
 
@@ -144,7 +151,7 @@ export default function CVCandidatPublic({ profil, publicUrl }) {
       </div>
 
       {/* ── Fond page ── */}
-      <div style={{ background: '#F7F5F0', minHeight: '100vh', paddingTop: 70, paddingBottom: 40, display: 'flex', justifyContent: 'center' }}>
+      <div ref={wrapperRef} className="cv-wrapper" style={{ background: '#F7F5F0', minHeight: '100vh', paddingTop: 70, paddingBottom: 40, display: 'flex', justifyContent: 'center' }}>
         {/* ── CV A4 ── */}
         <div
           ref={cvRef}
@@ -161,7 +168,7 @@ export default function CVCandidatPublic({ profil, publicUrl }) {
           }}
         >
           {/* ══ COLONNE GAUCHE ══ */}
-          <div className="cv-sidebar" style={{
+          <div style={{
             width: 220,
             flexShrink: 0,
             background: '#0E1B2E',
@@ -177,7 +184,7 @@ export default function CVCandidatPublic({ profil, publicUrl }) {
             </div>
 
             {/* Photo + identité */}
-            <div className="cv-sidebar-identity" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, textAlign: 'center' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, textAlign: 'center' }}>
               {profil.photo_url ? (
                 <img
                   src={profil.photo_url}
@@ -207,7 +214,7 @@ export default function CVCandidatPublic({ profil, publicUrl }) {
             </div>
 
             {/* Infos de contact */}
-            <div className="cv-sidebar-section" style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
               <SideTitle>Contact</SideTitle>
               {profil.email && (
                 <SideItem icon="ti-mail">
@@ -229,7 +236,7 @@ export default function CVCandidatPublic({ profil, publicUrl }) {
             </div>
 
             {/* Infos pratiques */}
-            <div className="cv-sidebar-section" style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
               <SideTitle>Infos</SideTitle>
               {profil.niveau_etudes && <SideItem icon="ti-school">{profil.niveau_etudes}</SideItem>}
               <SideItem icon="ti-car">{profil.permis ? 'Permis B' : 'Pas de permis'}</SideItem>
@@ -237,7 +244,7 @@ export default function CVCandidatPublic({ profil, publicUrl }) {
 
             {/* Langues */}
             {hasLangues && (
-              <div className="cv-sidebar-section" style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
                 <SideTitle>Langues</SideTitle>
                 {profil.langues.map((l, i) => (
                   <div key={i} style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)', display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -250,7 +257,7 @@ export default function CVCandidatPublic({ profil, publicUrl }) {
 
             {/* Soft skills */}
             {hasSoftSkills && (
-              <div className="cv-sidebar-section" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 <SideTitle>Soft skills</SideTitle>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
                   {profil.competences_soft.map(s => (
@@ -264,7 +271,7 @@ export default function CVCandidatPublic({ profil, publicUrl }) {
             )}
 
             {/* QR Code */}
-            <div className="cv-sidebar-qr" style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+            <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
               <img
                 src={qrUrl(publicUrl)}
                 alt="QR Code profil"
@@ -277,7 +284,7 @@ export default function CVCandidatPublic({ profil, publicUrl }) {
           </div>
 
           {/* ══ COLONNE DROITE ══ */}
-          <div className="cv-main" style={{ flex: 1, padding: '36px 32px', display: 'flex', flexDirection: 'column', gap: 28, minWidth: 0 }}>
+          <div style={{ flex: 1, padding: '36px 32px', display: 'flex', flexDirection: 'column', gap: 28, minWidth: 0 }}>
             {/* En-tête nom + trait */}
             <div>
               <h1 style={{ fontFamily: 'Plus Jakarta Sans, sans-serif', fontWeight: 800, fontSize: 26, color: '#0E1B2E', lineHeight: 1.1, marginBottom: 6 }}>
