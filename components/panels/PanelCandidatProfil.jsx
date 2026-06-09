@@ -369,7 +369,7 @@ export default function PanelCandidatProfil({ candidatIdOverride, onBack }) {
       )}
 
       {/* ── Carte identité + Complétion ── */}
-      <div className="grid2" style={{ marginBottom: 0, alignItems: 'stretch' }}>
+      <div className="grid2" style={{ marginBottom: '1.25rem', alignItems: 'stretch' }}>
       <div className="s-card" style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start', marginBottom: 0 }}>
         <AvatarPhoto
           url={dispUrl}
@@ -825,7 +825,7 @@ export default function PanelCandidatProfil({ candidatIdOverride, onBack }) {
       )}
 
       {/* ── Compétences techniques / Soft skills / Centres d'intérêt / Langues ── */}
-      {!data.masquer_experiences && (<div className="grid2">
+      {!data.masquer_experiences && (<div className="grid2" style={{ marginBottom: '1.25rem' }}>
         <div className="s-card" style={{ marginBottom: 0 }}>
           <div className="s-card-header">
             <div className="s-card-title"><i className="ti ti-tool" /> Compétences techniques</div>
