@@ -34,7 +34,16 @@ export async function generateMetadata({ params }) {
 export default async function PageCandidatPublic({ params }) {
   const { id } = await params
   const profil = await getCandidatPublic(id)
-  if (!profil) notFound()
+  if (!profil) {
+    return (
+      <div style={{ padding: 40, fontFamily: 'sans-serif' }}>
+        <h2>Profil non trouvé</h2>
+        <p>ID: {id}</p>
+        <p>URL Supabase: {process.env.NEXT_PUBLIC_SUPABASE_URL ? 'définie' : 'MANQUANTE'}</p>
+        <p>Clé anon: {process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ? 'définie' : 'MANQUANTE'}</p>
+      </div>
+    )
+  }
 
   const publicUrl = `https://allschool.vercel.app/candidat/${id}`
 
