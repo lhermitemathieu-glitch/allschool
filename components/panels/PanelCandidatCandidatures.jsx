@@ -103,7 +103,7 @@ export default function PanelCandidatCandidatures({ onNavigateEcole, onNavigateF
     if (!user) return
     const [{ data: candidatures }, { data: acts }] = await Promise.all([
       supabase.from('candidat_candidatures')
-        .select('*, formations(nom, ecoles(id, nom, ville, region))')
+        .select('*, formations(id, nom, ecoles(id, nom, ville, region))')
         .eq('candidat_id', user.id)
         .order('created_at', { ascending: false }),
       supabase.from('candidature_actions')
@@ -248,20 +248,33 @@ export default function PanelCandidatCandidatures({ onNavigateEcole, onNavigateF
             </div>
           )}
 
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
-            <input
-              placeholder={onglet === 'formations' ? 'Nom de la formation *' : "Nom de l'entreprise *"}
-              value={form.nom_entreprise}
-              onChange={e => setForm(f => ({ ...f, nom_entreprise: e.target.value }))}
-              style={{ ...inputStyle, flex: '2 1 160px' }}
-            />
-            <input
-              placeholder={onglet === 'formations' ? 'École' : 'Poste visé'}
-              value={form.poste}
-              onChange={e => setForm(f => ({ ...f, poste: e.target.value }))}
-              style={{ ...inputStyle, flex: '1 1 120px' }}
-            />
-          </div>
+          {(() => {
+            const editingItem = editing ? items.find(i => i.id === editing) : null
+            const lieeFormation = editingItem?.formations?.id
+            return (
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
+                {lieeFormation ? (
+                  <div style={{ ...inputStyle, flex: '2 1 160px', color: 'var(--muted)', background: 'var(--light)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <i className="ti ti-lock" style={{ fontSize: 12, color: 'var(--muted)' }} />
+                    {form.nom_entreprise}
+                  </div>
+                ) : (
+                  <input
+                    placeholder={onglet === 'formations' ? 'Nom de la formation *' : "Nom de l'entreprise *"}
+                    value={form.nom_entreprise}
+                    onChange={e => setForm(f => ({ ...f, nom_entreprise: e.target.value }))}
+                    style={{ ...inputStyle, flex: '2 1 160px' }}
+                  />
+                )}
+                <input
+                  placeholder={onglet === 'formations' ? 'École' : 'Poste visé'}
+                  value={form.poste}
+                  onChange={e => setForm(f => ({ ...f, poste: e.target.value }))}
+                  style={{ ...inputStyle, flex: '1 1 120px' }}
+                />
+              </div>
+            )
+          })()}
 
           {onglet === 'offres' && form.type !== 'prospection' && (
             <input
