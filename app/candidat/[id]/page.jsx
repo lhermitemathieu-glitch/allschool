@@ -20,6 +20,12 @@ async function getCandidatPublic(id) {
   return rows?.[0] ?? null
 }
 
+// Force le viewport A4 sur mobile — le navigateur zoom automatiquement
+export const viewport = {
+  width: '794',
+  initialScale: '1',
+}
+
 export async function generateMetadata({ params }) {
   const { id } = await params
   const profil = await getCandidatPublic(id)

@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useEffect } from 'react'
+import { useRef } from 'react'
 
 /* ── helpers ─────────────────────────────────────────────────────────────── */
 const MOIS_LABELS = ['Janv.', 'Févr.', 'Mars', 'Avr.', 'Mai', 'Juin', 'Juil.', 'Août', 'Sept.', 'Oct.', 'Nov.', 'Déc.']
@@ -54,28 +54,6 @@ export default function CVCandidatPublic({ profil, publicUrl }) {
   const cvRef = useRef(null)
   const wrapperRef = useRef(null)
 
-  // Scale le CV pour tenir dans la largeur de l'écran sur mobile
-  useEffect(() => {
-    function applyScale() {
-      if (!cvRef.current || !wrapperRef.current) return
-      const cvWidth = cvRef.current.offsetWidth
-      const screenWidth = window.innerWidth
-      if (screenWidth < 820 && cvWidth > screenWidth) {
-        const scale = screenWidth / cvWidth
-        cvRef.current.style.setProperty('--cv-scale', scale)
-        cvRef.current.style.transform = `scale(${scale})`
-        cvRef.current.style.transformOrigin = 'top left'
-        wrapperRef.current.style.height = `${cvRef.current.offsetHeight * scale}px`
-      } else {
-        cvRef.current.style.transform = ''
-        if (wrapperRef.current) wrapperRef.current.style.height = ''
-      }
-    }
-    applyScale()
-    window.addEventListener('resize', applyScale)
-    return () => window.removeEventListener('resize', applyScale)
-  }, [])
-
   const dispo = formatDispo(profil)
   const exps  = profil.masquer_experiences ? [] : (profil.experiences || []).filter(e => e.poste || e.entreprise)
   const hasSoftSkills = (profil.competences_soft || []).length > 0
@@ -93,37 +71,16 @@ export default function CVCandidatPublic({ profil, publicUrl }) {
         @media print {
           body { background: white !important; }
           .cv-no-print { display: none !important; }
-          .cv-wrapper { padding: 0 !important; }
           .cv-page {
             box-shadow: none !important;
             border-radius: 0 !important;
             margin: 0 !important;
             width: 210mm !important;
             max-width: 210mm !important;
-            transform: none !important;
-            transform-origin: unset !important;
           }
         }
-        @page {
-          size: A4 portrait;
-          margin: 0;
-        }
-        @media screen {
-          .cv-page { max-width: 210mm; }
-        }
-        @media screen and (max-width: 820px) {
-          .cv-wrapper {
-            display: flex;
-            justify-content: flex-start;
-            overflow-x: auto;
-            padding: 0 !important;
-          }
-          .cv-page {
-            transform-origin: top left;
-            transform: scale(var(--cv-scale, 1));
-            flex-shrink: 0;
-          }
-        }
+        @page { size: A4 portrait; margin: 0; }
+        @media screen { .cv-page { max-width: 210mm; } }
       `}</style>
 
       {/* ── Barre actions (non imprimée) ── */}
