@@ -132,20 +132,15 @@ export default function CVCandidatPublic({ profil, publicUrl }) {
         >
           {/* ══ COLONNE GAUCHE ══ */}
           <div style={{
-            width: 220,
+            width: 210,
             flexShrink: 0,
             background: '#0E1B2E',
             color: 'white',
-            padding: '32px 20px',
+            padding: '24px 18px',
             display: 'flex',
             flexDirection: 'column',
-            gap: 24,
+            gap: 18,
           }}>
-            {/* Logo */}
-            <div style={{ fontFamily: 'Plus Jakarta Sans, sans-serif', fontWeight: 800, fontSize: 17, letterSpacing: '-0.5px', color: 'white' }}>
-              all<span style={{ color: '#FF6B35' }}>school</span>
-            </div>
-
             {/* Photo + identité */}
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, textAlign: 'center' }}>
               {profil.photo_url ? (
@@ -247,7 +242,7 @@ export default function CVCandidatPublic({ profil, publicUrl }) {
           </div>
 
           {/* ══ COLONNE DROITE ══ */}
-          <div style={{ flex: 1, padding: '36px 32px', display: 'flex', flexDirection: 'column', gap: 28, minWidth: 0 }}>
+          <div style={{ flex: 1, padding: '24px 28px', display: 'flex', flexDirection: 'column', gap: 20, minWidth: 0 }}>
             {/* En-tête nom + trait */}
             <div>
               <h1 style={{ fontFamily: 'Plus Jakarta Sans, sans-serif', fontWeight: 800, fontSize: 26, color: '#0E1B2E', lineHeight: 1.1, marginBottom: 6 }}>
@@ -319,13 +314,6 @@ export default function CVCandidatPublic({ profil, publicUrl }) {
               </Section>
             )}
 
-            {/* Footer allschool */}
-            <div style={{ marginTop: 'auto', paddingTop: 16, borderTop: '0.5px solid rgba(14,27,46,0.09)', display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontFamily: 'Plus Jakarta Sans, sans-serif', fontWeight: 800, fontSize: 13, color: '#0E1B2E' }}>
-                all<span style={{ color: '#FF6B35' }}>school</span>
-              </span>
-              <span style={{ fontSize: 11, color: '#6B7A8D' }}>— La plateforme #1 de l'alternance</span>
-            </div>
           </div>
         </div>
       </div>
