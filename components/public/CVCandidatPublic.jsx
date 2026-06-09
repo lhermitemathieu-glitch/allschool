@@ -71,6 +71,7 @@ export default function CVCandidatPublic({ profil, publicUrl }) {
         @media print {
           body { background: white !important; margin: 0 !important; padding: 0 !important; }
           .cv-no-print { display: none !important; }
+          .cv-wrapper { padding: 0 !important; margin: 0 !important; display: block !important; }
           .cv-page {
             box-shadow: none !important;
             border-radius: 0 !important;
@@ -113,7 +114,7 @@ export default function CVCandidatPublic({ profil, publicUrl }) {
       </div>
 
       {/* ── Fond page ── */}
-      <div ref={wrapperRef} className="cv-wrapper" style={{ background: '#F7F5F0', minHeight: '100vh', paddingTop: 70, paddingBottom: 40, display: 'flex', justifyContent: 'center' }}>
+      <div ref={wrapperRef} className="cv-wrapper" style={{ background: '#F7F5F0', minHeight: '100vh', paddingTop: 70, paddingBottom: 40, display: 'flex', justifyContent: 'center', alignItems: 'flex-start' }}>
         {/* ── CV A4 ── */}
         <div
           ref={cvRef}
