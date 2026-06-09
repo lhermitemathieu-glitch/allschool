@@ -69,7 +69,7 @@ export default function CVCandidatPublic({ profil, publicUrl }) {
       {/* ── Print styles ── */}
       <style>{`
         @media print {
-          body { background: white !important; }
+          body { background: white !important; margin: 0 !important; padding: 0 !important; }
           .cv-no-print { display: none !important; }
           .cv-page {
             box-shadow: none !important;
@@ -77,6 +77,11 @@ export default function CVCandidatPublic({ profil, publicUrl }) {
             margin: 0 !important;
             width: 210mm !important;
             max-width: 210mm !important;
+            height: 297mm !important;
+            min-height: unset !important;
+            overflow: hidden !important;
+            page-break-after: avoid !important;
+            break-after: avoid !important;
           }
         }
         @page { size: A4 portrait; margin: 0; }
