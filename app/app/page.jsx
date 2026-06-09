@@ -230,7 +230,10 @@ export default function Home() {
           onNavigateEcole={(id, from, filters) => navigateTo('ecole-publique', { ecoleId: id, from, filters })}
           onNavigateArchives={() => navigateTo('candidat-archives')}
         />
-      case 'candidat-candidatures': return <PanelCandidatCandidatures onNavigateEcole={id => navigateTo('ecole-publique', { ecoleId: id, from: 'candidat-candidatures' })} />
+      case 'candidat-candidatures': return <PanelCandidatCandidatures
+          onNavigateEcole={id => navigateTo('ecole-publique', { ecoleId: id, from: 'candidat-candidatures' })}
+          onNavigateFormation={id => navigateTo('formation-publique', { formationId: id, from: 'candidat-candidatures' })}
+        />
       case 'candidat-badges':       return <PanelCandidatBadges />
       case 'candidat-statuts':      return <PanelCandidatStatuts
           onNavigateFormation={id => navigateTo('formation-publique', { formationId: id, from: 'candidat-statuts' })}

@@ -82,7 +82,7 @@ function ActionModal({ action, onSave, onClose }) {
   )
 }
 
-export default function PanelCandidatCandidatures({ onNavigateEcole }) {
+export default function PanelCandidatCandidatures({ onNavigateEcole, onNavigateFormation }) {
   const supabase = createClient()
 
   const [items,       setItems]       = useState([])
@@ -317,6 +317,7 @@ export default function PanelCandidatCandidatures({ onNavigateEcole }) {
               onDelete={() => handleDelete(item.id)}
               onStatut={s => quickStatut(item.id, s)}
               onNavigateEcole={onNavigateEcole}
+              onNavigateFormation={onNavigateFormation}
               action={actions[item.id] || null}
               onAction={() => setActionModal(item.id)}
             />
@@ -362,7 +363,7 @@ export default function PanelCandidatCandidatures({ onNavigateEcole }) {
   )
 }
 
-function ListRow({ item, onglet, onEdit, onDelete, onStatut, onNavigateEcole, action, onAction }) {
+function ListRow({ item, onglet, onEdit, onDelete, onStatut, onNavigateEcole, onNavigateFormation, action, onAction }) {
   const st = statutInfo(item.statut)
   const ty = typeInfo(item.type)
   const isFormation = item.type === 'formation' || item.type === 'ecole'
@@ -387,7 +388,11 @@ function ListRow({ item, onglet, onEdit, onDelete, onStatut, onNavigateEcole, ac
       <div style={{ flex: 1, minWidth: 0 }}>
         {isFormation ? (
           <>
-            <div className="e-name" style={{ marginBottom: 2 }}>{formationNom || ecoleNom}</div>
+            <div
+              className="e-name"
+              style={{ marginBottom: 2, cursor: item.formations?.id && onNavigateFormation ? 'pointer' : 'default', color: item.formations?.id && onNavigateFormation ? 'var(--teal)' : undefined }}
+              onClick={() => item.formations?.id && onNavigateFormation?.(item.formations.id)}
+            >{formationNom || ecoleNom}</div>
             {ecoleNom && (
               <div
                 onClick={() => ecoleId && onNavigateEcole?.(ecoleId)}
