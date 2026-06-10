@@ -9,6 +9,18 @@ const CALLER   = 'allschool'
 
 const ALL_REGIONS = ['84','27','53','24','94','44','32','11','28','75','76','52','93']
 
+// Points géographiques couvrant la France pour la recherche distanciel (lat/lng requis)
+const DISTANCIEL_POINTS = [
+  { lat: 48.8566, lng: 2.3522 },   // Paris
+  { lat: 45.7640, lng: 4.8357 },   // Lyon
+  { lat: 43.2965, lng: 5.3698 },   // Marseille
+  { lat: 44.8378, lng: -0.5792 },  // Bordeaux
+  { lat: 50.6292, lng: 3.0573 },   // Lille
+  { lat: 48.5734, lng: 7.7521 },   // Strasbourg
+  { lat: 47.2184, lng: -1.5536 },  // Nantes
+  { lat: 43.6047, lng: 1.4442 },   // Toulouse
+]
+
 const SIGLE_LABEL = {
   'CAP':        'CAP',
   'BAC PRO':    'Bac Pro',
@@ -87,8 +99,16 @@ export async function GET(request) {
     let rawItems = []
 
     if (modaliteKey === 'distanciel') {
-      // Pour distanciel : recherche nationale (toutes régions en parallèle)
-      const allResults = await Promise.all(ALL_REGIONS.map(r => fetchRegion(r)))
+      // Pour distanciel : lat/lng requis par l'API (region ne remonte pas les formations distanciel)
+      const fetchPoint = async ({ lat, lng }) => {
+        const params = new URLSearchParams({ caller: CALLER, latitude: lat, longitude: lng, radius: '200' })
+        if (romes.length > 0) params.set('romes', romes.join(','))
+        const res = await fetch(`${LBA_BASE}/formation/v1/search?${params}`, { headers, next: { revalidate: 1800 } })
+        if (!res.ok) return []
+        const data = await res.json()
+        return (data.data || []).filter(i => i.modalite?.entierement_a_distance === true)
+      }
+      const allResults = await Promise.all(DISTANCIEL_POINTS.map(fetchPoint))
       rawItems = allResults.flat()
     } else {
       // Nécessite une localisation (lat/lng ou region)
