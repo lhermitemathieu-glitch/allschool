@@ -261,6 +261,7 @@ function normalizeFormation(item) {
 
   const uai = item.formateur?.organisme?.identifiant?.uai
            || item.responsable?.organisme?.identifiant?.uai
+           || item.lieu?.uai
            || null
 
   // Sessions : on trie par date de début et on garde les futures
