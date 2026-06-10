@@ -165,7 +165,7 @@ export async function GET(request) {
       })
     }
 
-    return NextResponse.json({ results, warnings: data.warnings || [] })
+    return NextResponse.json({ results })
   } catch (err) {
     console.error('[LBA formations] Erreur fetch:', err)
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
