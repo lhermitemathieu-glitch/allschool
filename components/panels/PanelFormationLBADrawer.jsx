@@ -103,14 +103,15 @@ export default function PanelFormationLBADrawer({ formation, onClose }) {
                 <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--navy)', marginTop: 2 }}>{f.duree_annees} an{f.duree_annees > 1 ? 's' : ''}</div>
               </div>
             )}
-            {f.entierement_distance && (
-              <div className="s-card" style={{ marginBottom: 0, padding: '10px 12px', background: '#dcfce7' }}>
-                <div style={{ fontSize: 11, color: '#166534', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>Modalité</div>
-                <div style={{ fontSize: 13, fontWeight: 600, color: '#166534', marginTop: 2 }}>
-                  <i className="ti ti-wifi" /> 100% distanciel
-                </div>
+            <div className="s-card" style={{ marginBottom: 0, padding: '10px 12px', background: f.entierement_distance ? '#dcfce7' : 'white' }}>
+              <div style={{ fontSize: 11, color: f.entierement_distance ? '#166534' : 'var(--muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>Modalité</div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: f.entierement_distance ? '#166534' : 'var(--navy)', marginTop: 2 }}>
+                {f.entierement_distance
+                  ? <><i className="ti ti-wifi" /> 100% distanciel</>
+                  : <><i className="ti ti-building" /> Présentiel</>
+                }
               </div>
-            )}
+            </div>
             {f.rncp && (
               <div className="s-card" style={{ marginBottom: 0, padding: '10px 12px' }}>
                 <div style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>RNCP</div>
