@@ -378,10 +378,13 @@ export default function PanelCandidatFormations({ candidatId, onNavigateFormatio
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ formation: f }),
       })
+      const json = await res.json()
       if (res.ok) {
         setLbaSavedIds(prev => new Set([...prev, f.lba_id]))
+      } else {
+        console.error('[enregistrerLBA] erreur:', json)
       }
-    } catch { /* ignore */ }
+    } catch (err) { console.error('[enregistrerLBA] fetch error:', err) }
     setSaving(prev => { const s = new Set(prev); s.delete(f.id); return s })
   }
 
@@ -602,35 +605,39 @@ export default function PanelCandidatFormations({ candidatId, onNavigateFormatio
                             · {f.duree_annees} an{f.duree_annees > 1 ? 's' : ''}
                           </span>
                         )}
-                        {f.ecole_id && (
-                          <button
-                            onClick={e => { e.stopPropagation(); onNavigateEcole?.(f.ecole_id, 'candidat-formations') }}
-                            style={{ fontSize: 11, color: '#4f46e5', fontWeight: 500, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-                          >
-                            · <i className="ti ti-school" style={{ fontSize: 10 }} /> Fiche école
-                          </button>
-                        )}
                       </div>
                     </div>
 
-                    {/* Enregistrer / Masquer */}
-                    <button
-                      className="btn-sm"
-                      style={{ fontSize: 10, padding: '3px 8px', flexShrink: 0, background: isSaved ? 'var(--teal-soft)' : undefined, color: isSaved ? 'var(--teal)' : undefined, opacity: isSaved ? 0.7 : 1 }}
-                      onClick={ev => enregistrerLBA(f, ev)}
-                      disabled={isSaved || isSaving}
-                      title={isSaved ? 'Déjà dans mes candidatures' : 'Enregistrer dans mes candidatures'}
-                    >
-                      <i className={`ti ${isSaved ? 'ti-check' : isSaving ? 'ti-loader' : 'ti-bookmark'}`} />
-                    </button>
-                    <button
-                      className="btn-sm"
-                      style={{ fontSize: 10, padding: '3px 8px', flexShrink: 0, color: 'var(--muted)' }}
-                      onClick={ev => masquer(f, ev)}
-                      title="Ne plus voir cette formation"
-                    >
-                      <i className="ti ti-eye-off" />
-                    </button>
+                    {/* Fiche école + Enregistrer + Masquer */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+                      {f.ecole_id && onNavigateEcole && (
+                        <button
+                          className="btn-sm"
+                          style={{ fontSize: 10, padding: '3px 8px', color: '#4f46e5', borderColor: '#4f46e5' }}
+                          onClick={e => { e.stopPropagation(); onNavigateEcole(f.ecole_id, 'candidat-formations') }}
+                          title="Voir la fiche école"
+                        >
+                          <i className="ti ti-school" />
+                        </button>
+                      )}
+                      <button
+                        className="btn-sm"
+                        style={{ fontSize: 10, padding: '3px 8px', flexShrink: 0, background: isSaved ? 'var(--teal-soft)' : undefined, color: isSaved ? 'var(--teal)' : undefined, opacity: isSaved ? 0.7 : 1 }}
+                        onClick={ev => enregistrerLBA(f, ev)}
+                        disabled={isSaved || isSaving}
+                        title={isSaved ? 'Déjà dans mes candidatures' : 'Enregistrer dans mes candidatures'}
+                      >
+                        <i className={`ti ${isSaved ? 'ti-check' : isSaving ? 'ti-loader' : 'ti-bookmark'}`} />
+                      </button>
+                      <button
+                        className="btn-sm"
+                        style={{ fontSize: 10, padding: '3px 8px', flexShrink: 0, color: 'var(--muted)' }}
+                        onClick={ev => masquer(f, ev)}
+                        title="Ne plus voir cette formation"
+                      >
+                        <i className="ti ti-eye-off" />
+                      </button>
+                    </div>
                   </div>
                 )
 
