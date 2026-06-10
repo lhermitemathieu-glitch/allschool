@@ -409,7 +409,7 @@ export default function PanelCandidatFormations({ candidatId, onNavigateFormatio
       <div className="topbar">
         <div>
           <div className="page-title">Formations</div>
-          <div className="page-sub">{total !== null ? `${total} formations partenaires + résultats La Bonne Alternance` : 'Chargement…'}</div>
+          <div className="page-sub">Recherchez parmi les formations en alternance</div>
         </div>
         {onNavigateArchives && cachedIds.size > 0 && (
           <button className="btn-sm" style={{ fontSize: 11 }} onClick={onNavigateArchives}>
@@ -510,11 +510,10 @@ export default function PanelCandidatFormations({ candidatId, onNavigateFormatio
           </button>
         </div>
 
-        {geoSel && (
+        {geoSel?.type === 'france' && (
           <div style={{ fontSize: 11, color: 'var(--muted)', display: 'flex', alignItems: 'center', gap: 4 }}>
             <i className="ti ti-info-circle" style={{ fontSize: 12 }} />
-            Résultats La Bonne Alternance inclus
-            {geoSel.type === 'france' && ' · Recherche sur toute la France (peut être long)'}
+            Recherche sur toute la France — peut prendre quelques secondes
           </div>
         )}
       </div>
@@ -579,7 +578,7 @@ export default function PanelCandidatFormations({ candidatId, onNavigateFormatio
                       style={{ flex: 1, minWidth: 0, cursor: 'pointer' }}
                       onClick={() => setDrawerFormation(f)}
                     >
-                      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--teal)', lineHeight: 1.4 }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: '#4f46e5', lineHeight: 1.4 }}>
                         {f.nom} <i className="ti ti-chevron-right" style={{ fontSize: 11 }} />
                       </div>
                       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 2, alignItems: 'center' }}>
@@ -594,7 +593,7 @@ export default function PanelCandidatFormations({ candidatId, onNavigateFormatio
                           </span>
                         )}
                         {f.prochaine_rentree && (
-                          <span style={{ fontSize: 11, color: 'var(--teal)', fontWeight: 500 }}>
+                          <span style={{ fontSize: 11, color: '#4f46e5', fontWeight: 500 }}>
                             · <i className="ti ti-calendar" style={{ fontSize: 10 }} /> {new Date(f.prochaine_rentree).toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' })}
                           </span>
                         )}
@@ -607,7 +606,7 @@ export default function PanelCandidatFormations({ candidatId, onNavigateFormatio
                           <a
                             href={f.ecole_site_web} target="_blank" rel="noopener noreferrer"
                             onClick={e => e.stopPropagation()}
-                            style={{ fontSize: 11, color: 'var(--teal)', fontWeight: 500, textDecoration: 'none' }}
+                            style={{ fontSize: 11, color: '#4f46e5', fontWeight: 500, textDecoration: 'none' }}
                           >
                             · <i className="ti ti-world" style={{ fontSize: 10 }} /> Site école
                           </a>
