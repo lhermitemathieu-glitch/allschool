@@ -602,14 +602,13 @@ export default function PanelCandidatFormations({ candidatId, onNavigateFormatio
                             · {f.duree_annees} an{f.duree_annees > 1 ? 's' : ''}
                           </span>
                         )}
-                        {f.ecole_site_web && (
-                          <a
-                            href={f.ecole_site_web} target="_blank" rel="noopener noreferrer"
-                            onClick={e => e.stopPropagation()}
-                            style={{ fontSize: 11, color: '#4f46e5', fontWeight: 500, textDecoration: 'none' }}
+                        {f.ecole_id && (
+                          <button
+                            onClick={e => { e.stopPropagation(); onNavigateEcole?.(f.ecole_id, 'candidat-formations') }}
+                            style={{ fontSize: 11, color: '#4f46e5', fontWeight: 500, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
                           >
-                            · <i className="ti ti-world" style={{ fontSize: 10 }} /> Site école
-                          </a>
+                            · <i className="ti ti-school" style={{ fontSize: 10 }} /> Fiche école
+                          </button>
                         )}
                       </div>
                     </div>
