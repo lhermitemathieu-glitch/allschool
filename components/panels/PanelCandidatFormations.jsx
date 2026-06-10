@@ -634,7 +634,6 @@ export default function PanelCandidatFormations({ candidatId, onNavigateFormatio
           <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--muted)', fontSize: 13 }}>
             <i className="ti ti-certificate" style={{ fontSize: 28, display: 'block', marginBottom: 10, opacity: 0.3 }} />
             Utilisez les filtres et cliquez sur <strong>Rechercher</strong>.
-            <div style={{ marginTop: 8, fontSize: 12 }}>Pour inclure les résultats La Bonne Alternance, sélectionnez une ville, une région, ou choisissez "Distanciel".</div>
           </div>
         ) : loading ? (
           <div style={{ fontSize: 13, color: 'var(--muted)' }}>Recherche en cours…</div>
