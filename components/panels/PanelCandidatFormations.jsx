@@ -654,7 +654,7 @@ export default function PanelCandidatFormations({ candidatId, onNavigateFormatio
                 const isSaving = saving.has(f.id)
 
                 if (isLBA) return (
-                  <div key={f.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 4px', borderBottom: '0.5px solid var(--border)' }}>
+                  <div key={f.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '10px 4px', borderBottom: '0.5px solid var(--border)' }}>
 
                     {/* Niveau */}
                     <div style={{ flexShrink: 0, width: 72, textAlign: 'center' }}>
@@ -710,10 +710,11 @@ export default function PanelCandidatFormations({ candidatId, onNavigateFormatio
                       {f.ecole_nom && (
                         <button
                           onClick={e => { e.stopPropagation(); f.ecole_id && onNavigateEcole ? onNavigateEcole(f.ecole_id, 'candidat-formations') : setDrawerFormation(f) }}
-                          style={{ fontSize: 11, fontWeight: 600, color: f.ecole_id ? '#4f46e5' : 'var(--muted)', background: f.ecole_id ? '#ede9fe' : 'var(--light)', border: 'none', borderRadius: 6, padding: '3px 8px', cursor: 'pointer', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-                          title={f.ecole_id ? 'Voir la fiche école' : f.ecole_nom}
+                          style={{ fontSize: 11, fontWeight: 600, color: f.ecole_id ? '#4f46e5' : 'var(--muted)', background: f.ecole_id ? '#ede9fe' : 'var(--light)', border: 'none', borderRadius: 6, padding: '3px 8px', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                          title={f.ecole_nom}
                         >
-                          <i className="ti ti-school" style={{ fontSize: 10, marginRight: 4 }} />{f.ecole_nom}
+                          <i className="ti ti-school" style={{ fontSize: 10, marginRight: 4 }} />
+                          {f.ecole_nom?.split(' ').slice(0, 2).join(' ')}{f.ecole_nom?.split(' ').length > 2 ? '…' : ''}
                         </button>
                       )}
                       <button
