@@ -686,15 +686,20 @@ export default function PanelCandidatFormations({ candidatId, onNavigateFormatio
                       <div style={{ fontSize: 13, fontWeight: 600, color: '#4f46e5', lineHeight: 1.4 }}>
                         {f.nom} <i className="ti ti-chevron-right" style={{ fontSize: 11 }} />
                       </div>
-                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 2, alignItems: 'center' }}>
-                        {f.ville && (
-                          <span style={{ fontSize: 11, color: 'var(--muted)' }}>
-                            <i className="ti ti-map-pin" style={{ fontSize: 10 }} /> {f.ville}
-                          </span>
+                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 4, alignItems: 'center' }}>
+                        {f.ecole_nom && (
+                          <div
+                            onClick={e => { e.stopPropagation(); f.ecole_id && onNavigateEcole ? onNavigateEcole(f.ecole_id, 'candidat-formations') : setDrawerFormation(f) }}
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '2px 8px', borderRadius: 6, background: 'var(--light)', fontSize: 11, color: 'var(--navy)', fontWeight: 500, cursor: 'pointer' }}
+                          >
+                            <i className="ti ti-school" style={{ fontSize: 10, color: 'var(--purple)' }} />
+                            {f.ecole_nom}{f.ville ? ` · ${f.ville}` : ''}
+                            {f.ecole_id && onNavigateEcole && <i className="ti ti-chevron-right" style={{ fontSize: 9, color: 'var(--muted)' }} />}
+                          </div>
                         )}
                         {f.prochaine_rentree && (
                           <span style={{ fontSize: 11, color: '#4f46e5', fontWeight: 500 }}>
-                            · <i className="ti ti-calendar" style={{ fontSize: 10 }} /> {new Date(f.prochaine_rentree).toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' })}
+                            <i className="ti ti-calendar" style={{ fontSize: 10 }} /> {new Date(f.prochaine_rentree).toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' })}
                           </span>
                         )}
                         {f.duree_annees && (
@@ -705,18 +710,8 @@ export default function PanelCandidatFormations({ candidatId, onNavigateFormatio
                       </div>
                     </div>
 
-                    {/* École + Enregistrer + Masquer */}
+                    {/* Enregistrer + Masquer */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-                      {f.ecole_nom && (
-                        <button
-                          onClick={e => { e.stopPropagation(); f.ecole_id && onNavigateEcole ? onNavigateEcole(f.ecole_id, 'candidat-formations') : setDrawerFormation(f) }}
-                          style={{ fontSize: 11, fontWeight: 600, color: f.ecole_id ? '#4f46e5' : 'var(--muted)', background: f.ecole_id ? '#ede9fe' : 'var(--light)', border: 'none', borderRadius: 6, padding: '3px 8px', cursor: 'pointer', whiteSpace: 'nowrap' }}
-                          title={f.ecole_nom}
-                        >
-                          <i className="ti ti-school" style={{ fontSize: 10, marginRight: 4 }} />
-                          {f.ecole_nom?.split(' ').slice(0, 2).join(' ')}{f.ecole_nom?.split(' ').length > 2 ? '…' : ''}
-                        </button>
-                      )}
                       <button
                         className="btn-sm"
                         style={{ fontSize: 10, padding: '3px 8px', flexShrink: 0, background: isSaved ? 'var(--teal-soft)' : undefined, color: isSaved ? 'var(--teal)' : undefined, opacity: isSaved ? 0.7 : 1 }}
