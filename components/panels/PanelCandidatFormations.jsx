@@ -692,11 +692,6 @@ export default function PanelCandidatFormations({ candidatId, onNavigateFormatio
                             <i className="ti ti-map-pin" style={{ fontSize: 10 }} /> {f.ville}
                           </span>
                         )}
-                        {f.ecole_nom && (
-                          <span style={{ fontSize: 11, color: 'var(--muted)' }}>
-                            · <i className="ti ti-school" style={{ fontSize: 10 }} /> {f.ecole_nom}
-                          </span>
-                        )}
                         {f.prochaine_rentree && (
                           <span style={{ fontSize: 11, color: '#4f46e5', fontWeight: 500 }}>
                             · <i className="ti ti-calendar" style={{ fontSize: 10 }} /> {new Date(f.prochaine_rentree).toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' })}
@@ -710,16 +705,15 @@ export default function PanelCandidatFormations({ candidatId, onNavigateFormatio
                       </div>
                     </div>
 
-                    {/* Fiche école + Enregistrer + Masquer */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
-                      {f.ecole_id && onNavigateEcole && (
+                    {/* École + Enregistrer + Masquer */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                      {f.ecole_nom && (
                         <button
-                          className="btn-sm"
-                          style={{ fontSize: 10, padding: '3px 8px', color: '#4f46e5', borderColor: '#4f46e5' }}
-                          onClick={e => { e.stopPropagation(); onNavigateEcole(f.ecole_id, 'candidat-formations') }}
-                          title="Voir la fiche école"
+                          onClick={e => { e.stopPropagation(); f.ecole_id && onNavigateEcole ? onNavigateEcole(f.ecole_id, 'candidat-formations') : setDrawerFormation(f) }}
+                          style={{ fontSize: 11, fontWeight: 600, color: f.ecole_id ? '#4f46e5' : 'var(--muted)', background: f.ecole_id ? '#ede9fe' : 'var(--light)', border: 'none', borderRadius: 6, padding: '3px 8px', cursor: 'pointer', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                          title={f.ecole_id ? 'Voir la fiche école' : f.ecole_nom}
                         >
-                          <i className="ti ti-school" />
+                          <i className="ti ti-school" style={{ fontSize: 10, marginRight: 4 }} />{f.ecole_nom}
                         </button>
                       )}
                       <button
