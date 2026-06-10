@@ -231,7 +231,8 @@ export default function Home() {
           onNavigateArchives={() => navigateTo('candidat-archives')}
         />
       case 'candidat-candidatures': return <PanelCandidatCandidatures
-          onNavigateEcole={id => navigateTo('ecole-publique', { ecoleId: id, from: 'candidat-candidatures' })}
+          initialTab={activePanelData?.tab}
+          onNavigateEcole={(id, fromTab) => navigateTo('ecole-publique', { ecoleId: id, from: 'candidat-candidatures', fromTab })}
           onNavigateFormation={id => navigateTo('formation-publique', { formationId: id, from: 'candidat-candidatures' })}
         />
       case 'candidat-badges':       return <PanelCandidatBadges />
