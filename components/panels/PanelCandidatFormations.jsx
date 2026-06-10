@@ -191,15 +191,22 @@ export default function PanelCandidatFormations({ candidatId, onNavigateFormatio
   const [cachedIds,  setCachedIds]  = useState(new Set())   // formation_id masquées
   const [saving,     setSaving]     = useState(new Set())   // IDs en cours d'enregistrement
 
-  // Filtres
-  const [keyword,  setKeyword]  = useState(initialFilters?.keyword || initialFilters?.q || '')
-  const [secteur,  setSecteur]  = useState(initialFilters?.secteur  || '')
-  const [niveau,   setNiveau]   = useState(initialFilters?.niveau   || '')
-  const [modalite, setModalite] = useState(initialFilters?.modalite || '')
+  // Recherches sauvegardées
+  const [recherches,       setRecherches]       = useState([])
+  const [nomRecherche,     setNomRecherche]      = useState('')
+  const [showSaveInput,    setShowSaveInput]     = useState(false)
+  const [savingRecherche,  setSavingRecherche]   = useState(false)
 
-  const [ville,       setVille]       = useState(initialFilters?.ville     || '')
-  const [geoSel,      setGeoSel]      = useState(null)  // { type, label, lat, lng, region, regions }
-  const [rayon,       setRayon]       = useState(initialFilters?.rayon     || '')
+  // Filtres — restaure depuis localStorage au premier rendu
+  const ls = typeof window !== 'undefined' ? (() => { try { return JSON.parse(localStorage.getItem('allschool_formation_filters') || '{}') } catch { return {} } })() : {}
+  const [keyword,  setKeyword]  = useState(initialFilters?.keyword || initialFilters?.q || ls.keyword || '')
+  const [secteur,  setSecteur]  = useState(initialFilters?.secteur  || ls.secteur  || '')
+  const [niveau,   setNiveau]   = useState(initialFilters?.niveau   || ls.niveau   || '')
+  const [modalite, setModalite] = useState(initialFilters?.modalite || ls.modalite || '')
+
+  const [ville,       setVille]       = useState(initialFilters?.ville || ls.ville || '')
+  const [geoSel,      setGeoSel]      = useState(ls.geoSel || null)
+  const [rayon,       setRayon]       = useState(initialFilters?.rayon || ls.rayon || '')
   const [suggestions, setSuggestions] = useState([])
   const [geoErr,      setGeoErr]      = useState('')
   const [geoLoading,  setGeoLoading]  = useState(false)
@@ -229,6 +236,14 @@ export default function PanelCandidatFormations({ candidatId, onNavigateFormatio
           .not('lba_id', 'is', null)
         if (lbaForms) setLbaSavedIds(new Set(lbaForms.map(f => f.lba_id)))
       }
+
+      // Récupère les recherches sauvegardées
+      const { data: rech } = await supabase
+        .from('candidat_recherches_formations')
+        .select('id, nom, filtres')
+        .eq('candidat_id', user.id)
+        .order('created_at', { ascending: true })
+      if (rech) setRecherches(rech)
     })
   }, [])
 
@@ -277,6 +292,7 @@ export default function PanelCandidatFormations({ candidatId, onNavigateFormatio
 
   const search = useCallback(async () => {
     setLoading(true); setSearched(true); setGeoErr('')
+    persistFilters()
     try {
       const geo = geoSel
       const hasGeo = !!geo
@@ -407,6 +423,46 @@ export default function PanelCandidatFormations({ candidatId, onNavigateFormatio
 
   const filters = { keyword, secteur, niveau, modalite, ville, rayon }
 
+  // ── localStorage ─────────────────────────────────────────────────────────────
+  function persistFilters() {
+    try {
+      localStorage.setItem('allschool_formation_filters', JSON.stringify({ keyword, secteur, niveau, modalite, ville, rayon, geoSel }))
+    } catch {}
+  }
+
+  // ── Recherches sauvegardées ───────────────────────────────────────────────────
+  async function sauvegarderRecherche() {
+    if (!nomRecherche.trim() || recherches.length >= 5) return
+    setSavingRecherche(true)
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) { setSavingRecherche(false); return }
+    const filtres = { keyword, secteur, niveau, modalite, ville, rayon, geoSel }
+    const { data } = await supabase
+      .from('candidat_recherches_formations')
+      .insert({ candidat_id: user.id, nom: nomRecherche.trim(), filtres })
+      .select('id, nom, filtres')
+      .single()
+    if (data) setRecherches(prev => [...prev, data])
+    setNomRecherche(''); setShowSaveInput(false); setSavingRecherche(false)
+  }
+
+  function appliquerRecherche(r) {
+    const f = r.filtres || {}
+    setKeyword(f.keyword || '')
+    setSecteur(f.secteur || '')
+    setNiveau(f.niveau || '')
+    setModalite(f.modalite || '')
+    setVille(f.ville || '')
+    setRayon(f.rayon || '')
+    setGeoSel(f.geoSel || null)
+  }
+
+  async function supprimerRecherche(id, e) {
+    e.stopPropagation()
+    await supabase.from('candidat_recherches_formations').delete().eq('id', id)
+    setRecherches(prev => prev.filter(r => r.id !== id))
+  }
+
   return (
     <>
       <div className="topbar">
@@ -420,6 +476,52 @@ export default function PanelCandidatFormations({ candidatId, onNavigateFormatio
           </button>
         )}
       </div>
+
+      {/* Recherches sauvegardées */}
+      {(recherches.length > 0 || true) && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 10 }}>
+          <span style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 600, flexShrink: 0 }}>
+            <i className="ti ti-bookmark" style={{ marginRight: 3 }} /> Mes recherches :
+          </span>
+          {recherches.map(r => (
+            <button
+              key={r.id}
+              onClick={() => appliquerRecherche(r)}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 600, padding: '3px 10px', borderRadius: 20, background: '#ede9fe', color: '#4f46e5', border: '1px solid #c4b5fd', cursor: 'pointer' }}
+            >
+              {r.nom}
+              <span
+                onClick={e => supprimerRecherche(r.id, e)}
+                style={{ marginLeft: 2, opacity: 0.6, fontSize: 12, lineHeight: 1, cursor: 'pointer' }}
+                title="Supprimer"
+              >×</span>
+            </button>
+          ))}
+          {showSaveInput ? (
+            <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+              <input
+                autoFocus
+                placeholder="Nom de la recherche…"
+                value={nomRecherche}
+                onChange={e => setNomRecherche(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') sauvegarderRecherche(); if (e.key === 'Escape') setShowSaveInput(false) }}
+                style={{ fontSize: 11, padding: '3px 8px', border: '1px solid var(--border)', borderRadius: 6, outline: 'none', width: 160 }}
+              />
+              <button onClick={sauvegarderRecherche} disabled={!nomRecherche.trim() || savingRecherche} className="btn-sm" style={{ fontSize: 11, background: '#4f46e5', color: 'white', border: 'none' }}>
+                {savingRecherche ? <i className="ti ti-loader" /> : 'Sauvegarder'}
+              </button>
+              <button onClick={() => setShowSaveInput(false)} className="btn-sm" style={{ fontSize: 11 }}>Annuler</button>
+            </div>
+          ) : recherches.length < 5 && (
+            <button
+              onClick={() => setShowSaveInput(true)}
+              style={{ fontSize: 11, color: 'var(--muted)', background: 'none', border: '1px dashed var(--border)', borderRadius: 20, padding: '3px 10px', cursor: 'pointer' }}
+            >
+              <i className="ti ti-plus" style={{ fontSize: 10 }} /> Sauvegarder cette recherche
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Barre de recherche */}
       <div className="s-card" style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: '1rem' }}>
