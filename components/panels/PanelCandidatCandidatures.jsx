@@ -83,6 +83,87 @@ function ActionModal({ action, onSave, onClose }) {
   )
 }
 
+function InlineForm({ form, setForm, saving, onglet, editing, lieeFormation, onSave, onCancel }) {
+  return (
+    <div style={{ margin: '0 -4px', padding: '14px 16px', background: 'var(--light)', borderRadius: 10, borderTop: '2px solid var(--border)' }}>
+      {onglet === 'offres' && (
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 10 }}>
+          {TYPES_OFFRES.map(t => (
+            <button key={t.key} onClick={() => setForm(f => ({ ...f, type: t.key }))}
+              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 10px', borderRadius: 8, fontSize: 12, fontWeight: 500, cursor: 'pointer',
+                border: '1.5px solid ' + (form.type === t.key ? 'var(--navy)' : 'var(--border)'),
+                background: form.type === t.key ? 'var(--navy)' : 'white',
+                color: form.type === t.key ? 'white' : 'var(--muted)',
+              }}
+            >
+              <i className={`ti ${t.icon}`} /> {t.label}
+            </button>
+          ))}
+        </div>
+      )}
+
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
+        {lieeFormation ? (
+          <>
+            <div style={{ ...inlineInputStyle, flex: '2 1 160px', color: 'var(--muted)', background: 'white', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <i className="ti ti-lock" style={{ fontSize: 12, color: 'var(--muted)' }} />
+              {form.nom_entreprise}
+            </div>
+            <div style={{ ...inlineInputStyle, flex: '1 1 120px', color: 'var(--muted)', background: 'white', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <i className="ti ti-lock" style={{ fontSize: 12, color: 'var(--muted)' }} />
+              {form.poste}
+            </div>
+          </>
+        ) : (
+          <>
+            <input
+              placeholder={onglet === 'formations' ? 'Nom de la formation *' : "Nom de l'entreprise *"}
+              value={form.nom_entreprise}
+              onChange={e => setForm(f => ({ ...f, nom_entreprise: e.target.value }))}
+              style={{ ...inlineInputStyle, flex: '2 1 160px' }}
+            />
+            <input
+              placeholder={onglet === 'formations' ? 'École' : 'Poste visé'}
+              value={form.poste}
+              onChange={e => setForm(f => ({ ...f, poste: e.target.value }))}
+              style={{ ...inlineInputStyle, flex: '1 1 120px' }}
+            />
+          </>
+        )}
+      </div>
+
+      {onglet === 'offres' && form.type !== 'prospection' && (
+        <input
+          placeholder={form.type === 'allschool' ? "URL de l'offre Allschool" : "URL de l'annonce ou de la page recrutement"}
+          value={form.url}
+          onChange={e => setForm(f => ({ ...f, url: e.target.value }))}
+          style={{ ...inlineInputStyle, width: '100%', marginBottom: 8, boxSizing: 'border-box' }}
+        />
+      )}
+
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
+        <select value={form.statut} onChange={e => setForm(f => ({ ...f, statut: e.target.value }))} style={{ ...inlineInputStyle, flex: '1 1 160px' }}>
+          {STATUTS.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
+        </select>
+        <input placeholder="Notes (optionnel)" value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} style={{ ...inlineInputStyle, flex: '2 1 200px' }} />
+      </div>
+
+      <div style={{ display: 'flex', gap: 8 }}>
+        <button className="btn-sm teal" onClick={onSave} disabled={saving || !form.nom_entreprise.trim()}>
+          {saving ? 'Enregistrement…' : editing ? 'Mettre à jour' : 'Ajouter'}
+        </button>
+        <button className="btn-sm" onClick={onCancel}>Annuler</button>
+      </div>
+    </div>
+  )
+}
+
+const inlineInputStyle = {
+  padding: '7px 11px', border: '1.5px solid var(--border)', borderRadius: 8,
+  fontSize: 13, fontFamily: 'DM Sans, sans-serif', color: 'var(--navy)',
+  background: 'white', outline: 'none', boxSizing: 'border-box',
+}
+
 export default function PanelCandidatCandidatures({ onNavigateEcole, onNavigateFormation, initialTab }) {
   const supabase = createClient()
 
@@ -244,108 +325,41 @@ export default function PanelCandidatCandidatures({ onNavigateEcole, onNavigateF
             ))}
           </div>
 
-          {visible.length === 0 && (
+          {visible.length === 0 && !adding && (
             <p style={{ fontSize: 13, color: 'var(--muted)', padding: '8px 0' }}>
               {onglet === 'formations' ? 'Aucune formation. Enregistrez des formations depuis la page Formations.' : 'Aucune candidature.'}
             </p>
           )}
 
           {visible.map(item => (
-            <ListRow key={item.id} item={item} onglet={onglet}
-              onEdit={() => openEdit(item)}
-              onDelete={() => handleDelete(item.id)}
-              onStatut={s => quickStatut(item.id, s)}
-              onNavigateEcole={id => onNavigateEcole?.(id, onglet)}
-              onNavigateFormation={onNavigateFormation}
-              onOpenDrawer={setDrawerFormation}
-              action={actions[item.id] || null}
-              onAction={() => setActionModal(item.id)}
-            />
-          ))}
-        </div>
-      )}
-
-      {/* Formulaire ajout / édition */}
-      {adding && (
-        <div className="s-card" style={{ marginTop: 12 }}>
-          <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--navy)', marginBottom: 12 }}>
-            {editing ? 'Modifier la candidature' : 'Nouvelle candidature'}
-          </div>
-
-          {onglet === 'offres' && (
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
-              {TYPES_OFFRES.map(t => (
-                <button key={t.key} onClick={() => setForm(f => ({ ...f, type: t.key }))}
-                  style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 8, fontSize: 12, fontWeight: 500, cursor: 'pointer',
-                    border: '1.5px solid ' + (form.type === t.key ? 'var(--navy)' : 'var(--border)'),
-                    background: form.type === t.key ? 'var(--navy)' : 'white',
-                    color: form.type === t.key ? 'white' : 'var(--muted)',
-                  }}
-                >
-                  <i className={`ti ${t.icon}`} /> {t.label}
-                </button>
-              ))}
+            <div key={item.id}>
+              <ListRow item={item} onglet={onglet}
+                onEdit={() => openEdit(item)}
+                onDelete={() => handleDelete(item.id)}
+                onStatut={s => quickStatut(item.id, s)}
+                onNavigateEcole={id => onNavigateEcole?.(id, onglet)}
+                onNavigateFormation={onNavigateFormation}
+                onOpenDrawer={setDrawerFormation}
+                action={actions[item.id] || null}
+                onAction={() => setActionModal(item.id)}
+              />
+              {editing === item.id && adding && (
+                <InlineForm
+                  form={form} setForm={setForm} saving={saving}
+                  onglet={onglet} editing={editing} lieeFormation={item.formations?.id}
+                  onSave={handleSave} onCancel={() => { setAdding(false); setEditing(null) }}
+                />
+              )}
             </div>
-          )}
+          ))}
 
-          {(() => {
-            const editingItem = editing ? items.find(i => i.id === editing) : null
-            const lieeFormation = editingItem?.formations?.id
-            return (
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
-                {lieeFormation ? (
-                  <>
-                    <div style={{ ...inputStyle, flex: '2 1 160px', color: 'var(--muted)', background: 'var(--light)', display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <i className="ti ti-lock" style={{ fontSize: 12, color: 'var(--muted)' }} />
-                      {form.nom_entreprise}
-                    </div>
-                    <div style={{ ...inputStyle, flex: '1 1 120px', color: 'var(--muted)', background: 'var(--light)', display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <i className="ti ti-lock" style={{ fontSize: 12, color: 'var(--muted)' }} />
-                      {form.poste}
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <input
-                      placeholder={onglet === 'formations' ? 'Nom de la formation *' : "Nom de l'entreprise *"}
-                      value={form.nom_entreprise}
-                      onChange={e => setForm(f => ({ ...f, nom_entreprise: e.target.value }))}
-                      style={{ ...inputStyle, flex: '2 1 160px' }}
-                    />
-                    <input
-                      placeholder={onglet === 'formations' ? 'École' : 'Poste visé'}
-                      value={form.poste}
-                      onChange={e => setForm(f => ({ ...f, poste: e.target.value }))}
-                      style={{ ...inputStyle, flex: '1 1 120px' }}
-                    />
-                  </>
-                )}
-              </div>
-            )
-          })()}
-
-          {onglet === 'offres' && form.type !== 'prospection' && (
-            <input
-              placeholder={form.type === 'allschool' ? "URL de l'offre Allschool" : 'URL de l\'annonce ou de la page recrutement'}
-              value={form.url}
-              onChange={e => setForm(f => ({ ...f, url: e.target.value }))}
-              style={{ ...inputStyle, width: '100%', marginBottom: 8, boxSizing: 'border-box' }}
+          {adding && !editing && (
+            <InlineForm
+              form={form} setForm={setForm} saving={saving}
+              onglet={onglet} editing={null} lieeFormation={null}
+              onSave={handleSave} onCancel={() => { setAdding(false); setEditing(null) }}
             />
           )}
-
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
-            <select value={form.statut} onChange={e => setForm(f => ({ ...f, statut: e.target.value }))} style={{ ...inputStyle, flex: '1 1 160px' }}>
-              {STATUTS.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
-            </select>
-            <input placeholder="Notes (optionnel)" value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} style={{ ...inputStyle, flex: '2 1 200px' }} />
-          </div>
-
-          <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
-            <button className="btn-sm teal" onClick={handleSave} disabled={saving || !form.nom_entreprise.trim()}>
-              {saving ? 'Enregistrement…' : editing ? 'Mettre à jour' : 'Ajouter'}
-            </button>
-            <button className="btn-sm" onClick={() => { setAdding(false); setEditing(null) }}>Annuler</button>
-          </div>
         </div>
       )}
 
