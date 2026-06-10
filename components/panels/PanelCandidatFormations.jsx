@@ -5,6 +5,7 @@ import { createClient } from '../../lib/supabase/client'
 import { STATUTS } from './PanelFormationPublique'
 import { SECTEUR_ROME } from '../../lib/rome-mapping'
 import { NIVEAUX } from '../../lib/niveaux'
+import PanelFormationLBADrawer from './PanelFormationLBADrawer'
 
 const SECTEURS = Object.keys(SECTEUR_ROME).sort()
 
@@ -175,6 +176,8 @@ export default function PanelCandidatFormations({ candidatId, onNavigateFormatio
   const [loading, setLoading]       = useState(false)
   const [searched, setSearched]     = useState(false)
   const [total, setTotal]           = useState(null)
+
+  const [drawerFormation, setDrawerFormation] = useState(null)
 
   const [statuts,    setStatuts]    = useState({})
   const [savedIds,   setSavedIds]   = useState(new Set())   // formation_id enregistrées (Supabase)
@@ -577,90 +580,67 @@ export default function PanelCandidatFormations({ candidatId, onNavigateFormatio
                 const isLBA    = f._source === 'lba'
                 const isSaved  = isLBA ? lbaSavedIds.has(f.lba_id) : savedIds.has(f.id)
                 const isSaving = saving.has(f.id)
-                return (
-                  <div key={f.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 4px', borderBottom: '0.5px solid var(--border)' }}>
+
+                if (isLBA) return (
+                  <div key={f.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 4px', borderBottom: '0.5px solid var(--border)' }}>
 
                     {/* Niveau */}
-                    <div style={{ flexShrink: 0, width: 80, textAlign: 'center' }}>
+                    <div style={{ flexShrink: 0, width: 72, textAlign: 'center' }}>
                       {f.niveau && f.niveau !== 'autre' ? (
-                        <span style={{ ...niveauStyle(f.niveau), fontSize: 10, padding: '3px 8px', borderRadius: 20, whiteSpace: 'nowrap' }}>
-                          {NIVEAU_LABEL[f.niveau] || f.niveau}
+                        <span style={{ ...niveauStyle(f.niveau), fontSize: 10, padding: '3px 7px', borderRadius: 20, whiteSpace: 'nowrap' }}>
+                          {f.niveau_sigle || NIVEAU_LABEL[f.niveau] || f.niveau}
                         </span>
-                      ) : isLBA ? (
-                        <span style={{ background: '#e0f2fe', color: '#0369a1', fontSize: 10, padding: '3px 8px', borderRadius: 20, whiteSpace: 'nowrap', fontWeight: 600 }}>
-                          LBA
-                        </span>
-                      ) : null}
+                      ) : (
+                        <span style={{ background: '#e0f2fe', color: '#0369a1', fontSize: 10, padding: '3px 7px', borderRadius: 20, whiteSpace: 'nowrap', fontWeight: 600 }}>LBA</span>
+                      )}
                     </div>
 
-                    {/* Nom + localité */}
+                    {/* Nom + méta — cliquable pour ouvrir le drawer */}
                     <div
-                      style={{ flex: 1, minWidth: 0, cursor: (!isLBA && onNavigateFormation) ? 'pointer' : 'default' }}
-                      onClick={() => !isLBA && onNavigateFormation?.(f.id, 'candidat-formations', filters)}
+                      style={{ flex: 1, minWidth: 0, cursor: 'pointer' }}
+                      onClick={() => setDrawerFormation(f)}
                     >
-                      <div style={{ fontSize: 13, fontWeight: 600, color: (!isLBA && onNavigateFormation) ? 'var(--teal)' : 'var(--navy)', lineHeight: 1.4 }}>
-                        {f.nom}
-                        {!isLBA && onNavigateFormation && <i className="ti ti-chevron-right" style={{ fontSize: 11, marginLeft: 4 }} />}
+                      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--teal)', lineHeight: 1.4 }}>
+                        {f.nom} <i className="ti ti-chevron-right" style={{ fontSize: 11 }} />
                       </div>
-                      <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 2 }}>
-                        {(f.localite_formation || f.ville) && (
+                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 2, alignItems: 'center' }}>
+                        {f.ville && (
                           <span style={{ fontSize: 11, color: 'var(--muted)' }}>
-                            <i className="ti ti-map-pin" style={{ fontSize: 10 }} /> {f.localite_formation || f.ville}
+                            <i className="ti ti-map-pin" style={{ fontSize: 10 }} /> {f.ville}
                           </span>
                         )}
-                        {!isLBA && <ModaliteTag value={f.modalite || f.ecole?.modalites?.[0]} />}
-                        {isLBA && f.ecole && (
+                        {f.ecole_nom && (
                           <span style={{ fontSize: 11, color: 'var(--muted)' }}>
-                            <i className="ti ti-school" style={{ fontSize: 10 }} /> {f.ecole}
+                            · <i className="ti ti-school" style={{ fontSize: 10 }} /> {f.ecole_nom}
                           </span>
+                        )}
+                        {f.prochaine_rentree && (
+                          <span style={{ fontSize: 11, color: 'var(--teal)', fontWeight: 500 }}>
+                            · <i className="ti ti-calendar" style={{ fontSize: 10 }} /> {new Date(f.prochaine_rentree).toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' })}
+                          </span>
+                        )}
+                        {f.duree_annees && (
+                          <span style={{ fontSize: 11, color: 'var(--muted)' }}>
+                            · {f.duree_annees} an{f.duree_annees > 1 ? 's' : ''}
+                          </span>
+                        )}
+                        {f.ecole_site_web && (
+                          <a
+                            href={f.ecole_site_web} target="_blank" rel="noopener noreferrer"
+                            onClick={e => e.stopPropagation()}
+                            style={{ fontSize: 11, color: 'var(--teal)', fontWeight: 500, textDecoration: 'none' }}
+                          >
+                            · <i className="ti ti-world" style={{ fontSize: 10 }} /> Site école
+                          </a>
                         )}
                       </div>
                     </div>
-
-                    {/* École Allschool */}
-                    {!isLBA && f.ecole && (
-                      <div
-                        style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, cursor: onNavigateEcole ? 'pointer' : 'default', padding: '4px 8px', borderRadius: 8, background: 'var(--light)' }}
-                        onClick={() => onNavigateEcole?.(f.ecole.id, 'candidat-formations', filters)}
-                      >
-                        <div style={{ width: 22, height: 22, borderRadius: 5, background: 'var(--purple-soft)', color: 'var(--purple)', fontSize: 8, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                          {sigle(f.ecole.nom)}
-                        </div>
-                        <div style={{ maxWidth: 160 }}>
-                          <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--navy)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{f.ecole.nom}</div>
-                          <div style={{ fontSize: 10, color: 'var(--muted)' }}>{[f.ecole.ville, f.ecole.region].filter(Boolean).join(' · ')}</div>
-                        </div>
-                        {onNavigateEcole && <i className="ti ti-chevron-right" style={{ fontSize: 11, color: 'var(--teal)' }} />}
-                      </div>
-                    )}
-
-                    {/* ONISEP / lien LBA */}
-                    {!isLBA && f.url_onisep && (
-                      <button className="btn-sm teal" style={{ fontSize: 11, flexShrink: 0 }} onClick={() => window.open(f.url_onisep, '_blank')}>
-                        <i className="ti ti-external-link" /> ONISEP
-                      </button>
-                    )}
-                    {isLBA && f.url && (
-                      <button className="btn-sm" style={{ fontSize: 11, flexShrink: 0 }} onClick={() => window.open(f.url, '_blank')}>
-                        <i className="ti ti-external-link" /> Voir
-                      </button>
-                    )}
-
-                    {/* Statut (Allschool uniquement) */}
-                    {!isLBA && candidatId && (
-                      <StatutPicker
-                        formationId={f.id}
-                        currentStatut={statuts[f.id] || null}
-                        candidatId={candidatId}
-                        onChange={handleStatutChange}
-                      />
-                    )}
 
                     {/* Enregistrer / Masquer */}
                     <button
                       className="btn-sm"
                       style={{ fontSize: 10, padding: '3px 8px', flexShrink: 0, background: isSaved ? 'var(--teal-soft)' : undefined, color: isSaved ? 'var(--teal)' : undefined, opacity: isSaved ? 0.7 : 1 }}
-                      onClick={ev => isLBA ? enregistrerLBA(f, ev) : enregistrer(f, ev)}
+                      onClick={ev => enregistrerLBA(f, ev)}
                       disabled={isSaved || isSaving}
                       title={isSaved ? 'Déjà dans mes candidatures' : 'Enregistrer dans mes candidatures'}
                     >
@@ -676,6 +656,75 @@ export default function PanelCandidatFormations({ candidatId, onNavigateFormatio
                     </button>
                   </div>
                 )
+
+                // Formation Allschool (inchangée)
+                return (
+                  <div key={f.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 4px', borderBottom: '0.5px solid var(--border)' }}>
+                    <div style={{ flexShrink: 0, width: 80, textAlign: 'center' }}>
+                      {f.niveau && f.niveau !== 'autre' && (
+                        <span style={{ ...niveauStyle(f.niveau), fontSize: 10, padding: '3px 8px', borderRadius: 20, whiteSpace: 'nowrap' }}>
+                          {NIVEAU_LABEL[f.niveau] || f.niveau}
+                        </span>
+                      )}
+                    </div>
+                    <div
+                      style={{ flex: 1, minWidth: 0, cursor: onNavigateFormation ? 'pointer' : 'default' }}
+                      onClick={() => onNavigateFormation?.(f.id, 'candidat-formations', filters)}
+                    >
+                      <div style={{ fontSize: 13, fontWeight: 600, color: onNavigateFormation ? 'var(--teal)' : 'var(--navy)', lineHeight: 1.4 }}>
+                        {f.nom}
+                        {onNavigateFormation && <i className="ti ti-chevron-right" style={{ fontSize: 11, marginLeft: 4 }} />}
+                      </div>
+                      <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 2 }}>
+                        {(f.localite_formation || f.ville) && (
+                          <span style={{ fontSize: 11, color: 'var(--muted)' }}>
+                            <i className="ti ti-map-pin" style={{ fontSize: 10 }} /> {f.localite_formation || f.ville}
+                          </span>
+                        )}
+                        <ModaliteTag value={f.modalite || f.ecole?.modalites?.[0]} />
+                        {f.ecole && (
+                          <span style={{ fontSize: 11, color: 'var(--muted)' }}>
+                            · <i className="ti ti-school" style={{ fontSize: 10 }} /> {f.ecole.nom}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    {f.ecole && (
+                      <div
+                        style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, cursor: onNavigateEcole ? 'pointer' : 'default', padding: '4px 8px', borderRadius: 8, background: 'var(--light)' }}
+                        onClick={() => onNavigateEcole?.(f.ecole.id, 'candidat-formations', filters)}
+                      >
+                        <div style={{ width: 22, height: 22, borderRadius: 5, background: 'var(--purple-soft)', color: 'var(--purple)', fontSize: 8, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          {sigle(f.ecole.nom)}
+                        </div>
+                        <div style={{ maxWidth: 160 }}>
+                          <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--navy)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{f.ecole.nom}</div>
+                          <div style={{ fontSize: 10, color: 'var(--muted)' }}>{[f.ecole.ville, f.ecole.region].filter(Boolean).join(' · ')}</div>
+                        </div>
+                        {onNavigateEcole && <i className="ti ti-chevron-right" style={{ fontSize: 11, color: 'var(--teal)' }} />}
+                      </div>
+                    )}
+                    {f.url_onisep && (
+                      <button className="btn-sm teal" style={{ fontSize: 11, flexShrink: 0 }} onClick={() => window.open(f.url_onisep, '_blank')}>
+                        <i className="ti ti-external-link" /> ONISEP
+                      </button>
+                    )}
+                    {candidatId && (
+                      <StatutPicker formationId={f.id} currentStatut={statuts[f.id] || null} candidatId={candidatId} onChange={handleStatutChange} />
+                    )}
+                    <button
+                      className="btn-sm"
+                      style={{ fontSize: 10, padding: '3px 8px', flexShrink: 0, background: isSaved ? 'var(--teal-soft)' : undefined, color: isSaved ? 'var(--teal)' : undefined, opacity: isSaved ? 0.7 : 1 }}
+                      onClick={ev => enregistrer(f, ev)}
+                      disabled={isSaved || isSaving}
+                    >
+                      <i className={`ti ${isSaved ? 'ti-check' : isSaving ? 'ti-loader' : 'ti-bookmark'}`} />
+                    </button>
+                    <button className="btn-sm" style={{ fontSize: 10, padding: '3px 8px', flexShrink: 0, color: 'var(--muted)' }} onClick={ev => masquer(f, ev)}>
+                      <i className="ti ti-eye-off" />
+                    </button>
+                  </div>
+                )
               })}
             </div>
           </>
@@ -683,6 +732,13 @@ export default function PanelCandidatFormations({ candidatId, onNavigateFormatio
           </>
         )}
       </div>
+
+      {drawerFormation && (
+        <PanelFormationLBADrawer
+          formation={drawerFormation}
+          onClose={() => setDrawerFormation(null)}
+        />
+      )}
     </>
   )
 }

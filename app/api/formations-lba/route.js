@@ -73,18 +73,38 @@ export async function GET(request) {
     }
 
     const data = await res.json()
-    // L'API retourne { data: [...] }
     let results = (data.data || []).map(normalizeFormation)
 
     if (keyword) {
       results = results.filter(f =>
         f.nom.toLowerCase().includes(keyword) ||
-        f.ecole.toLowerCase().includes(keyword)
+        f.ecole_nom.toLowerCase().includes(keyword)
       )
     }
 
     if (niveauKey) {
       results = results.filter(f => f.niveau === niveauKey)
+    }
+
+    // Enrichissement écoles via UAI
+    const uais = [...new Set(results.map(f => f.uai).filter(Boolean))]
+    if (uais.length > 0) {
+      const adminSupabase = createAdminClient()
+      const { data: ecoles } = await adminSupabase
+        .from('ecoles')
+        .select('id, uai, site_web, nom, ville, adresse, code_postal')
+        .in('uai', uais)
+      const ecoleMap = Object.fromEntries((ecoles || []).map(e => [e.uai, e]))
+      results = results.map(f => {
+        const e = f.uai ? ecoleMap[f.uai] : null
+        return {
+          ...f,
+          ecole_id:        e?.id        || null,
+          ecole_site_web:  e?.site_web  || null,
+          ecole_adresse:   e?.adresse   || null,
+          ecole_cp:        e?.code_postal || null,
+        }
+      })
     }
 
     return NextResponse.json({ results, warnings: data.warnings || [] })
@@ -147,7 +167,7 @@ export async function POST(request) {
     .from('candidat_candidatures')
     .insert({
       candidat_id:    user.id,
-      nom_entreprise: formation.ecole || 'CFA',
+      nom_entreprise: formation.ecole_nom || 'CFA',
       poste:          formation.nom,
       type:           'formation',
       statut:         'a_faire',
@@ -177,24 +197,51 @@ function normalizeFormation(item) {
   const niveauEuropeen = cert?.intitule?.niveau?.cfd?.europeen
                       || cert?.intitule?.niveau?.rncp?.europeen
 
-  const ecole = item.formateur?.organisme?.unite_legale?.raison_sociale
-             || item.responsable?.organisme?.unite_legale?.raison_sociale
-             || ''
+  const ecole_nom = item.formateur?.organisme?.unite_legale?.raison_sociale
+                 || item.responsable?.organisme?.unite_legale?.raison_sociale
+                 || ''
 
-  const onisepUrl = item.onisep?.url || null
+  const uai = item.formateur?.organisme?.identifiant?.uai
+           || item.responsable?.organisme?.identifiant?.uai
+           || null
+
+  // Sessions : on trie par date de début et on garde les futures
+  const now = new Date()
+  const sessions = (item.sessions || [])
+    .map(s => ({ debut: s.debut, fin: s.fin, capacite: s.capacite ?? null }))
+    .filter(s => s.debut && new Date(s.debut) >= now)
+    .sort((a, b) => new Date(a.debut) - new Date(b.debut))
+
+  const prochaine_rentree = sessions[0]?.debut || null
+
+  const modalite = item.modalite || {}
 
   return {
-    lba_id:  item.identifiant?.cle_ministere_educatif || null,
+    lba_id:              item.identifiant?.cle_ministere_educatif || null,
     nom,
-    ecole,
-    ville:   lieu?.adresse?.commune?.nom  || '',
-    region:  lieu?.adresse?.region?.nom   || '',
-    adresse: lieu?.adresse?.label         || '',
-    niveau:  lbaNiveauToKey(niveauEuropeen),
-    url:     onisepUrl,
-    rncp:    cert?.identifiant?.rncp       || null,
-    cfd:     cert?.identifiant?.cfd        || null,
-    lat:     coords ? coords[1] : null,
-    lng:     coords ? coords[0] : null,
+    ecole_nom,
+    uai,
+    ville:               lieu?.adresse?.commune?.nom  || '',
+    region:              lieu?.adresse?.region?.nom   || '',
+    adresse:             lieu?.adresse?.label         || '',
+    niveau:              lbaNiveauToKey(niveauEuropeen),
+    niveau_libelle:      cert?.intitule?.niveau?.cfd?.libelle || null,
+    niveau_sigle:        cert?.intitule?.niveau?.cfd?.sigle   || null,
+    url_onisep:          item.onisep?.url || null,
+    rncp:                cert?.identifiant?.rncp       || null,
+    cfd:                 cert?.identifiant?.cfd        || null,
+    lat:                 coords ? coords[1] : null,
+    lng:                 coords ? coords[0] : null,
+    sessions,
+    prochaine_rentree,
+    duree_annees:        modalite.duree_indicative     || null,
+    entierement_distance: modalite.entierement_a_distance || false,
+    contenu:             item.contenu_educatif?.contenu  || null,
+    objectif:            item.contenu_educatif?.objectif || null,
+    // enrichi après par matching UAI
+    ecole_id:            null,
+    ecole_site_web:      null,
+    ecole_adresse:       null,
+    ecole_cp:            null,
   }
 }
