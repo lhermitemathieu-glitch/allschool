@@ -554,12 +554,22 @@ export default function PanelCandidatFormations({ candidatId, onNavigateFormatio
 
                     {/* Niveau */}
                     <div style={{ flexShrink: 0, width: 72, textAlign: 'center' }}>
-                      {f.diplome_label ? (
-                        <span style={{ ...niveauStyle(f.niveau), fontSize: 10, padding: '3px 7px', borderRadius: 20, whiteSpace: 'nowrap', textAlign: 'center', lineHeight: 1.3 }}>
-                          <span style={{ display: 'block', fontWeight: 700 }}>{f.diplome_label}</span>
-                          {f.niveau && <span style={{ display: 'block', opacity: 0.75 }}>Niv. {f.niveau === 'cap' ? 3 : f.niveau === 'bac' ? 4 : f.niveau === 'bts' ? 5 : f.niveau === 'bach' ? 6 : f.niveau === 'master' ? 7 : ''}</span>}
-                        </span>
-                      ) : (
+                      {f.diplome_label ? (() => {
+                        const s = niveauStyle(f.niveau)
+                        const niv = f.niveau === 'cap' ? 3 : f.niveau === 'bac' ? 4 : f.niveau === 'bts' ? 5 : f.niveau === 'bach' ? 6 : f.niveau === 'master' ? 7 : null
+                        return (
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
+                            <span style={{ ...s, fontSize: 10, fontWeight: 700, padding: '3px 9px', borderRadius: 20, whiteSpace: 'nowrap' }}>
+                              {f.diplome_label}
+                            </span>
+                            {niv && (
+                              <span style={{ fontSize: 9, fontWeight: 600, color: s.color, opacity: 0.7, letterSpacing: 0.3 }}>
+                                NIV. {niv}
+                              </span>
+                            )}
+                          </div>
+                        )
+                      })() : (
                         <span style={{ background: '#e0f2fe', color: '#0369a1', fontSize: 10, padding: '3px 7px', borderRadius: 20, whiteSpace: 'nowrap', fontWeight: 600 }}>LBA</span>
                       )}
                     </div>
