@@ -7,6 +7,33 @@ import { lbaNiveauToKey } from '../../../lib/niveaux'
 const LBA_BASE = 'https://api.apprentissage.beta.gouv.fr/api'
 const CALLER   = 'allschool'
 
+const SIGLE_LABEL = {
+  'CAP':        'CAP',
+  'BAC PRO':    'Bac Pro',
+  'BP':         'BP',
+  'BM':         'Brevet de Maîtrise',
+  'BTS':        'BTS',
+  'LIC-PRO':    'Licence Pro',
+  'LIC LMD':    'Licence',
+  'MASTER PRO': 'Master',
+  'MASTER LMD': 'Master',
+  'MS':         'Mastère Spé.',
+  'DCG':        'DCG',
+  'DSCG':       'DSCG',
+  'DEJEPS':     'DEJEPS',
+  'BP JEPS':    'BP JEPS',
+  'CS3':        'Certif. de Spéc.',
+}
+
+function diplomeLabel(sigle, libelle) {
+  if (!sigle) return null
+  if (SIGLE_LABEL[sigle]) return SIGLE_LABEL[sigle]
+  if (sigle.startsWith('TH')) return 'Titre Pro'
+  if (sigle.startsWith('DIV')) return 'Diplôme'
+  if (sigle.startsWith('DIP')) return 'Diplôme'
+  return sigle
+}
+
 /**
  * GET /api/formations-lba
  *
@@ -227,6 +254,7 @@ function normalizeFormation(item) {
     niveau:              lbaNiveauToKey(niveauEuropeen),
     niveau_libelle:      cert?.intitule?.niveau?.cfd?.libelle || null,
     niveau_sigle:        cert?.intitule?.niveau?.cfd?.sigle   || null,
+    diplome_label:       diplomeLabel(cert?.intitule?.niveau?.cfd?.sigle, cert?.intitule?.niveau?.cfd?.libelle),
     url_onisep:          item.onisep?.url || null,
     rncp:                cert?.identifiant?.rncp       || null,
     cfd:                 cert?.identifiant?.cfd        || null,

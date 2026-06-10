@@ -61,9 +61,9 @@ export default function PanelFormationLBADrawer({ formation, onClose }) {
           display: 'flex', alignItems: 'flex-start', gap: 12,
         }}>
           <div style={{ flex: 1, minWidth: 0 }}>
-            {f.niveau && (
+            {(f.diplome_label || f.niveau) && (
               <span style={{ ...niveauStyle(f.niveau), fontSize: 11, padding: '2px 8px', borderRadius: 20, fontWeight: 600, display: 'inline-block', marginBottom: 6 }}>
-                {f.niveau_sigle || NIVEAU_LABEL[f.niveau] || f.niveau}
+                {f.diplome_label || NIVEAU_LABEL[f.niveau] || f.niveau}
               </span>
             )}
             <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--navy)', lineHeight: 1.4 }}>{f.nom}</div>
