@@ -330,7 +330,7 @@ export default function PanelCandidatFormations({ candidatId, onNavigateFormatio
           const seen = new Set()
           for (const json of jsons) {
             for (const f of (json.results || [])) {
-              if (f.lba_id && !seen.has(f.lba_id) && !lbaSavedIds.has(f.lba_id)) {
+              if (f.lba_id && !seen.has(f.lba_id)) {
                 seen.add(f.lba_id)
                 lbaRows.push({ ...f, id: `lba_${f.lba_id}`, _source: 'lba' })
               }
@@ -357,7 +357,7 @@ export default function PanelCandidatFormations({ candidatId, onNavigateFormatio
     } finally {
       setLoading(false)
     }
-  }, [keyword, secteur, niveau, modalite, ville, geoSel, rayon, candidatId, cachedIds, lbaSavedIds])
+  }, [keyword, secteur, niveau, modalite, ville, geoSel, rayon, candidatId, cachedIds])
 
   function handleStatutChange(formationId, newStatut) {
     setStatuts(prev => ({ ...prev, [formationId]: newStatut }))

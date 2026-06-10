@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '../../lib/supabase/client'
 import { TYPES, typeInfo } from '../../lib/offre-types'
+import PanelFormationLBADrawer from './PanelFormationLBADrawer'
 
 const STATUTS = [
   { key: 'a_faire',   label: 'À faire',             color: '#0369a1',       bg: '#e0f2fe' },
@@ -85,10 +86,11 @@ function ActionModal({ action, onSave, onClose }) {
 export default function PanelCandidatCandidatures({ onNavigateEcole, onNavigateFormation }) {
   const supabase = createClient()
 
-  const [items,       setItems]       = useState([])
-  const [actions,     setActions]     = useState({}) // { candidature_id: action }
-  const [onglet,      setOnglet]      = useState('offres')
-  const [view,        setView]        = useState('liste')
+  const [items,           setItems]           = useState([])
+  const [actions,         setActions]         = useState({}) // { candidature_id: action }
+  const [onglet,          setOnglet]          = useState('offres')
+  const [view,            setView]            = useState('liste')
+  const [drawerFormation, setDrawerFormation] = useState(null)
   const [adding,      setAdding]      = useState(false)
   const [editing,     setEditing]     = useState(null)
   const [form,        setForm]        = useState(EMPTY_FORM)
@@ -103,7 +105,7 @@ export default function PanelCandidatCandidatures({ onNavigateEcole, onNavigateF
     if (!user) return
     const [{ data: candidatures }, { data: acts }] = await Promise.all([
       supabase.from('candidat_candidatures')
-        .select('*, formations(id, nom, ecoles(id, nom, ville, region))')
+        .select('*, formations(id, nom, ecole_id, lba_data, ecoles(id, nom, ville, region))')
         .eq('candidat_id', user.id)
         .order('created_at', { ascending: false }),
       supabase.from('candidature_actions')
@@ -331,6 +333,7 @@ export default function PanelCandidatCandidatures({ onNavigateEcole, onNavigateF
               onStatut={s => quickStatut(item.id, s)}
               onNavigateEcole={onNavigateEcole}
               onNavigateFormation={onNavigateFormation}
+              onOpenDrawer={setDrawerFormation}
               action={actions[item.id] || null}
               onAction={() => setActionModal(item.id)}
             />
@@ -344,6 +347,14 @@ export default function PanelCandidatCandidatures({ onNavigateEcole, onNavigateF
           action={actions[actionModal] || null}
           onSave={payload => handleSaveAction(actionModal, payload)}
           onClose={() => setActionModal(null)}
+        />
+      )}
+
+      {drawerFormation && (
+        <PanelFormationLBADrawer
+          formation={drawerFormation}
+          onClose={() => setDrawerFormation(null)}
+          onNavigateEcole={onNavigateEcole}
         />
       )}
 
@@ -376,16 +387,27 @@ export default function PanelCandidatCandidatures({ onNavigateEcole, onNavigateF
   )
 }
 
-function ListRow({ item, onglet, onEdit, onDelete, onStatut, onNavigateEcole, onNavigateFormation, action, onAction }) {
+function ListRow({ item, onglet, onEdit, onDelete, onStatut, onNavigateEcole, onNavigateFormation, onOpenDrawer, action, onAction }) {
   const st = statutInfo(item.statut)
   const ty = typeInfo(item.type)
   const isFormation = item.type === 'formation' || item.type === 'ecole'
   // Données enrichies via join
+  const lbaData      = item.formations?.lba_data || null
+  const isLBA        = !!lbaData
   const formationNom = item.formations?.nom || item.poste || ''
   const ecole        = item.formations?.ecoles || null
-  const ecoleId      = ecole?.id || null
+  const ecoleId      = ecole?.id || item.formations?.ecole_id || null
   const ecoleNom     = ecole?.nom || item.nom_entreprise || ''
   const ecoleVille   = ecole?.ville || ''
+
+  function handleFormationClick() {
+    if (isLBA && onOpenDrawer) {
+      // Reconstruit l'objet complet avec ecole_id résolu
+      onOpenDrawer({ ...lbaData, ecole_id: ecoleId, ecole_nom: ecole?.nom || lbaData.ecole_nom })
+    } else if (item.formations?.id && onNavigateFormation) {
+      onNavigateFormation(item.formations.id)
+    }
+  }
 
   return (
     <div className="entry-row" style={{ alignItems: 'center', gap: 10, padding: '10px 0' }}>
@@ -403,9 +425,9 @@ function ListRow({ item, onglet, onEdit, onDelete, onStatut, onNavigateEcole, on
           <>
             <div
               className="e-name"
-              style={{ marginBottom: 2, cursor: item.formations?.id && onNavigateFormation ? 'pointer' : 'default', color: item.formations?.id && onNavigateFormation ? 'var(--teal)' : undefined }}
-              onClick={() => item.formations?.id && onNavigateFormation?.(item.formations.id)}
-            >{formationNom || ecoleNom}</div>
+              style={{ marginBottom: 2, cursor: (isLBA && onOpenDrawer) || (item.formations?.id && onNavigateFormation) ? 'pointer' : 'default', color: (isLBA && onOpenDrawer) || (item.formations?.id && onNavigateFormation) ? 'var(--teal)' : undefined }}
+              onClick={handleFormationClick}
+            >{formationNom || ecoleNom}{(isLBA || item.formations?.id) && <i className="ti ti-chevron-right" style={{ fontSize: 10, marginLeft: 3 }} />}</div>
             {ecoleNom && (
               <div
                 onClick={() => ecoleId && onNavigateEcole?.(ecoleId)}

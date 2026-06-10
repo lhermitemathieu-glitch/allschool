@@ -198,8 +198,9 @@ export async function POST(request) {
       niveau:             formation.niveau || null,
       source:             'lba',
       localite_formation: formation.ville || null,
-      url_onisep:         formation.url   || null,
-      ecole_id:           null,
+      url_onisep:         formation.url_onisep || formation.url || null,
+      ecole_id:           formation.ecole_id || null,
+      lba_data:           formation,
     }, { onConflict: 'lba_id' })
     .select('id')
     .single()
