@@ -698,7 +698,7 @@ export default function PanelCandidatFormations({ candidatId, onNavigateFormatio
                             style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '2px 8px', borderRadius: 6, background: 'var(--light)', fontSize: 11, color: 'var(--navy)', fontWeight: 500, cursor: 'pointer' }}
                           >
                             <i className="ti ti-school" style={{ fontSize: 10, color: 'var(--purple)' }} />
-                            {f.ecole_nom}{f.ville ? ` · ${f.ville}` : ''}
+                            {f.ecole_nom}{!f.entierement_distance && f.ville ? ` · ${f.ville}` : ''}
                             {f.ecole_id && onNavigateEcole && <i className="ti ti-chevron-right" style={{ fontSize: 9, color: 'var(--muted)' }} />}
                           </div>
                         )}
