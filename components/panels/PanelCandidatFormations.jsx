@@ -299,8 +299,10 @@ export default function PanelCandidatFormations({ candidatId, onNavigateFormatio
 
       // ── 1. Recherche LBA ────────────────────────────────────────────────────
       let lbaRows = []
-      if (hasGeo) {
-        const buildParams = (geoOverride) => {
+      const isDistanciel = modalite === 'distanciel'
+
+      if (isDistanciel || hasGeo) {
+        const buildParams = (geoOverride = {}) => {
           const params = new URLSearchParams()
           if (secteur)        params.set('secteurs', JSON.stringify([secteur]))
           if (keyword.trim()) params.set('keyword', keyword.trim())
@@ -318,7 +320,10 @@ export default function PanelCandidatFormations({ candidatId, onNavigateFormatio
 
         try {
           let fetches = []
-          if (geo.type === 'france') {
+          if (isDistanciel) {
+            // Une seule requête — l'API gère la recherche nationale en interne
+            fetches = [fetch(`/api/formations-lba?${buildParams()}`).then(r => r.json()).catch(() => ({ results: [] }))]
+          } else if (geo.type === 'france') {
             fetches = geo.regions.map(r => fetch(`/api/formations-lba?${buildParams({ region: r })}`).then(r => r.json()).catch(() => ({ results: [] })))
           } else if (geo.type === 'region') {
             fetches = [fetch(`/api/formations-lba?${buildParams({ region: geo.region })}`).then(r => r.json()).catch(() => ({ results: [] }))]
@@ -629,7 +634,7 @@ export default function PanelCandidatFormations({ candidatId, onNavigateFormatio
           <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--muted)', fontSize: 13 }}>
             <i className="ti ti-certificate" style={{ fontSize: 28, display: 'block', marginBottom: 10, opacity: 0.3 }} />
             Utilisez les filtres et cliquez sur <strong>Rechercher</strong>.
-            <div style={{ marginTop: 8, fontSize: 12 }}>Pour inclure les résultats La Bonne Alternance, sélectionnez une ville ou une région.</div>
+            <div style={{ marginTop: 8, fontSize: 12 }}>Pour inclure les résultats La Bonne Alternance, sélectionnez une ville, une région, ou choisissez "Distanciel".</div>
           </div>
         ) : loading ? (
           <div style={{ fontSize: 13, color: 'var(--muted)' }}>Recherche en cours…</div>
