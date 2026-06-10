@@ -7,6 +7,8 @@ import { lbaNiveauToKey } from '../../../lib/niveaux'
 const LBA_BASE = 'https://api.apprentissage.beta.gouv.fr/api'
 const CALLER   = 'allschool'
 
+const ALL_REGIONS = ['84','27','53','24','94','44','32','11','28','75','76','52','93']
+
 const SIGLE_LABEL = {
   'CAP':        'CAP',
   'BAC PRO':    'Bac Pro',
@@ -64,44 +66,65 @@ export async function GET(request) {
     ? getRomesForSecteurs(secteurs).slice(0, 20)
     : []
 
-  // Nécessite une localisation (lat/lng ou region)
-  if (!latitude && !longitude && !region) {
-    return NextResponse.json({ results: [] })
-  }
-
   const token = process.env.LBA_API_TOKEN
   const headers = {
     'Content-Type': 'application/json',
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
   }
 
-  try {
+  const fetchRegion = async (regionCode, extraParams = {}) => {
     const params = new URLSearchParams({ caller: CALLER })
     if (romes.length > 0) params.set('romes', romes.join(','))
-
-    if (latitude && longitude) {
-      params.set('latitude', latitude)
-      params.set('longitude', longitude)
-      params.set('radius', radius)
-    } else if (region) {
-      params.set('region', region)
-    }
-
-    const url = `${LBA_BASE}/formation/v1/search?${params}`
-
-    const res = await fetch(url, { headers, next: { revalidate: 1800 } })
-
-    if (!res.ok) {
-      const text = await res.text()
-      console.error('[LBA formations] Erreur API:', res.status, text)
-      return NextResponse.json(
-        { error: `Erreur La Bonne Alternance : ${res.status}` },
-        { status: res.status }
-      )
-    }
-
+    params.set('region', regionCode)
+    Object.entries(extraParams).forEach(([k, v]) => params.set(k, v))
+    const res = await fetch(`${LBA_BASE}/formation/v1/search?${params}`, { headers, next: { revalidate: 1800 } })
+    if (!res.ok) return []
     const data = await res.json()
-    let results = (data.data || []).map(normalizeFormation)
+    return data.data || []
+  }
+
+  try {
+    let rawItems = []
+
+    if (modaliteKey === 'distanciel') {
+      // Pour distanciel : recherche nationale (toutes régions en parallèle)
+      const allResults = await Promise.all(ALL_REGIONS.map(r => fetchRegion(r)))
+      rawItems = allResults.flat()
+    } else {
+      // Nécessite une localisation (lat/lng ou region)
+      if (!latitude && !longitude && !region) {
+        return NextResponse.json({ results: [] })
+      }
+
+      const params = new URLSearchParams({ caller: CALLER })
+      if (romes.length > 0) params.set('romes', romes.join(','))
+      if (latitude && longitude) {
+        params.set('latitude', latitude)
+        params.set('longitude', longitude)
+        params.set('radius', radius)
+      } else if (region) {
+        params.set('region', region)
+      }
+
+      const res = await fetch(`${LBA_BASE}/formation/v1/search?${params}`, { headers, next: { revalidate: 1800 } })
+      if (!res.ok) {
+        const text = await res.text()
+        console.error('[LBA formations] Erreur API:', res.status, text)
+        return NextResponse.json({ error: `Erreur La Bonne Alternance : ${res.status}` }, { status: res.status })
+      }
+      const data = await res.json()
+      rawItems = data.data || []
+    }
+
+    // Dédoublonnage par lba_id
+    const seen = new Set()
+    let results = rawItems
+      .map(normalizeFormation)
+      .filter(f => {
+        if (!f.lba_id || seen.has(f.lba_id)) return false
+        seen.add(f.lba_id)
+        return true
+      })
 
     if (keyword) {
       results = results.filter(f =>
