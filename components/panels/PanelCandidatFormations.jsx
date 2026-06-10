@@ -715,6 +715,7 @@ export default function PanelCandidatFormations({ candidatId, onNavigateFormatio
         <PanelFormationLBADrawer
           formation={drawerFormation}
           onClose={() => setDrawerFormation(null)}
+          onNavigateEcole={onNavigateEcole}
         />
       )}
     </>

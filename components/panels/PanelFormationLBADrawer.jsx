@@ -23,7 +23,7 @@ function fmt(iso) {
   return new Date(iso).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })
 }
 
-export default function PanelFormationLBADrawer({ formation, onClose }) {
+export default function PanelFormationLBADrawer({ formation, onClose, onNavigateEcole }) {
   const f = formation
 
   useEffect(() => {
@@ -176,6 +176,15 @@ export default function PanelFormationLBADrawer({ formation, onClose }) {
 
           {/* Liens */}
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {f.ecole_id && onNavigateEcole && (
+              <button
+                onClick={() => { onClose(); onNavigateEcole(f.ecole_id, 'candidat-formations') }}
+                className="btn-sm"
+                style={{ fontSize: 12, background: '#4f46e5', color: 'white', border: 'none', cursor: 'pointer' }}
+              >
+                <i className="ti ti-school" /> Voir la fiche école
+              </button>
+            )}
             {f.url_onisep && (
               <a href={f.url_onisep} target="_blank" rel="noopener noreferrer" className="btn-sm teal" style={{ fontSize: 12, textDecoration: 'none' }}>
                 <i className="ti ti-external-link" /> Fiche ONISEP
