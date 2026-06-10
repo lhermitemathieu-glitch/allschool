@@ -55,6 +55,7 @@ export async function GET(request) {
   const radius      = searchParams.get('radius') || '30'
   const region      = searchParams.get('region')
   const niveauKey   = searchParams.get('niveau')
+  const modaliteKey = searchParams.get('modalite')
 
   let secteurs = []
   try { secteurs = secteursRaw ? JSON.parse(secteursRaw) : [] } catch { secteurs = [] }
@@ -110,7 +111,13 @@ export async function GET(request) {
     }
 
     if (niveauKey) {
-      results = results.filter(f => f.niveau === niveauKey)
+      results = results.filter(f => f.diplome_label === niveauKey)
+    }
+
+    if (modaliteKey === 'distanciel') {
+      results = results.filter(f => f.entierement_distance === true)
+    } else if (modaliteKey === 'presentiel') {
+      results = results.filter(f => f.entierement_distance === false)
     }
 
     // Enrichissement écoles via UAI

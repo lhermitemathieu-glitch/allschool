@@ -25,6 +25,12 @@ const REGIONS = [
   { code: '93', label: "Provence-Alpes-Côte d'Azur" },
 ]
 
+const NIVEAUX_FILTER_LBA = [
+  'CAP', 'Bac Pro', 'BP', 'BTS', 'Titre Pro',
+  'Licence Pro', 'Licence', 'Bachelor', 'DCG',
+  'Master', 'Mastère Spé.', 'DSCG',
+]
+
 function sigle(nom) {
   return (nom || '').split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 3) || '?'
 }
@@ -192,11 +198,8 @@ export default function PanelCandidatFormations({ candidatId, onNavigateFormatio
   const [modalite, setModalite] = useState(initialFilters?.modalite || '')
 
   const [ville,       setVille]       = useState(initialFilters?.ville     || '')
-  const [villeCity,   setVilleCity]   = useState(initialFilters?.villeCity || '')
-  const [villeLat,    setVilleLat]    = useState(initialFilters?.villeLat  || null)
-  const [villeLng,    setVilleLng]    = useState(initialFilters?.villeLng  || null)
+  const [geoSel,      setGeoSel]      = useState(null)  // { type, label, lat, lng, region, regions }
   const [rayon,       setRayon]       = useState(initialFilters?.rayon     || '')
-  const [region,      setRegion]      = useState(initialFilters?.region    || '')
   const [suggestions, setSuggestions] = useState([])
   const [geoErr,      setGeoErr]      = useState('')
   const [geoLoading,  setGeoLoading]  = useState(false)
@@ -230,126 +233,98 @@ export default function PanelCandidatFormations({ candidatId, onNavigateFormatio
   }, [])
 
   async function fetchSuggestions(val) {
-    if (val.length < 3) { setSuggestions([]); return }
-    try {
-      const res  = await fetch(`https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(val)}&type=municipality&limit=6`)
-      if (!res.ok) { setSuggestions([]); return }
-      const json = await res.json()
-      setSuggestions((json.features || []).map(f => ({
-        label: f.properties.label,
-        city:  f.properties.city,
-        lat:   f.geometry.coordinates[1],
-        lng:   f.geometry.coordinates[0],
-      })))
-    } catch { setSuggestions([]) }
+    if (val.length < 2) { setSuggestions([]); return }
+    const q = val.toLowerCase().trim()
+    const results = []
+
+    // France entière
+    if ('france'.startsWith(q) || 'france entière'.startsWith(q)) {
+      results.push({ type: 'france', label: 'France entière', icon: 'ti-world', regions: REGIONS.map(r => r.code) })
+    }
+
+    // Régions
+    REGIONS.filter(r => r.label.toLowerCase().includes(q)).forEach(r => {
+      results.push({ type: 'region', label: r.label, icon: 'ti-map', region: r.code })
+    })
+
+    if (val.length >= 3) {
+      // Départements + communes en parallèle
+      const [deptRes, commRes] = await Promise.all([
+        fetch(`https://geo.api.gouv.fr/departements?nom=${encodeURIComponent(val)}&fields=nom,centre,code&limit=3`).then(r => r.json()).catch(() => []),
+        fetch(`https://geo.api.gouv.fr/communes?nom=${encodeURIComponent(val)}&fields=nom,centre,codeDepartement&boost=population&limit=5`).then(r => r.json()).catch(() => []),
+      ])
+
+      ;(deptRes || []).forEach(d => {
+        if (d.centre) results.push({ type: 'departement', label: `Département ${d.nom}`, icon: 'ti-map-2', lat: d.centre.coordinates[1], lng: d.centre.coordinates[0] })
+      })
+      ;(commRes || []).forEach(c => {
+        if (c.centre) results.push({ type: 'commune', label: c.nom, icon: 'ti-map-pin', lat: c.centre.coordinates[1], lng: c.centre.coordinates[0] })
+      })
+    }
+
+    setSuggestions(results.slice(0, 8))
   }
 
   function selectSuggestion(s) {
-    setVille(s.label); setVilleCity(s.city)
-    setVilleLat(s.lat); setVilleLng(s.lng)
+    setVille(s.label)
+    setGeoSel(s)
     setSuggestions([])
   }
 
-  async function geocodeVille(nom) {
-    const res  = await fetch(`https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(nom)}&type=municipality&limit=1`)
-    if (!res.ok) return null
-    const json = await res.json()
-    const feat = json.features?.[0]
-    if (!feat) return null
-    const [lng, lat] = feat.geometry.coordinates
-    return { lat, lng, city: feat.properties.city }
+  function clearGeo() {
+    setVille(''); setGeoSel(null); setSuggestions([])
   }
 
   const search = useCallback(async () => {
     setLoading(true); setSearched(true); setGeoErr('')
     try {
-      // ── 1. Géolocalisation ──────────────────────────────────────────────────
-      let geoCoords = null
+      const geo = geoSel
+      const hasGeo = !!geo
 
-      if (ville.trim()) {
-        if (villeLat && villeLng) {
-          geoCoords = { lat: villeLat, lng: villeLng }
-        } else {
-          setGeoLoading(true)
-          geoCoords = await geocodeVille(ville.trim())
-          setGeoLoading(false)
-          if (!geoCoords) {
-            setGeoErr(`Ville "${ville}" introuvable`)
-            setFormations([])
-            setLoading(false)
-            return
-          }
-        }
-      }
-
-      // ── 2. Recherche Allschool (Supabase) ───────────────────────────────────
-      let allschoolRows = []
-
-      // Filtre écoles par géo ou modalité
-      let ecoleIds = null
-      if (geoCoords && rayon) {
-        const { data: nearby } = await supabase.rpc('ecoles_dans_rayon', {
-          lat: geoCoords.lat, lng: geoCoords.lng, rayon_km: parseFloat(rayon),
-        })
-        ecoleIds = (nearby || []).map(r => r.id)
-      } else if (modalite || (geoCoords && !rayon)) {
-        let eQuery = supabase.from('ecoles').select('id')
-        if (modalite)            eQuery = eQuery.contains('modalites', [modalite])
-        if (geoCoords && !rayon) eQuery = eQuery.ilike('ville', `%${villeCity || ville.trim()}%`)
-        const { data: eData } = await eQuery
-        ecoleIds = (eData || []).map(e => e.id)
-      }
-
-      // Requête formations uniquement si ecoleIds non vide (ou pas de filtre géo)
-      const skipAllschool = ecoleIds !== null && ecoleIds.length === 0
-      if (!skipAllschool) {
-        let fQuery = supabase
-          .from('formations')
-          .select('id, nom, diplome, niveau, modalite, url_onisep, localite_formation, ecole_id')
-          .eq('source', 'allschool')
-          .order('nom').limit(300)
-
-        if (keyword.trim()) fQuery = fQuery.ilike('nom', `%${keyword.trim()}%`)
-        if (niveau)         fQuery = fQuery.eq('niveau', niveau)
-        if (ecoleIds && ecoleIds.length > 0) fQuery = fQuery.in('ecole_id', ecoleIds)
-
-        const { data: fData } = await fQuery
-        const ecoleUniqueIds = [...new Set((fData || []).filter(f => f.ecole_id).map(f => f.ecole_id))]
-        const { data: eRows } = ecoleUniqueIds.length > 0
-          ? await supabase.from('ecoles').select('id, nom, ville, region, modalites').in('id', ecoleUniqueIds)
-          : { data: [] }
-        const ecoleMap = Object.fromEntries((eRows || []).map(e => [e.id, e]))
-
-        allschoolRows = (fData || [])
-          .map(f => ({ ...f, _source: 'allschool', ecole: ecoleMap[f.ecole_id] }))
-          .filter(f => !cachedIds.has(f.id))
-      }
-
-      // ── 3. Recherche LBA ────────────────────────────────────────────────────
+      // ── 1. Recherche LBA ────────────────────────────────────────────────────
       let lbaRows = []
-      if (geoCoords || region) {
-        const params = new URLSearchParams()
-        if (secteur)        params.set('secteurs', JSON.stringify([secteur]))
-        if (keyword.trim()) params.set('keyword', keyword.trim())
-        if (niveau)         params.set('niveau', niveau)
-        if (geoCoords) {
-          params.set('latitude',  String(geoCoords.lat))
-          params.set('longitude', String(geoCoords.lng))
-          params.set('radius',    rayon || '30')
-        } else {
-          params.set('region', region)
+      if (hasGeo) {
+        const buildParams = (geoOverride) => {
+          const params = new URLSearchParams()
+          if (secteur)        params.set('secteurs', JSON.stringify([secteur]))
+          if (keyword.trim()) params.set('keyword', keyword.trim())
+          if (niveau)         params.set('niveau', niveau)
+          if (modalite)       params.set('modalite', modalite)
+          if (geoOverride.lat) {
+            params.set('latitude',  String(geoOverride.lat))
+            params.set('longitude', String(geoOverride.lng))
+            params.set('radius',    rayon || '30')
+          } else if (geoOverride.region) {
+            params.set('region', geoOverride.region)
+          }
+          return params
         }
 
         try {
-          const res  = await fetch(`/api/formations-lba?${params}`)
-          const json = await res.json()
-          if (res.ok && json.results) {
-            lbaRows = json.results
-              .filter(f => f.lba_id && !lbaSavedIds.has(f.lba_id))
-              .map(f => ({ ...f, id: `lba_${f.lba_id}`, _source: 'lba' }))
+          let fetches = []
+          if (geo.type === 'france') {
+            fetches = geo.regions.map(r => fetch(`/api/formations-lba?${buildParams({ region: r })}`).then(r => r.json()).catch(() => ({ results: [] })))
+          } else if (geo.type === 'region') {
+            fetches = [fetch(`/api/formations-lba?${buildParams({ region: geo.region })}`).then(r => r.json()).catch(() => ({ results: [] }))]
+          } else {
+            fetches = [fetch(`/api/formations-lba?${buildParams({ lat: geo.lat, lng: geo.lng })}`).then(r => r.json()).catch(() => ({ results: [] }))]
           }
-        } catch { /* LBA non disponible, on affiche juste Allschool */ }
+
+          const jsons = await Promise.all(fetches)
+          const seen = new Set()
+          for (const json of jsons) {
+            for (const f of (json.results || [])) {
+              if (f.lba_id && !seen.has(f.lba_id) && !lbaSavedIds.has(f.lba_id)) {
+                seen.add(f.lba_id)
+                lbaRows.push({ ...f, id: `lba_${f.lba_id}`, _source: 'lba' })
+              }
+            }
+          }
+        } catch { /* LBA non disponible */ }
       }
+
+      // ── 2. Recherche Allschool (Supabase) — plus de formations allschool ────
+      const allschoolRows = []
 
       setFormations([...allschoolRows, ...lbaRows])
 
@@ -366,7 +341,7 @@ export default function PanelCandidatFormations({ candidatId, onNavigateFormatio
     } finally {
       setLoading(false)
     }
-  }, [keyword, secteur, niveau, modalite, ville, villeCity, villeLat, villeLng, rayon, region, candidatId, cachedIds, lbaSavedIds])
+  }, [keyword, secteur, niveau, modalite, ville, geoSel, rayon, candidatId, cachedIds, lbaSavedIds])
 
   function handleStatutChange(formationId, newStatut) {
     setStatuts(prev => ({ ...prev, [formationId]: newStatut }))
@@ -427,7 +402,7 @@ export default function PanelCandidatFormations({ candidatId, onNavigateFormatio
     setFormations(prev => prev.filter(x => x.id !== f.id))
   }
 
-  const filters = { keyword, secteur, niveau, modalite, ville, villeCity, rayon, region }
+  const filters = { keyword, secteur, niveau, modalite, ville, rayon }
 
   return (
     <>
@@ -468,85 +443,78 @@ export default function PanelCandidatFormations({ candidatId, onNavigateFormatio
             style={{ ...inputStyle, flex: 'none', width: 'auto', minWidth: 180 }}
           >
             <option value="">Tous les niveaux</option>
-            {NIVEAUX_FILTER.map(n => <option key={n.value} value={n.value}>{n.label}</option>)}
+            {NIVEAUX_FILTER_LBA.map(n => <option key={n} value={n}>{n}</option>)}
           </select>
           <select
             value={modalite}
             onChange={e => setModalite(e.target.value)}
-            style={{ ...inputStyle, flex: 'none', width: 'auto', minWidth: 170 }}
-            title="Filtre modalité (formations Allschool uniquement)"
+            style={{ ...inputStyle, flex: 'none', width: 'auto', minWidth: 160 }}
           >
             <option value="">Toutes modalités</option>
             <option value="presentiel">Présentiel</option>
             <option value="distanciel">Distanciel</option>
-            <option value="hybride">Hybride</option>
           </select>
         </div>
 
         {/* Ligne 2 : localisation */}
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-          {/* Ville + rayon */}
-          <div style={{ position: 'relative', flex: 1, minWidth: 200 }}>
+          {/* Champ géo unifié */}
+          <div style={{ position: 'relative', flex: 1, minWidth: 220 }}>
             <div style={{ display: 'flex', alignItems: 'center', border: '1.5px solid var(--border)', borderRadius: 8, overflow: 'hidden', background: 'white' }}>
-              <i className="ti ti-map-pin" style={{ padding: '0 10px', color: 'var(--muted)', fontSize: 15 }} />
+              <i className={`ti ${geoSel ? `ti-${geoSel.icon?.replace('ti-', '') || 'map-pin'}` : 'ti-map-pin'}`} style={{ padding: '0 10px', color: geoSel ? 'var(--teal)' : 'var(--muted)', fontSize: 15 }} />
               <input
-                placeholder="Votre ville…"
+                placeholder="Ville, département, région ou France…"
                 value={ville}
-                onChange={e => { setVille(e.target.value); setVilleCity(''); setVilleLat(null); setVilleLng(null); setGeoErr(''); setRegion(''); fetchSuggestions(e.target.value) }}
+                onChange={e => { setVille(e.target.value); setGeoSel(null); setGeoErr(''); fetchSuggestions(e.target.value) }}
                 onKeyDown={e => { if (e.key === 'Enter') { setSuggestions([]); search() } if (e.key === 'Escape') setSuggestions([]) }}
                 onBlur={() => setTimeout(() => setSuggestions([]), 150)}
                 style={{ ...inputStyle, border: 'none', borderRadius: 0, flex: 1, padding: '8px 8px 8px 0' }}
               />
-              {ville && <button onClick={() => { setVille(''); setVilleCity(''); setVilleLat(null); setVilleLng(null); setSuggestions([]) }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 8px', color: 'var(--muted)', fontSize: 13 }}>×</button>}
+              {ville && <button onClick={clearGeo} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 8px', color: 'var(--muted)', fontSize: 13 }}>×</button>}
             </div>
             {suggestions.length > 0 && (
               <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'white', border: '1.5px solid var(--border)', borderRadius: 8, marginTop: 4, zIndex: 100, boxShadow: '0 4px 12px rgba(0,0,0,0.08)', overflow: 'hidden' }}>
                 {suggestions.map((s, i) => (
                   <div key={i} onMouseDown={() => selectSuggestion(s)}
-                    style={{ padding: '8px 14px', fontSize: 13, color: 'var(--navy)', cursor: 'pointer', borderBottom: i < suggestions.length - 1 ? '0.5px solid var(--border)' : 'none' }}
+                    style={{ padding: '8px 14px', fontSize: 13, color: 'var(--navy)', cursor: 'pointer', borderBottom: i < suggestions.length - 1 ? '0.5px solid var(--border)' : 'none', display: 'flex', alignItems: 'center', gap: 8 }}
                     onMouseEnter={e => e.currentTarget.style.background = 'var(--light)'}
                     onMouseLeave={e => e.currentTarget.style.background = 'white'}
                   >
-                    <i className="ti ti-map-pin" style={{ fontSize: 11, color: 'var(--muted)', marginRight: 6 }} />{s.label}
+                    <i className={`ti ${s.icon}`} style={{ fontSize: 12, color: 'var(--teal)', flexShrink: 0 }} />
+                    <span>{s.label}</span>
+                    <span style={{ fontSize: 10, color: 'var(--muted)', marginLeft: 'auto' }}>
+                      {s.type === 'france' ? 'Toute la France' : s.type === 'region' ? 'Région' : s.type === 'departement' ? 'Département' : 'Commune'}
+                    </span>
                   </div>
                 ))}
               </div>
             )}
           </div>
 
-          <select value={rayon} onChange={e => setRayon(e.target.value)} style={{ ...inputStyle, flex: 'none', width: 'auto', minWidth: 130 }}>
-            <option value="">— Rayon —</option>
-            <option value="5">5 km</option>
-            <option value="10">10 km</option>
-            <option value="20">20 km</option>
-            <option value="50">50 km</option>
-            <option value="100">100 km</option>
-          </select>
+          {/* Rayon (masqué si France ou région) */}
+          {(!geoSel || geoSel.type === 'commune' || geoSel.type === 'departement') && (
+            <select value={rayon} onChange={e => setRayon(e.target.value)} style={{ ...inputStyle, flex: 'none', width: 'auto', minWidth: 130 }}>
+              <option value="">— Rayon —</option>
+              <option value="5">5 km</option>
+              <option value="10">10 km</option>
+              <option value="20">20 km</option>
+              <option value="50">50 km</option>
+              <option value="100">100 km</option>
+            </select>
+          )}
 
-          <span style={{ fontSize: 12, color: 'var(--muted)' }}>ou</span>
-
-          <select
-            value={region}
-            onChange={e => { setRegion(e.target.value); if (e.target.value) { setVille(''); setVilleCity(''); setRayon('') } }}
-            style={{ ...inputStyle, flex: 'none', width: 'auto', minWidth: 220 }}
-          >
-            <option value="">France entière (partenaires)</option>
-            {REGIONS.map(r => <option key={r.code} value={r.code}>{r.label}</option>)}
-          </select>
-
-          {geoErr     && <span style={{ fontSize: 12, color: 'var(--accent)' }}><i className="ti ti-alert-circle" /> {geoErr}</span>}
-          {geoLoading && <span style={{ fontSize: 12, color: 'var(--muted)' }}>Géolocalisation…</span>}
+          {geoErr && <span style={{ fontSize: 12, color: 'var(--accent)' }}><i className="ti ti-alert-circle" /> {geoErr}</span>}
 
           <button className="btn-sm teal" onClick={search} style={{ marginLeft: 'auto' }}>
-            {geoLoading ? <><i className="ti ti-loader" /> …</> : <><i className="ti ti-search" /> Rechercher</>}
+            <i className="ti ti-search" /> Rechercher
           </button>
         </div>
 
-        {(ville || region) && (
+        {geoSel && (
           <div style={{ fontSize: 11, color: 'var(--muted)', display: 'flex', alignItems: 'center', gap: 4 }}>
             <i className="ti ti-info-circle" style={{ fontSize: 12 }} />
-            {ville || region ? 'Résultats La Bonne Alternance inclus' : ''}
-            {modalite ? ' · Filtre modalité actif sur formations partenaires uniquement' : ''}
+            Résultats La Bonne Alternance inclus
+            {geoSel.type === 'france' && ' · Recherche sur toute la France (peut être long)'}
           </div>
         )}
       </div>
