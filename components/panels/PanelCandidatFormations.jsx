@@ -587,8 +587,9 @@ export default function PanelCandidatFormations({ candidatId, onNavigateFormatio
                     {/* Niveau */}
                     <div style={{ flexShrink: 0, width: 72, textAlign: 'center' }}>
                       {f.diplome_label ? (
-                        <span style={{ ...niveauStyle(f.niveau), fontSize: 10, padding: '3px 7px', borderRadius: 20, whiteSpace: 'nowrap' }}>
-                          {f.diplome_label}
+                        <span style={{ ...niveauStyle(f.niveau), fontSize: 10, padding: '3px 7px', borderRadius: 20, whiteSpace: 'nowrap', textAlign: 'center', lineHeight: 1.3 }}>
+                          <span style={{ display: 'block', fontWeight: 700 }}>{f.diplome_label}</span>
+                          {f.niveau && <span style={{ display: 'block', opacity: 0.75 }}>Niv. {f.niveau === 'cap' ? 3 : f.niveau === 'bac' ? 4 : f.niveau === 'bts' ? 5 : f.niveau === 'bach' ? 6 : f.niveau === 'master' ? 7 : ''}</span>}
                         </span>
                       ) : (
                         <span style={{ background: '#e0f2fe', color: '#0369a1', fontSize: 10, padding: '3px 7px', borderRadius: 20, whiteSpace: 'nowrap', fontWeight: 600 }}>LBA</span>
