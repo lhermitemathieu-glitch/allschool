@@ -116,12 +116,13 @@ export async function GET(request) {
       rawItems = data.data || []
     }
 
-    // Dédoublonnage par lba_id
+    // Dédoublonnage par lba_id (conserve les formations sans lba_id)
     const seen = new Set()
     let results = rawItems
       .map(normalizeFormation)
       .filter(f => {
-        if (!f.lba_id || seen.has(f.lba_id)) return false
+        if (!f.lba_id) return true
+        if (seen.has(f.lba_id)) return false
         seen.add(f.lba_id)
         return true
       })
