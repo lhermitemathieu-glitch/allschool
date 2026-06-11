@@ -128,6 +128,7 @@ export default function PanelCandidatEcoles({ onNavigateEcole, initialFilters })
     try {
       const buildParams = (geoOverride = {}) => {
         const p = new URLSearchParams()
+        p.set('mode', 'ecoles')
         if (keyword.trim()) p.set('keyword', keyword.trim())
         if (modalite)       p.set('modalite', modalite)
         if (geoOverride.lat) {
