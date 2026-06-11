@@ -20,6 +20,7 @@ import { PanelEcolePage, PanelEcoleApprentis, PanelEcoleDashboard } from '../../
 import { PanelBackOverview, PanelBackApprentis, PanelBackEcoles, PanelBackEntreprises, PanelBackLogs } from '../../components/panels/PanelBackoffice'
 import { PanelBackDetailEcoles, PanelBackDetailCandidats, PanelBackDetailEntreprises, PanelAdminEntreprise, PanelAdminCandidat } from '../../components/panels/PanelBackDetail'
 import PanelEcolePublique from '../../components/panels/PanelEcolePublique'
+import PanelEcoleLBAPublique from '../../components/panels/PanelEcoleLBAPublique'
 import PanelFormationPublique from '../../components/panels/PanelFormationPublique'
 
 const SPACES = {
@@ -218,10 +219,8 @@ export default function Home() {
       case 'home':                  return <PanelHome onSwitch={switchSpace} />
       case 'candidat-profil':       return <PanelCandidatProfil />
       case 'candidat-ecoles':       return <PanelCandidatEcoles
-          initialVue={activePanelData?.tab}
           initialFilters={activePanelData?.filters}
-          onNavigateEcole={(id, tab, filters) => navigateTo('ecole-publique', { ecoleId: id, from: 'candidat-ecoles', fromTab: tab, filters })}
-          onNavigateFormation={(id, tab, filters) => navigateTo('formation-publique', { formationId: id, from: 'candidat-ecoles', fromTab: tab, filters })}
+          onNavigateEcole={ecole => navigateTo('ecole-lba', { ecole, from: 'candidat-ecoles', filters: activePanelData?.filters })}
         />
       case 'candidat-formations':   return <PanelCandidatFormations
           initialFilters={activePanelData?.filters}
@@ -265,6 +264,12 @@ export default function Home() {
       case 'back-detail-entreprises': return <PanelBackDetailEntreprises onNavigateEntreprise={id => navigateTo('back-admin-entreprise', { entrepriseId: id })} />
       case 'back-admin-entreprise':   return <PanelAdminEntreprise entrepriseId={activePanelData?.entrepriseId} onBack={() => navigateTo('back-detail-entreprises')} />
       case 'back-admin-candidat':     return <PanelAdminCandidat candidatId={activePanelData?.candidatId} onBack={() => navigateTo('back-detail-candidats')} />
+      case 'ecole-lba':             return (
+        <PanelEcoleLBAPublique
+          ecole={activePanelData?.ecole}
+          onBack={() => navigateTo(activePanelData?.from || 'candidat-ecoles', { filters: activePanelData?.filters })}
+        />
+      )
       case 'ecole-publique':        return (
         <PanelEcolePublique
           ecoleId={activePanelData?.ecoleId}

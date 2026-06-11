@@ -2,8 +2,6 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '../../lib/supabase/client'
-import PanelFormationLBADrawer from './PanelFormationLBADrawer'
-
 const REGIONS = [
   { code: '84', label: 'Auvergne-Rhône-Alpes',      lat: 45.44, lng: 4.39  },
   { code: '27', label: 'Bourgogne-Franche-Comté',    lat: 47.28, lng: 5.00  },
@@ -63,14 +61,12 @@ function grouperParEcole(formations) {
   return [...map.values()].sort((a, b) => b.formations.length - a.formations.length)
 }
 
-export default function PanelCandidatEcoles({ onNavigateEcole, onNavigateFormation, initialFilters }) {
+export default function PanelCandidatEcoles({ onNavigateEcole, initialFilters }) {
   const supabase = createClient()
 
   const [ecoles,    setEcoles]    = useState([])
   const [loading,   setLoading]   = useState(false)
   const [searched,  setSearched]  = useState(false)
-  const [selected,  setSelected]  = useState(null)
-  const [drawerFormation, setDrawerFormation] = useState(null)
 
   // Filtres
   const ls = typeof window !== 'undefined'
@@ -122,7 +118,7 @@ export default function PanelCandidatEcoles({ onNavigateEcole, onNavigateFormati
   // ── Recherche ────────────────────────────────────────────────────────────────
   const search = useCallback(async () => {
     persistFilters()
-    setLoading(true); setSearched(true); setGeoErr(''); setSelected(null); setEcoles([])
+    setLoading(true); setSearched(true); setGeoErr(''); setEcoles([])
 
     if (!geoSel) {
       setLoading(false)
@@ -188,13 +184,6 @@ export default function PanelCandidatEcoles({ onNavigateEcole, onNavigateFormati
 
   return (
     <>
-      {drawerFormation && (
-        <PanelFormationLBADrawer
-          formation={drawerFormation}
-          onClose={() => setDrawerFormation(null)}
-        />
-      )}
-
       <div className="topbar">
         <div>
           <div className="page-title">Écoles</div>
@@ -285,53 +274,36 @@ export default function PanelCandidatEcoles({ onNavigateEcole, onNavigateFormati
       </div>
 
       {/* Résultats */}
-      <div style={{ display: 'grid', gridTemplateColumns: selected ? '1fr 1fr' : '1fr', gap: '1rem', alignItems: 'start' }}>
-
-        {/* Liste écoles */}
-        <div className="s-card" style={{ marginBottom: 0 }}>
-          {!searched ? (
-            <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--muted)', fontSize: 13 }}>
-              <i className="ti ti-school" style={{ fontSize: 28, display: 'block', marginBottom: 10, opacity: 0.3 }} />
-              Sélectionnez une localisation et cliquez sur <strong>Rechercher</strong>.
-            </div>
-          ) : loading ? (
-            <div style={{ fontSize: 13, color: 'var(--muted)', display: 'flex', alignItems: 'center', gap: 8 }}>
-              <i className="ti ti-loader" style={{ animation: 'spin 1s linear infinite' }} /> Recherche en cours…
-            </div>
-          ) : !geoSel ? (
-            <div style={{ fontSize: 13, color: 'var(--muted)' }}>
-              <i className="ti ti-map-pin" style={{ marginRight: 6 }} />
-              Sélectionnez une localisation dans la liste pour lancer la recherche.
-            </div>
-          ) : ecoles.length === 0 ? (
-            <div style={{ fontSize: 13, color: 'var(--muted)' }}>Aucune école trouvée pour ces critères.</div>
-          ) : (
-            <>
-              <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 10 }}>
-                {nbEcoles} école{nbEcoles > 1 ? 's' : ''} · {nbFormations} formation{nbFormations > 1 ? 's' : ''}
-              </div>
-              {ecoles.map(e => (
-                <EcoleRow
-                  key={e.key}
-                  ecole={e}
-                  selected={selected?.key === e.key}
-                  onClick={() => setSelected(prev => prev?.key === e.key ? null : e)}
-                />
-              ))}
-            </>
-          )}
-        </div>
-
-        {/* Détail école */}
-        {selected && (
-          <div className="s-card" style={{ marginBottom: 0, position: 'sticky', top: 16 }}>
-            <EcoleDetail
-              ecole={selected}
-              onClose={() => setSelected(null)}
-              onNavigateEcole={onNavigateEcole}
-              onOpenFormation={setDrawerFormation}
-            />
+      <div className="s-card" style={{ marginBottom: 0 }}>
+        {!searched ? (
+          <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--muted)', fontSize: 13 }}>
+            <i className="ti ti-school" style={{ fontSize: 28, display: 'block', marginBottom: 10, opacity: 0.3 }} />
+            Sélectionnez une localisation et cliquez sur <strong>Rechercher</strong>.
           </div>
+        ) : loading ? (
+          <div style={{ fontSize: 13, color: 'var(--muted)', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <i className="ti ti-loader" style={{ animation: 'spin 1s linear infinite' }} /> Recherche en cours…
+          </div>
+        ) : !geoSel ? (
+          <div style={{ fontSize: 13, color: 'var(--muted)' }}>
+            <i className="ti ti-map-pin" style={{ marginRight: 6 }} />
+            Sélectionnez une localisation pour lancer la recherche.
+          </div>
+        ) : ecoles.length === 0 ? (
+          <div style={{ fontSize: 13, color: 'var(--muted)' }}>Aucune école trouvée pour ces critères.</div>
+        ) : (
+          <>
+            <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 10 }}>
+              {nbEcoles} école{nbEcoles > 1 ? 's' : ''} · {nbFormations} formation{nbFormations > 1 ? 's' : ''}
+            </div>
+            {ecoles.map(e => (
+              <EcoleRow
+                key={e.key}
+                ecole={e}
+                onClick={() => onNavigateEcole?.(e)}
+              />
+            ))}
+          </>
         )}
       </div>
     </>
@@ -339,19 +311,13 @@ export default function PanelCandidatEcoles({ onNavigateEcole, onNavigateFormati
 }
 
 // ── Ligne école dans la liste ─────────────────────────────────────────────────
-function EcoleRow({ ecole: e, selected, onClick }) {
+function EcoleRow({ ecole: e, onClick }) {
   return (
     <div
       onClick={onClick}
-      style={{
-        display: 'flex', alignItems: 'center', gap: 12, padding: '10px 8px',
-        borderRadius: 8, cursor: 'pointer', marginBottom: 2,
-        background: selected ? 'var(--light)' : 'transparent',
-        borderLeft: selected ? '3px solid var(--teal)' : '3px solid transparent',
-        transition: 'all 0.12s',
-      }}
-      onMouseEnter={el => !selected && (el.currentTarget.style.background = 'var(--light)')}
-      onMouseLeave={el => !selected && (el.currentTarget.style.background = 'transparent')}
+      style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 8px', borderRadius: 8, cursor: 'pointer', marginBottom: 2, transition: 'background 0.12s' }}
+      onMouseEnter={el => el.currentTarget.style.background = 'var(--light)'}
+      onMouseLeave={el => el.currentTarget.style.background = 'transparent'}
     >
       <div style={{
         width: 38, height: 38, borderRadius: 10, flexShrink: 0,
@@ -382,115 +348,3 @@ function EcoleRow({ ecole: e, selected, onClick }) {
   )
 }
 
-// ── Panneau détail école ──────────────────────────────────────────────────────
-function EcoleDetail({ ecole: e, onClose, onNavigateEcole, onOpenFormation }) {
-  return (
-    <>
-      {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
-        <div>
-          <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 16, color: 'var(--navy)', marginBottom: 4 }}>
-            {e.nom || 'École sans nom'}
-            {e.qualiopi && (
-              <span style={{ marginLeft: 8, fontSize: 10, background: '#dcfce7', color: '#166534', padding: '2px 8px', borderRadius: 10, fontWeight: 600 }}>
-                <i className="ti ti-rosette" style={{ fontSize: 10, marginRight: 3 }} />Qualiopi
-              </span>
-            )}
-          </div>
-          <div style={{ fontSize: 12, color: 'var(--muted)' }}>
-            {[e.ville, e.departement, e.region].filter(Boolean).join(' · ')}
-          </div>
-        </div>
-        <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-          {e.ecole_id && onNavigateEcole && (
-            <button className="btn-sm teal" style={{ fontSize: 11 }} onClick={() => onNavigateEcole(e.ecole_id)}>
-              <i className="ti ti-external-link" /> Page publique
-            </button>
-          )}
-          <button className="btn-sm" style={{ fontSize: 11 }} onClick={onClose}>
-            <i className="ti ti-x" />
-          </button>
-        </div>
-      </div>
-
-      {/* Infos école */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 5, marginBottom: 14, fontSize: 12, color: 'var(--muted)' }}>
-        {(e.ecole_adresse || e.adresse_label) && (
-          <span><i className="ti ti-map-pin" style={{ marginRight: 5, fontSize: 11 }} />{e.ecole_adresse}{e.ecole_cp ? ` ${e.ecole_cp}` : ''}</span>
-        )}
-        {e.academie && (
-          <span><i className="ti ti-building" style={{ marginRight: 5, fontSize: 11 }} />Académie {e.academie}</span>
-        )}
-        {e.email && (
-          <a href={`mailto:${e.email}`} style={{ color: 'var(--teal)', textDecoration: 'none' }}>
-            <i className="ti ti-mail" style={{ marginRight: 5, fontSize: 11 }} />{e.email}
-          </a>
-        )}
-        {e.ecole_site_web && (
-          <a href={e.ecole_site_web.startsWith('http') ? e.ecole_site_web : `https://${e.ecole_site_web}`} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--teal)', textDecoration: 'none' }}>
-            <i className="ti ti-world" style={{ marginRight: 5, fontSize: 11 }} />{e.ecole_site_web.replace(/^https?:\/\/(www\.)?/, '')}
-          </a>
-        )}
-        {e.uai && (
-          <span style={{ opacity: 0.6 }}><i className="ti ti-id" style={{ marginRight: 5, fontSize: 11 }} />UAI {e.uai}</span>
-        )}
-      </div>
-
-      {/* Formations */}
-      <div style={{ fontWeight: 600, fontSize: 11, color: 'var(--navy)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8 }}>
-        <i className="ti ti-certificate" style={{ marginRight: 5 }} />
-        {e.formations.length} formation{e.formations.length > 1 ? 's' : ''} disponible{e.formations.length > 1 ? 's' : ''}
-      </div>
-
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 1, maxHeight: 440, overflowY: 'auto' }}>
-        {e.formations.map((f, i) => (
-          <FormationRow key={f.lba_id || i} formation={f} onClick={() => onOpenFormation(f)} />
-        ))}
-      </div>
-    </>
-  )
-}
-
-// ── Ligne formation dans le détail école ─────────────────────────────────────
-function FormationRow({ formation: f, onClick }) {
-  const niveauColors = {
-    cap:    { bg: '#fef9c3', color: '#854d0e' },
-    bac:    { bg: '#ffedd5', color: '#9a3412' },
-    bts:    { bg: '#e0f2fe', color: '#0369a1' },
-    bach:   { bg: '#dcfce7', color: '#166534' },
-    master: { bg: '#fce7f3', color: '#9d174d' },
-  }
-  const nc = niveauColors[f.niveau] || { bg: '#f1f5f9', color: '#475569' }
-
-  return (
-    <div
-      onClick={onClick}
-      style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 8px', borderRadius: 8, cursor: 'pointer', borderBottom: '0.5px solid var(--border)' }}
-      onMouseEnter={e => e.currentTarget.style.background = 'var(--light)'}
-      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-    >
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--navy)', marginBottom: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          {f.nom}
-        </div>
-        <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', alignItems: 'center' }}>
-          {f.diplome_label && (
-            <span style={{ fontSize: 10, fontWeight: 600, padding: '1px 7px', borderRadius: 10, background: nc.bg, color: nc.color }}>
-              {f.diplome_label}
-            </span>
-          )}
-          {f.prochaine_rentree && (
-            <span style={{ fontSize: 10, color: 'var(--muted)' }}>
-              <i className="ti ti-calendar" style={{ fontSize: 9, marginRight: 2 }} />
-              {new Date(f.prochaine_rentree).toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' })}
-            </span>
-          )}
-          {f.entierement_distance && (
-            <span style={{ fontSize: 10, background: '#dcfce7', color: '#166534', padding: '1px 6px', borderRadius: 10, fontWeight: 500 }}>Distanciel</span>
-          )}
-        </div>
-      </div>
-      <i className="ti ti-chevron-right" style={{ fontSize: 13, color: 'var(--muted)', flexShrink: 0 }} />
-    </div>
-  )
-}
