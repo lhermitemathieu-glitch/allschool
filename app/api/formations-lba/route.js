@@ -136,7 +136,21 @@ export async function GET(request) {
         return data.data || []
       }
       const allResults = await Promise.all(ALL_ROME_BATCHES.map(fetchBatch))
-      rawItems = allResults.flat()
+      let ecoleItems = allResults.flat()
+
+      // Inclure aussi les formations distancielles (adresse physique hors zone de recherche)
+      if (modaliteKey !== 'presentiel') {
+        const fetchDistancielPoint = async ({ lat, lng }) => {
+          const params = new URLSearchParams({ caller: CALLER, latitude: lat, longitude: lng, radius: '200' })
+          const res = await fetch(`${LBA_BASE}/formation/v1/search?${params}`, { headers, next: { revalidate: 1800 } })
+          if (!res.ok) return []
+          return ((await res.json()).data || []).filter(i => i.modalite?.entierement_a_distance === true)
+        }
+        const distancielResults = await Promise.all(DISTANCIEL_POINTS.map(fetchDistancielPoint))
+        ecoleItems = [...ecoleItems, ...distancielResults.flat()]
+      }
+
+      rawItems = ecoleItems
 
     } else if (modaliteKey === 'distanciel') {
       // Pour distanciel : lat/lng requis par l'API (region ne remonte pas les formations distanciel)
@@ -156,24 +170,57 @@ export async function GET(request) {
         return NextResponse.json({ results: [] })
       }
 
-      const params = new URLSearchParams({ caller: CALLER })
-      if (romes.length > 0) params.set('romes', romes.join(','))
-      if (latitude && longitude) {
-        params.set('latitude', latitude)
-        params.set('longitude', longitude)
-        params.set('radius', radius)
-      } else if (region) {
-        params.set('region', region)
+      const buildGeoParams = (extra = {}) => {
+        const p = new URLSearchParams({ caller: CALLER })
+        if (latitude && longitude) {
+          p.set('latitude', latitude)
+          p.set('longitude', longitude)
+          p.set('radius', radius)
+        } else if (region) {
+          p.set('region', region)
+        }
+        Object.entries(extra).forEach(([k, v]) => p.set(k, v))
+        return p
       }
 
-      const res = await fetch(`${LBA_BASE}/formation/v1/search?${params}`, { headers, next: { revalidate: 1800 } })
-      if (!res.ok) {
-        const text = await res.text()
-        console.error('[LBA formations] Erreur API:', res.status, text)
-        return NextResponse.json({ error: `Erreur La Bonne Alternance : ${res.status}` }, { status: res.status })
+      // Fetch principal : batches ROME si pas de secteur sélectionné (couverture complète),
+      // sinon une seule requête avec les codes ROME du secteur
+      let mainItems = []
+      if (romes.length === 0) {
+        const fetchBatch = async (romeBatch) => {
+          const params = buildGeoParams({ romes: romeBatch })
+          const res = await fetch(`${LBA_BASE}/formation/v1/search?${params}`, { headers, next: { revalidate: 1800 } })
+          if (!res.ok) return []
+          return (await res.json()).data || []
+        }
+        const allResults = await Promise.all(ALL_ROME_BATCHES.map(fetchBatch))
+        mainItems = allResults.flat()
+      } else {
+        const params = buildGeoParams({ romes: romes.join(',') })
+        const res = await fetch(`${LBA_BASE}/formation/v1/search?${params}`, { headers, next: { revalidate: 1800 } })
+        if (!res.ok) {
+          const text = await res.text()
+          console.error('[LBA formations] Erreur API:', res.status, text)
+          return NextResponse.json({ error: `Erreur La Bonne Alternance : ${res.status}` }, { status: res.status })
+        }
+        mainItems = (await res.json()).data || []
       }
-      const data = await res.json()
-      rawItems = data.data || []
+
+      // Toujours inclure les formations entièrement à distance (elles ont une adresse physique
+      // qui peut être loin de la recherche, donc invisibles sans ce fetch supplémentaire)
+      if (modaliteKey !== 'presentiel') {
+        const fetchDistancielPoint = async ({ lat, lng }) => {
+          const params = new URLSearchParams({ caller: CALLER, latitude: lat, longitude: lng, radius: '200' })
+          if (romes.length > 0) params.set('romes', romes.join(','))
+          const res = await fetch(`${LBA_BASE}/formation/v1/search?${params}`, { headers, next: { revalidate: 1800 } })
+          if (!res.ok) return []
+          return ((await res.json()).data || []).filter(i => i.modalite?.entierement_a_distance === true)
+        }
+        const distancielResults = await Promise.all(DISTANCIEL_POINTS.map(fetchDistancielPoint))
+        rawItems = [...mainItems, ...distancielResults.flat()]
+      } else {
+        rawItems = mainItems
+      }
     }
 
     // Dédoublonnage par lba_id (conserve les formations sans lba_id)
