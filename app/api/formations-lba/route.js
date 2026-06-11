@@ -25,17 +25,8 @@ const ALL_ROME_BATCHES = [
   'J1502,J1503,J1504,J1505,K1201,K1202,K1203,K1205,K1206,K1207',
 ]
 
-// Points géographiques couvrant la France pour la recherche distanciel (lat/lng requis)
-const DISTANCIEL_POINTS = [
-  { lat: 48.8566, lng: 2.3522 },   // Paris
-  { lat: 45.7640, lng: 4.8357 },   // Lyon
-  { lat: 43.2965, lng: 5.3698 },   // Marseille
-  { lat: 44.8378, lng: -0.5792 },  // Bordeaux
-  { lat: 50.6292, lng: 3.0573 },   // Lille
-  { lat: 48.5734, lng: 7.7521 },   // Strasbourg
-  { lat: 47.2184, lng: -1.5536 },  // Nantes
-  { lat: 43.6047, lng: 1.4442 },   // Toulouse
-]
+// Point central France pour la recherche distanciel (rayon 600 km couvre tout le territoire)
+const DISTANCIEL_CENTER = { lat: 46.8534, lng: 2.3488 } // Centre géographique de la France
 
 const SIGLE_LABEL = {
   'CAP':        'CAP',
@@ -138,31 +129,36 @@ export async function GET(request) {
       const allResults = await Promise.all(ALL_ROME_BATCHES.map(fetchBatch))
       let ecoleItems = allResults.flat()
 
-      // Inclure aussi les formations distancielles (adresse physique hors zone de recherche)
+      // Inclure aussi les formations distancielles via batches ROME depuis le centre France
+      // (rayon 600 km couvre tout le territoire ; couverture sectorielle complète)
       if (modaliteKey !== 'presentiel') {
-        const fetchDistancielPoint = async ({ lat, lng }) => {
-          const params = new URLSearchParams({ caller: CALLER, latitude: lat, longitude: lng, radius: '200' })
+        const fetchDistancielBatch = async (romeBatch) => {
+          const params = new URLSearchParams({
+            caller: CALLER, romes: romeBatch,
+            latitude: DISTANCIEL_CENTER.lat, longitude: DISTANCIEL_CENTER.lng, radius: '600',
+          })
           const res = await fetch(`${LBA_BASE}/formation/v1/search?${params}`, { headers, next: { revalidate: 1800 } })
           if (!res.ok) return []
           return ((await res.json()).data || []).filter(i => i.modalite?.entierement_a_distance === true)
         }
-        const distancielResults = await Promise.all(DISTANCIEL_POINTS.map(fetchDistancielPoint))
+        const distancielResults = await Promise.all(ALL_ROME_BATCHES.map(fetchDistancielBatch))
         ecoleItems = [...ecoleItems, ...distancielResults.flat()]
       }
 
       rawItems = ecoleItems
 
     } else if (modaliteKey === 'distanciel') {
-      // Pour distanciel : lat/lng requis par l'API (region ne remonte pas les formations distanciel)
-      const fetchPoint = async ({ lat, lng }) => {
-        const params = new URLSearchParams({ caller: CALLER, latitude: lat, longitude: lng, radius: '200' })
-        if (romes.length > 0) params.set('romes', romes.join(','))
+      // Filtre distanciel explicite : batches ROME depuis le centre France, rayon 600 km
+      const fetchDistancielBatch = async (romeBatch) => {
+        const params = new URLSearchParams({
+          caller: CALLER, romes: romeBatch,
+          latitude: DISTANCIEL_CENTER.lat, longitude: DISTANCIEL_CENTER.lng, radius: '600',
+        })
         const res = await fetch(`${LBA_BASE}/formation/v1/search?${params}`, { headers, next: { revalidate: 1800 } })
         if (!res.ok) return []
-        const data = await res.json()
-        return (data.data || []).filter(i => i.modalite?.entierement_a_distance === true)
+        return ((await res.json()).data || []).filter(i => i.modalite?.entierement_a_distance === true)
       }
-      const allResults = await Promise.all(DISTANCIEL_POINTS.map(fetchPoint))
+      const allResults = await Promise.all(ALL_ROME_BATCHES.map(fetchDistancielBatch))
       rawItems = allResults.flat()
     } else {
       // Nécessite une localisation (lat/lng ou region)
@@ -206,17 +202,18 @@ export async function GET(request) {
         mainItems = (await res.json()).data || []
       }
 
-      // Toujours inclure les formations entièrement à distance (elles ont une adresse physique
-      // qui peut être loin de la recherche, donc invisibles sans ce fetch supplémentaire)
+      // Toujours inclure les formations entièrement à distance (adresse physique hors zone)
       if (modaliteKey !== 'presentiel') {
-        const fetchDistancielPoint = async ({ lat, lng }) => {
-          const params = new URLSearchParams({ caller: CALLER, latitude: lat, longitude: lng, radius: '200' })
-          if (romes.length > 0) params.set('romes', romes.join(','))
-          const res = await fetch(`${LBA_BASE}/formation/v1/search?${params}`, { headers, next: { revalidate: 1800 } })
+        const fetchDistancielBatch = async (romeBatch) => {
+          const p = new URLSearchParams({
+            caller: CALLER, romes: romeBatch,
+            latitude: DISTANCIEL_CENTER.lat, longitude: DISTANCIEL_CENTER.lng, radius: '600',
+          })
+          const res = await fetch(`${LBA_BASE}/formation/v1/search?${p}`, { headers, next: { revalidate: 1800 } })
           if (!res.ok) return []
           return ((await res.json()).data || []).filter(i => i.modalite?.entierement_a_distance === true)
         }
-        const distancielResults = await Promise.all(DISTANCIEL_POINTS.map(fetchDistancielPoint))
+        const distancielResults = await Promise.all(ALL_ROME_BATCHES.map(fetchDistancielBatch))
         rawItems = [...mainItems, ...distancielResults.flat()]
       } else {
         rawItems = mainItems
