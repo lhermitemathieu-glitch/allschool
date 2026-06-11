@@ -80,9 +80,11 @@ export default function PanelCandidatEcoles({ onNavigateEcole, initialFilters })
   const [suggestions, setSuggestions] = useState([])
   const [geoErr,   setGeoErr]   = useState('')
 
-  function persistFilters() {
+  // Sauvegarde automatique dès que les filtres changent (pas seulement au clic Rechercher)
+  useEffect(() => {
+    if (typeof window === 'undefined') return
     localStorage.setItem('allschool_ecoles_filters', JSON.stringify({ keyword, modalite, ville, geoSel, rayon }))
-  }
+  }, [keyword, modalite, ville, geoSel, rayon])
 
   // ── Autocomplete géo ────────────────────────────────────────────────────────
   async function fetchSuggestions(val) {
@@ -117,7 +119,6 @@ export default function PanelCandidatEcoles({ onNavigateEcole, initialFilters })
 
   // ── Recherche ────────────────────────────────────────────────────────────────
   const search = useCallback(async () => {
-    persistFilters()
     setLoading(true); setSearched(true); setGeoErr(''); setEcoles([])
 
     if (!geoSel) {
