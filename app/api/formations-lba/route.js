@@ -25,8 +25,12 @@ const ALL_ROME_BATCHES = [
   'J1502,J1503,J1504,J1505,K1201,K1202,K1203,K1205,K1206,K1207',
 ]
 
-// Point central France pour la recherche distanciel (rayon 600 km couvre tout le territoire)
-const DISTANCIEL_CENTER = { lat: 46.8534, lng: 2.3488 } // Centre géographique de la France
+// Points stratégiques pour la recherche distanciel avec rayon 300 km (couverture nationale)
+const DISTANCIEL_POINTS = [
+  { lat: 48.8566, lng: 2.3522 },   // Paris  — couvre Nord/Est/Centre
+  { lat: 44.8378, lng: -0.5792 },  // Bordeaux — couvre Sud-Ouest
+  { lat: 43.2965, lng: 5.3698 },   // Marseille — couvre Sud/Sud-Est
+]
 
 const SIGLE_LABEL = {
   'CAP':        'CAP',
@@ -135,7 +139,7 @@ export async function GET(request) {
         const fetchDistancielBatch = async (romeBatch) => {
           const params = new URLSearchParams({
             caller: CALLER, romes: romeBatch,
-            latitude: DISTANCIEL_CENTER.lat, longitude: DISTANCIEL_CENTER.lng, radius: '600',
+            latitude: DISTANCIEL_POINTS[0].lat, longitude: DISTANCIEL_POINTS[0].lng, radius: '200',
           })
           const res = await fetch(`${LBA_BASE}/formation/v1/search?${params}`, { headers, next: { revalidate: 1800 } })
           if (!res.ok) return []
@@ -152,7 +156,7 @@ export async function GET(request) {
       const fetchDistancielBatch = async (romeBatch) => {
         const params = new URLSearchParams({
           caller: CALLER, romes: romeBatch,
-          latitude: DISTANCIEL_CENTER.lat, longitude: DISTANCIEL_CENTER.lng, radius: '600',
+          latitude: DISTANCIEL_POINTS[0].lat, longitude: DISTANCIEL_POINTS[0].lng, radius: '200',
         })
         const res = await fetch(`${LBA_BASE}/formation/v1/search?${params}`, { headers, next: { revalidate: 1800 } })
         if (!res.ok) return []
@@ -207,7 +211,7 @@ export async function GET(request) {
         const fetchDistancielBatch = async (romeBatch) => {
           const p = new URLSearchParams({
             caller: CALLER, romes: romeBatch,
-            latitude: DISTANCIEL_CENTER.lat, longitude: DISTANCIEL_CENTER.lng, radius: '600',
+            latitude: DISTANCIEL_POINTS[0].lat, longitude: DISTANCIEL_POINTS[0].lng, radius: '200',
           })
           const res = await fetch(`${LBA_BASE}/formation/v1/search?${p}`, { headers, next: { revalidate: 1800 } })
           if (!res.ok) return []
