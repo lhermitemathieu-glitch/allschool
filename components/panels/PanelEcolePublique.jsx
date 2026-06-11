@@ -57,7 +57,6 @@ export default function PanelEcolePublique({ ecoleId, onBack, onEdit, onNavigate
 
   const [ecole, setEcole]           = useState(null)
   const [formations, setFormations] = useState([])
-  const [actus, setActus]           = useState([])
   const [topProfils, setTopProfils] = useState([])
   const [loading, setLoading]       = useState(true)
   const [toggling, setToggling]     = useState(false)
@@ -66,14 +65,12 @@ export default function PanelEcolePublique({ ecoleId, onBack, onEdit, onNavigate
   useEffect(() => {
     if (!ecoleId) return
     async function load() {
-      const [{ data: e }, { data: f }, { data: a }] = await Promise.all([
+      const [{ data: e }, { data: f }] = await Promise.all([
         supabase.from('ecoles').select('*').eq('id', ecoleId).single(),
         supabase.from('formations').select('id,nom,diplome,niveau,modalite,url_onisep,localite_formation').eq('ecole_id', ecoleId).order('nom'),
-        supabase.from('ecole_actus').select('*').eq('ecole_id', ecoleId).order('created_at', { ascending: false }).limit(6),
       ])
       setEcole(e)
       setFormations(f || [])
-      setActus(a || [])
 
       // Top profils : seulement si entreprise
       if (isEntreprise || isAdmin) {
@@ -274,26 +271,6 @@ export default function PanelEcolePublique({ ecoleId, onBack, onEdit, onNavigate
           </div>
         </div>
 
-        {/* Actualités */}
-        <div className="s-card" style={{ marginBottom: 0 }}>
-          <div className="s-card-header" style={{ marginBottom: 10 }}>
-            <div className="s-card-title"><i className="ti ti-news" /> Actualités</div>
-          </div>
-          <div style={{ maxHeight: 340, overflowY: 'auto', paddingRight: 2 }}>
-            {actus.length === 0
-              ? <div style={{ fontSize: 13, color: 'var(--muted)' }}>Aucune actualité pour le moment.</div>
-              : actus.map((a, i) => (
-                <div key={a.id} style={{ padding: '10px 0', borderBottom: i < actus.length - 1 ? '0.5px solid var(--border)' : 'none' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8, marginBottom: 4 }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--navy)', lineHeight: 1.4 }}>{a.titre}</div>
-                    <span style={{ fontSize: 10, color: 'var(--muted)', whiteSpace: 'nowrap', flexShrink: 0 }}>{formatDate(a.created_at)}</span>
-                  </div>
-                  {a.contenu && <div style={{ fontSize: 12, color: 'var(--muted)', lineHeight: 1.55 }}>{a.contenu}</div>}
-                </div>
-              ))
-            }
-          </div>
-        </div>
       </div>
 
       {/* ── Initiatives ── */}

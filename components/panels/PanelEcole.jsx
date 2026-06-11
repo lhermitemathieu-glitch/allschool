@@ -42,13 +42,10 @@ export function PanelEcolePage({ onVoirPage, ecoleIdOverride = null, onBack = nu
   const [newEvt, setNewEvt]             = useState({ titre: '', date_event: '', lieu: '', meta: '' })
   const [ecoleId, setEcoleId]           = useState(null)
 
-  // Nouveaux états — media, initiatives, actus
+  // Nouveaux états — media, initiatives
   const [uploadingCover,  setUploadingCover]  = useState(false)
   const [uploadingAvatar, setUploadingAvatar] = useState(false)
   const [newInitiative,   setNewInitiative]   = useState('')
-  const [actus,           setActus]           = useState([])
-  const [showActuForm,    setShowActuForm]    = useState(false)
-  const [newActu,         setNewActu]         = useState({ titre: '', contenu: '' })
 
   useEffect(() => {
     async function load() {
@@ -66,14 +63,12 @@ export function PanelEcolePage({ onVoirPage, ecoleIdOverride = null, onBack = nu
       }
       if (e) {
         setEcole(e); setForm(e); setEcoleId(e.id)
-        const [{ data: f }, { data: ev }, { data: ac }] = await Promise.all([
+        const [{ data: f }, { data: ev }] = await Promise.all([
           supabase.from('formations').select('*').eq('ecole_id', e.id).order('created_at'),
           supabase.from('evenements').select('*').eq('ecole_id', e.id).order('date_event'),
-          supabase.from('ecole_actus').select('*').eq('ecole_id', e.id).order('created_at', { ascending: false }),
         ])
         setFormations(f || [])
         setEvenements(ev || [])
-        setActus(ac || [])
       } else {
         setEditing(true)
       }
@@ -117,18 +112,6 @@ export function PanelEcolePage({ onVoirPage, ecoleIdOverride = null, onBack = nu
     const updated = (ecole.initiatives || []).filter(x => x !== init)
     const { data } = await supabase.from('ecoles').update({ initiatives: updated }).eq('id', ecoleId).select().single()
     if (data) { setEcole(data); setForm(data) }
-  }
-
-  // ── Actualités ───────────────────────────────────────────────────────────────
-  async function handleAddActu() {
-    if (!ecoleId || !newActu.titre.trim()) return
-    const { data, error } = await supabase.from('ecole_actus').insert({ ecole_id: ecoleId, titre: newActu.titre.trim(), contenu: newActu.contenu.trim() || null }).select().single()
-    if (!error) { setActus(prev => [data, ...prev]); setNewActu({ titre: '', contenu: '' }); setShowActuForm(false) }
-  }
-
-  async function handleDeleteActu(id) {
-    await supabase.from('ecole_actus').delete().eq('id', id)
-    setActus(prev => prev.filter(a => a.id !== id))
   }
 
   async function handleSave() {
@@ -498,41 +481,6 @@ export function PanelEcolePage({ onVoirPage, ecoleIdOverride = null, onBack = nu
         </div>
       </div>
 
-      {/* ── Actualités ──────────────────────────────────────────────────────── */}
-      <div className="s-card">
-        <div className="s-card-header">
-          <div className="s-card-title"><i className="ti ti-news" /> Actualités</div>
-          <button className="btn-sm" style={{ fontSize: 11 }} onClick={() => setShowActuForm(v => !v)}>+ Ajouter</button>
-        </div>
-
-        {showActuForm && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 12, padding: 10, background: 'var(--light)', borderRadius: 8 }}>
-            <input placeholder="Titre de l'actu" value={newActu.titre} onChange={e => setNewActu(a => ({ ...a, titre: e.target.value }))} style={inputStyle} />
-            <textarea placeholder="Contenu (optionnel)" value={newActu.contenu} onChange={e => setNewActu(a => ({ ...a, contenu: e.target.value }))} rows={3} style={{ ...inputStyle, resize: 'vertical' }} />
-            <div style={{ display: 'flex', gap: 6 }}>
-              <button className="btn-sm purple" onClick={handleAddActu}><i className="ti ti-check" /> Publier</button>
-              <button className="btn-sm" onClick={() => setShowActuForm(false)}>Annuler</button>
-            </div>
-          </div>
-        )}
-
-        {actus.length === 0 ? (
-          <div style={{ fontSize: 13, color: 'var(--muted)' }}>Aucune actualité publiée.</div>
-        ) : actus.map((a, i) => (
-          <div key={a.id} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', padding: '10px 0', borderBottom: i < actus.length - 1 ? '0.5px solid var(--border)' : 'none' }}>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--navy)', marginBottom: 2 }}>{a.titre}</div>
-              {a.contenu && <div style={{ fontSize: 12, color: 'var(--muted)', lineHeight: 1.5 }}>{a.contenu}</div>}
-              <div style={{ fontSize: 10, color: 'var(--muted)', marginTop: 3 }}>
-                {new Date(a.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
-              </div>
-            </div>
-            <button className="btn-sm" style={{ fontSize: 11, color: 'var(--muted)', flexShrink: 0 }} onClick={() => handleDeleteActu(a.id)}>
-              <i className="ti ti-trash" />
-            </button>
-          </div>
-        ))}
-      </div>
     </>
   )
 }
