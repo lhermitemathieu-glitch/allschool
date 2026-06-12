@@ -16,7 +16,7 @@ function sigle(nom) {
   return (nom || '').split(' ').filter(w => w.length > 2).map(w => w[0]).join('').toUpperCase().slice(0, 3) || '?'
 }
 
-export default function PanelEcoleLBAPublique({ ecole: ecoleInit, onBack }) {
+export default function PanelEcoleLBAPublique({ ecole: ecoleInit, onBack, candidatId }) {
   const supabase = createClient()
 
   // Données enrichies depuis Supabase (si UAI matche)
@@ -52,7 +52,7 @@ export default function PanelEcoleLBAPublique({ ecole: ecoleInit, onBack }) {
 
   return (
     <>
-      {drawer && <PanelFormationLBADrawer formation={drawer} onClose={() => setDrawer(null)} />}
+      {drawer && <PanelFormationLBADrawer formation={drawer} onClose={() => setDrawer(null)} candidatId={candidatId} />}
 
       {/* Topbar */}
       <div className="topbar">

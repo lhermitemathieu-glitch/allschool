@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
+import SuiviFormation from './SuiviFormation'
 
 const NIVEAU_LABEL = {
   cap: 'CAP', bac: 'Bac Pro', bts: 'BTS', bach: 'Bachelor', master: 'Master', autre: 'Autre',
@@ -23,7 +24,7 @@ function fmt(iso) {
   return new Date(iso).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })
 }
 
-export default function PanelFormationLBADrawer({ formation, onClose, onNavigateEcole }) {
+export default function PanelFormationLBADrawer({ formation, onClose, onNavigateEcole, candidatId, onSuiviChange }) {
   const f = formation
 
   useEffect(() => {
@@ -75,6 +76,14 @@ export default function PanelFormationLBADrawer({ formation, onClose, onNavigate
 
         {/* Contenu */}
         <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+
+          {/* Mon suivi — pipeline de Mes candidatures (candidat connecté uniquement) */}
+          <SuiviFormation
+            candidatId={candidatId}
+            lbaFormation={f}
+            onSuiviChange={onSuiviChange}
+            style={{ marginBottom: 0, padding: '12px 14px' }}
+          />
 
           {/* École */}
           <div className="s-card" style={{ marginBottom: 0, padding: '12px 14px' }}>

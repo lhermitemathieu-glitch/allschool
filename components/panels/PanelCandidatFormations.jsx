@@ -728,6 +728,17 @@ export default function PanelCandidatFormations({ candidatId, onNavigateFormatio
           formation={drawerFormation}
           onClose={() => setDrawerFormation(null)}
           onNavigateEcole={onNavigateEcole}
+          candidatId={candidatId}
+          onSuiviChange={({ saved }) => {
+            // Synchronise la coche « enregistrée » de la liste de résultats
+            const lbaId = drawerFormation?.lba_id
+            if (!lbaId) return
+            setLbaSavedIds(prev => {
+              const s = new Set(prev)
+              if (saved) s.add(lbaId); else s.delete(lbaId)
+              return s
+            })
+          }}
         />
       )}
     </>
