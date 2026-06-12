@@ -14,7 +14,6 @@ export async function generateMetadata({ params }) {
   return { title: `${post.title} — Allschool`, description: post.description }
 }
 
-// Rendu Markdown très simple sans dépendance externe
 function renderMarkdown(md) {
   const lines = md.split('\n')
   const elements = []
@@ -23,12 +22,52 @@ function renderMarkdown(md) {
   while (i < lines.length) {
     const line = lines[i]
 
-    if (line.startsWith('## ')) {
+    // Blocs :::type ... :::
+    if (line.startsWith(':::')) {
+      const type = line.slice(3).trim()
+      const blockLines = []
+      i++
+      while (i < lines.length && lines[i] !== ':::') {
+        blockLines.push(lines[i])
+        i++
+      }
+      const content = blockLines.join('\n')
+
+      if (type === 'stats') {
+        const stats = blockLines.map(l => l.split('|'))
+        elements.push(
+          <div key={i} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 12, margin: '1.5rem 0' }}>
+            {stats.map((s, idx) => (
+              <div key={idx} style={{ background: 'var(--light)', borderRadius: 12, padding: '1rem' }}>
+                <p style={{ fontSize: 12, color: 'var(--muted)', margin: '0 0 4px' }}>{s[1]}</p>
+                <p style={{ fontSize: 22, fontWeight: 700, fontFamily: 'Syne, sans-serif', color: 'var(--navy)', margin: 0, letterSpacing: '-0.5px' }}>{s[0]}</p>
+                <p style={{ fontSize: 12, color: 'var(--muted)', margin: '2px 0 0' }}>{s[2]}</p>
+              </div>
+            ))}
+          </div>
+        )
+      } else if (type === 'highlight') {
+        elements.push(
+          <div key={i} style={{ borderLeft: '3px solid var(--teal)', padding: '0.75rem 1rem', margin: '1.5rem 0', background: 'var(--teal-soft)', borderRadius: '0 10px 10px 0' }}>
+            <p style={{ margin: 0, fontSize: 15, lineHeight: 1.6, color: 'var(--teal-mid)' }}>{parseLine(content)}</p>
+          </div>
+        )
+      } else if (type === 'warning') {
+        elements.push(
+          <div key={i} style={{ borderLeft: '3px solid var(--gold)', padding: '0.75rem 1rem', margin: '1.5rem 0', background: 'var(--gold-soft)', borderRadius: '0 10px 10px 0' }}>
+            <p style={{ margin: 0, fontSize: 15, lineHeight: 1.6, color: 'var(--gold)' }}>{parseLine(content)}</p>
+          </div>
+        )
+      } else if (type === 'source') {
+        elements.push(
+          <p key={i} style={{ fontSize: 12, color: 'var(--muted)', marginTop: '2rem', borderTop: '0.5px solid var(--border)', paddingTop: '0.75rem' }}>{content}</p>
+        )
+      }
+    } else if (line.startsWith('## ')) {
       elements.push(<h2 key={i} style={{ fontFamily: 'Syne, sans-serif', fontSize: 22, fontWeight: 800, color: 'var(--navy)', letterSpacing: '-0.5px', margin: '2rem 0 0.75rem' }}>{line.slice(3)}</h2>)
     } else if (line.startsWith('# ')) {
       elements.push(<h1 key={i} style={{ fontFamily: 'Syne, sans-serif', fontSize: 28, fontWeight: 800, color: 'var(--navy)', letterSpacing: '-1px', margin: '2rem 0 1rem' }}>{line.slice(2)}</h1>)
     } else if (line.startsWith('- ')) {
-      // Collecte la liste
       const items = []
       while (i < lines.length && lines[i].startsWith('- ')) {
         items.push(<li key={i} style={{ fontSize: 15, color: 'var(--navy)', lineHeight: 1.7, marginBottom: 4 }}>{parseLine(lines[i].slice(2))}</li>)
