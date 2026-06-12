@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '../../lib/supabase/client'
 import TopNav from '../TopNav'
 import Sidebar from '../Sidebar'
+import Toaster from '../ui/Toaster'
 import { SPACES } from './spacesConfig'
 import { ROLE_TO_ALLOWED_SPACES, SPACE_PATHS } from '../../lib/roles'
 
@@ -121,6 +122,7 @@ export default function AppShell({ spaceKey, role, userId, children }) {
           {children(activePanel, activePanelData, navigateTo)}
         </main>
       </div>
+      <Toaster />
     </>
   )
 }

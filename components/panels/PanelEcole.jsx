@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '../../lib/supabase/client'
 import { SECTEURS } from '../../lib/secteurs'
+import { verifier } from '../ui/Toaster'
 
 const REGIONS_FR = [
   'Auvergne-Rhône-Alpes',
@@ -134,7 +135,8 @@ export function PanelEcolePage({ onVoirPage, ecoleIdOverride = null, onBack = nu
   }
 
   async function handleDeleteFormation(id) {
-    await supabase.from('formations').delete().eq('id', id)
+    const { error } = await supabase.from('formations').delete().eq('id', id)
+    if (!verifier(error, 'La suppression de la formation a échoué.')) return
     setFormations(prev => prev.filter(f => f.id !== id))
   }
 
@@ -145,7 +147,8 @@ export function PanelEcolePage({ onVoirPage, ecoleIdOverride = null, onBack = nu
   }
 
   async function handleDeleteEvt(id) {
-    await supabase.from('evenements').delete().eq('id', id)
+    const { error } = await supabase.from('evenements').delete().eq('id', id)
+    if (!verifier(error, 'La suppression de l\'événement a échoué.')) return
     setEvenements(prev => prev.filter(e => e.id !== id))
   }
 
@@ -514,13 +517,15 @@ export function PanelEcoleApprentis() {
   }, [])
 
   async function handleToggleTop(row) {
-    await supabase.from('ecole_apprentis').update({ top_profil: !row.top_profil }).eq('id', row.id)
+    const { error } = await supabase.from('ecole_apprentis').update({ top_profil: !row.top_profil }).eq('id', row.id)
+    if (!verifier(error, 'La mise en avant du profil a échoué.')) return
     setApprentis(prev => prev.map(a => a.id === row.id ? { ...a, top_profil: !row.top_profil } : a))
   }
 
   async function handleToggleStatut(row) {
     const nouveau = row.statut === 'cherche' ? 'signe' : 'cherche'
-    await supabase.from('ecole_apprentis').update({ statut: nouveau }).eq('id', row.id)
+    const { error } = await supabase.from('ecole_apprentis').update({ statut: nouveau }).eq('id', row.id)
+    if (!verifier(error, 'Le changement de statut de l\'apprenti a échoué.')) return
     setApprentis(prev => prev.map(a => a.id === row.id ? { ...a, statut: nouveau } : a))
   }
 

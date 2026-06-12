@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '../../lib/supabase/client'
 import { typeInfo } from '../../lib/offre-types'
+import { verifier } from '../ui/Toaster'
 
 const NIVEAU_LABEL = {
   cap: 'CAP', bac: 'Bac Pro', bts: 'BTS', bts_agri: 'BTS Agricole',
@@ -33,12 +34,14 @@ export default function PanelCandidatArchives() {
   }
 
   async function restaurerOffre(id) {
-    await supabase.from('candidat_offres_cachees').delete().eq('id', id)
+    const { error } = await supabase.from('candidat_offres_cachees').delete().eq('id', id)
+    if (!verifier(error, 'La restauration de l\'offre a échoué.')) return
     setOffres(prev => prev.filter(i => i.id !== id))
   }
 
   async function restaurerFormation(id) {
-    await supabase.from('candidat_formations_cachees').delete().eq('id', id)
+    const { error } = await supabase.from('candidat_formations_cachees').delete().eq('id', id)
+    if (!verifier(error, 'La restauration de la formation a échoué.')) return
     setFormations(prev => prev.filter(i => i.id !== id))
   }
 

@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { createClient } from '../../lib/supabase/client'
 import AvatarPhoto from '../ui/AvatarPhoto'
+import { verifier } from '../ui/Toaster'
 
 /* ─── Constantes ─────────────────────────────────────────────── */
 const SOFT_SKILLS = [
@@ -255,7 +256,12 @@ export default function PanelCandidatProfil({ candidatIdOverride, onBack }) {
   async function saveImmediate(key, val) {
     setField(key, val)
     setProfil(p => ({ ...p, [key]: val }))
-    await supabase.from('candidats').update({ [key]: val }).eq('id', profil.id)
+    const { error } = await supabase.from('candidats').update({ [key]: val }).eq('id', profil.id)
+    if (!verifier(error, 'Le réglage n\'a pas été enregistré.')) {
+      // Échec : on remet l'interface dans l'état réel
+      setField(key, !val)
+      setProfil(p => ({ ...p, [key]: !val }))
+    }
   }
 
   // Expériences

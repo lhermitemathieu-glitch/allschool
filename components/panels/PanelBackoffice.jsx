@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { createClient } from '../../lib/supabase/client'
+import { verifier } from '../ui/Toaster'
 
 // ── Parseur CSV (gère les champs entre guillemets avec virgules internes) ─────
 function parseCSV(text) {
@@ -521,7 +522,8 @@ export function PanelBackLogs() {
   useEffect(() => { load() }, [])
 
   async function handleClear() {
-    await supabase.from('import_logs').delete().neq('id', '00000000-0000-0000-0000-000000000000')
+    const { error } = await supabase.from('import_logs').delete().neq('id', '00000000-0000-0000-0000-000000000000')
+    if (!verifier(error, 'Le vidage du journal a échoué.')) return
     setLogs([])
   }
 

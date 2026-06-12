@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { createClient } from '../../lib/supabase/client'
 import { TYPES, typeInfo } from '../../lib/offre-types'
 import PanelFormationLBADrawer from './PanelFormationLBADrawer'
+import { verifier } from '../ui/Toaster'
 
 const STATUTS = [
   { key: 'a_faire',   label: 'À faire',             color: '#0369a1',       bg: '#e0f2fe' },
@@ -207,15 +208,18 @@ export default function PanelCandidatCandidatures({ onNavigateEcole, onNavigateF
     if (!user) return
     if (payload === null) {
       // Supprimer
-      await supabase.from('candidature_actions').delete().eq('candidat_id', user.id).eq('candidature_id', candidatureId)
+      const { error } = await supabase.from('candidature_actions').delete().eq('candidat_id', user.id).eq('candidature_id', candidatureId)
+      if (!verifier(error, 'La suppression du rappel a échoué.')) return
       setActions(prev => { const n = { ...prev }; delete n[candidatureId]; return n })
     } else {
       const existing = actions[candidatureId]
       if (existing) {
-        const { data } = await supabase.from('candidature_actions').update({ ...payload, updated_at: new Date().toISOString() }).eq('id', existing.id).select().single()
+        const { data, error } = await supabase.from('candidature_actions').update({ ...payload, updated_at: new Date().toISOString() }).eq('id', existing.id).select().single()
+        if (!verifier(error, 'La mise à jour du rappel a échoué.')) return
         if (data) setActions(prev => ({ ...prev, [candidatureId]: data }))
       } else {
-        const { data } = await supabase.from('candidature_actions').insert({ ...payload, candidat_id: user.id, candidature_id: candidatureId }).select().single()
+        const { data, error } = await supabase.from('candidature_actions').insert({ ...payload, candidat_id: user.id, candidature_id: candidatureId }).select().single()
+        if (!verifier(error, 'L\'enregistrement du rappel a échoué.')) return
         if (data) setActions(prev => ({ ...prev, [candidatureId]: data }))
       }
     }
@@ -240,21 +244,25 @@ export default function PanelCandidatCandidatures({ onNavigateEcole, onNavigateF
     const { data: { user } } = await supabase.auth.getUser()
     if (editing) {
       const { data, error } = await supabase.from('candidat_candidatures').update({ ...form }).eq('id', editing).select().single()
-      if (!error && data) setItems(prev => prev.map(i => i.id === editing ? data : i))
+      if (!verifier(error, 'La mise à jour de la candidature a échoué.')) { setSaving(false); return }
+      if (data) setItems(prev => prev.map(i => i.id === editing ? data : i))
     } else {
       const { data, error } = await supabase.from('candidat_candidatures').insert({ ...form, candidat_id: user.id }).select().single()
-      if (!error && data) setItems(prev => [data, ...prev])
+      if (!verifier(error, 'L\'ajout de la candidature a échoué.')) { setSaving(false); return }
+      if (data) setItems(prev => [data, ...prev])
     }
     setAdding(false); setEditing(null); setForm(EMPTY_FORM); setSaving(false)
   }
 
   async function handleDelete(id) {
-    await supabase.from('candidat_candidatures').delete().eq('id', id)
+    const { error } = await supabase.from('candidat_candidatures').delete().eq('id', id)
+    if (!verifier(error, 'La suppression de la candidature a échoué — rien n\'a été supprimé.')) return
     setItems(prev => prev.filter(i => i.id !== id))
   }
 
   async function quickStatut(id, statut) {
-    const { data } = await supabase.from('candidat_candidatures').update({ statut }).eq('id', id).select().single()
+    const { data, error } = await supabase.from('candidat_candidatures').update({ statut }).eq('id', id).select().single()
+    if (!verifier(error, 'Le changement de statut n\'a pas été enregistré.')) return
     if (data) setItems(prev => prev.map(i => i.id === id ? data : i))
   }
 

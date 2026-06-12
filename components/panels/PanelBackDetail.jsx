@@ -5,6 +5,7 @@ import { createClient } from '../../lib/supabase/client'
 import { PanelEntrepriseOffres } from './PanelEntreprise'
 import { SECTEURS } from '../../lib/secteurs'
 import AvatarPhoto from '../ui/AvatarPhoto'
+import { verifier } from '../ui/Toaster'
 
 const PAGE_SIZE = 20
 
@@ -837,11 +838,15 @@ export function PanelAdminCandidat({ candidatId, onBack }) {
         </div>
         <button
           className={`toggle ${(editing ? form.profil_public : profil?.profil_public) ? 'on' : ''}`}
-          onClick={() => {
+          onClick={async () => {
             const val = !(editing ? form.profil_public : profil?.profil_public)
             setField('profil_public', val)
             if (!editing) {
-              supabase.from('candidats').update({ profil_public: val }).eq('id', candidatId)
+              const { error } = await supabase.from('candidats').update({ profil_public: val }).eq('id', candidatId)
+              if (!verifier(error, 'Le changement de visibilité du profil a échoué.')) {
+                setField('profil_public', !val)
+                return
+              }
               setProfil(p => ({ ...p, profil_public: val }))
             }
           }}

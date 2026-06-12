@@ -5,6 +5,7 @@ import { createClient } from '../../lib/supabase/client'
 import { SECTEURS } from '../../lib/secteurs'
 import { NIVEAUX, niveauLabel } from '../../lib/niveaux'
 import AvatarPhoto from '../ui/AvatarPhoto'
+import { verifier } from '../ui/Toaster'
 
 // ── SIRET ─────────────────────────────────────────────────────────────────────
 // Composant champ lecture/édition
@@ -969,17 +970,20 @@ export function PanelEntrepriseOffres({ entrepriseIdOverride, hideTopbar } = {})
   }
 
   async function handleStatut(id, statut) {
-    const { data } = await supabase.from('offres').update({ statut, updated_at: new Date().toISOString() }).eq('id', id).select().single()
+    const { data, error } = await supabase.from('offres').update({ statut, updated_at: new Date().toISOString() }).eq('id', id).select().single()
+    if (!verifier(error, 'Le changement de statut de l\'offre a échoué.')) return
     if (data) setOffres(prev => prev.map(o => o.id === id ? data : o))
   }
 
   async function handleActualiser(id) {
-    const { data } = await supabase.from('offres').update({ updated_at: new Date().toISOString() }).eq('id', id).select().single()
+    const { data, error } = await supabase.from('offres').update({ updated_at: new Date().toISOString() }).eq('id', id).select().single()
+    if (!verifier(error, 'L\'actualisation de l\'offre a échoué.')) return
     if (data) { setOffres(prev => prev.map(o => o.id === id ? data : o)); setMsg('Offre actualisée !'); setTimeout(() => setMsg(''), 3000) }
   }
 
   async function handleDelete(id) {
-    await supabase.from('offres').delete().eq('id', id)
+    const { error } = await supabase.from('offres').delete().eq('id', id)
+    if (!verifier(error, 'La suppression de l\'offre a échoué — rien n\'a été supprimé.')) return
     setOffres(prev => prev.filter(o => o.id !== id))
   }
 
