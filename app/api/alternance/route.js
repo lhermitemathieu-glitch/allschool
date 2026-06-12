@@ -5,6 +5,18 @@ import { lbaNiveauToKey, niveauLabel } from '../../../lib/niveaux'
 const LBA_BASE = 'https://api.apprentissage.beta.gouv.fr/api'
 const CALLER   = 'allschool'
 
+// Validation des coordonnées / rayon reçus en query (évite d'injecter des
+// valeurs arbitraires dans l'URL LBA et de déclencher des requêtes inutiles).
+function parseGeo(latRaw, lngRaw, radiusRaw) {
+  const lat    = Number(latRaw)
+  const lng    = Number(lngRaw)
+  const radius = Number(radiusRaw)
+  if (!Number.isFinite(lat) || lat < -90 || lat > 90)     return null
+  if (!Number.isFinite(lng) || lng < -180 || lng > 180)   return null
+  const r = Number.isFinite(radius) ? Math.min(Math.max(radius, 1), 200) : 30
+  return { lat, lng, radius: r }
+}
+
 /**
  * GET /api/alternance?secteur=...&latitude=...&longitude=...&radius=30
  *
@@ -13,16 +25,22 @@ const CALLER   = 'allschool'
 export async function GET(request) {
   const { searchParams } = new URL(request.url)
   const secteur   = searchParams.get('secteur')
-  const latitude  = searchParams.get('latitude')
-  const longitude = searchParams.get('longitude')
-  const radius    = searchParams.get('radius') || '30'
 
-  if (!secteur || !latitude || !longitude) {
+  if (!secteur || !searchParams.get('latitude') || !searchParams.get('longitude')) {
     return NextResponse.json(
       { error: 'Paramètres manquants : secteur, latitude, longitude requis.' },
       { status: 400 }
     )
   }
+
+  const geo = parseGeo(searchParams.get('latitude'), searchParams.get('longitude'), searchParams.get('radius'))
+  if (!geo) {
+    return NextResponse.json(
+      { error: 'Coordonnées invalides : latitude/longitude/radius hors bornes.' },
+      { status: 400 }
+    )
+  }
+  const { lat: latitude, lng: longitude, radius } = geo
 
   const romes = getRomesForSecteur(secteur)
   if (romes.length === 0) {

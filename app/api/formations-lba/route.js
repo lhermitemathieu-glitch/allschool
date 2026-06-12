@@ -75,10 +75,22 @@ export async function GET(request) {
   const { searchParams } = new URL(request.url)
   const secteursRaw = searchParams.get('secteurs')
   const keyword     = (searchParams.get('keyword') || '').toLowerCase().trim()
-  const latitude    = searchParams.get('latitude')
-  const longitude   = searchParams.get('longitude')
-  const radius      = searchParams.get('radius') || '30'
+  const latRaw      = searchParams.get('latitude')
+  const lngRaw      = searchParams.get('longitude')
   const region      = searchParams.get('region')
+
+  // Validation géo : si lat/lng fournis, ils doivent être numériques et bornés.
+  let latitude = null, longitude = null
+  if (latRaw != null || lngRaw != null) {
+    const lat = Number(latRaw), lng = Number(lngRaw)
+    if (!Number.isFinite(lat) || lat < -90 || lat > 90 ||
+        !Number.isFinite(lng) || lng < -180 || lng > 180) {
+      return NextResponse.json({ error: 'Coordonnées invalides.' }, { status: 400 })
+    }
+    latitude = String(lat); longitude = String(lng)
+  }
+  const radiusNum = Number(searchParams.get('radius'))
+  const radius    = String(Number.isFinite(radiusNum) ? Math.min(Math.max(radiusNum, 1), 600) : 30)
   const niveauKey   = searchParams.get('niveau')
   const modaliteKey = searchParams.get('modalite')
   const mode        = searchParams.get('mode') // 'ecoles' → couverture complète tous secteurs
@@ -297,13 +309,18 @@ export async function POST(request) {
   const { formation } = await request.json()
   if (!formation?.lba_id) return NextResponse.json({ error: 'lba_id manquant' }, { status: 400 })
 
+  // Le niveau provient du client : on le borne à la liste autorisée par le
+  // CHECK formations_niveau_check (sinon l'upsert renvoie 500).
+  const NIVEAUX_VALIDES = ['cap','bac','bts','bts_agri','afpa3','deust','niv3','bach','master','autre']
+  const niveauValide = NIVEAUX_VALIDES.includes(formation.niveau) ? formation.niveau : null
+
   // Upsert snapshot formations (service role pour bypasser RLS)
   const { data: snap, error: snapErr } = await adminSupabase
     .from('formations')
     .upsert({
       lba_id:             formation.lba_id,
       nom:                formation.nom,
-      niveau:             formation.niveau || null,
+      niveau:             niveauValide,
       source:             'lba',
       localite_formation: formation.ville || null,
       url_onisep:         formation.url_onisep || formation.url || null,

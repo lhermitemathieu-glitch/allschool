@@ -3,6 +3,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { createClient } from '../../lib/supabase/client'
 import { PanelEntrepriseOffres } from './PanelEntreprise'
+import { SECTEURS } from '../../lib/secteurs'
+import AvatarPhoto from '../ui/AvatarPhoto'
 
 const PAGE_SIZE = 20
 
@@ -56,41 +58,11 @@ function Pager({ page, hasMore, total, onPrev, onNext }) {
   )
 }
 
-// ── AVATAR PHOTO ──────────────────────────────────────────────────────────────
-function AvatarPhoto({ url, initials, size = 64, bg = '#fff3e0', color = 'var(--accent)', onUpload, uploading }) {
-  const inputRef = useRef(null)
-  const [hover, setHover] = useState(false)
-  return (
-    <div
-      style={{ position: 'relative', width: size, height: size, flexShrink: 0, cursor: onUpload ? 'pointer' : 'default' }}
-      onClick={() => onUpload && inputRef.current?.click()}
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
-    >
-      {url ? (
-        <img src={url} alt="" style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover', display: 'block' }} />
-      ) : (
-        <div style={{ width: size, height: size, borderRadius: '50%', background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Syne, sans-serif', fontSize: size * 0.3, fontWeight: 800, color }}>
-          {initials}
-        </div>
-      )}
-      {onUpload && (hover || uploading) && (
-        <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', background: 'rgba(0,0,0,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <i className={`ti ${uploading ? 'ti-loader' : 'ti-camera'}`} style={{ color: 'white', fontSize: Math.round(size * 0.3) }} />
-        </div>
-      )}
-      {onUpload && <input ref={inputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={e => { const f = e.target.files[0]; if (f) onUpload(f); e.target.value = '' }} />}
-    </div>
-  )
-}
+// AvatarPhoto partagé (../ui/AvatarPhoto) : les usages entreprise passent
+// bg="#fff3e0" color="var(--accent)", les usages candidat passent du teal.
 
-const SECTEURS_LIST = [
-  'Agriculture & Environnement', 'Alimentation & Restauration', 'Arts & Culture',
-  'BTP & Immobilier', 'Commerce & Vente', 'Communication & Marketing',
-  'Finance & Comptabilité', 'Hôtellerie & Tourisme', 'Industrie & Production',
-  'Informatique & Numérique', 'Juridique & Droit', 'Logistique & Transport',
-  'Ressources Humaines', 'Santé & Social', 'Sport & Animation',
-]
+// Source unique de vérité : lib/secteurs.js (alignée avec les autres espaces).
+const SECTEURS_LIST = SECTEURS
 
 // ══════════════════════════════════════════════════════════════════════════════
 // PANEL — ÉCOLES
