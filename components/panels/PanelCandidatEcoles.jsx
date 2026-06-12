@@ -2,31 +2,14 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '../../lib/supabase/client'
-const REGIONS = [
-  { code: '84', label: 'Auvergne-Rhône-Alpes',      lat: 45.44, lng: 4.39  },
-  { code: '27', label: 'Bourgogne-Franche-Comté',    lat: 47.28, lng: 5.00  },
-  { code: '53', label: 'Bretagne',                   lat: 48.11, lng: -2.93 },
-  { code: '24', label: 'Centre-Val de Loire',        lat: 47.51, lng: 1.68  },
-  { code: '94', label: 'Corse',                      lat: 42.03, lng: 9.01  },
-  { code: '44', label: 'Grand Est',                  lat: 48.46, lng: 6.56  },
-  { code: '32', label: 'Hauts-de-France',            lat: 50.27, lng: 2.80  },
-  { code: '11', label: 'Île-de-France',              lat: 48.85, lng: 2.35  },
-  { code: '28', label: 'Normandie',                  lat: 49.18, lng: 0.36  },
-  { code: '75', label: 'Nouvelle-Aquitaine',         lat: 44.78, lng: 0.00  },
-  { code: '76', label: 'Occitanie',                  lat: 43.87, lng: 2.56  },
-  { code: '52', label: 'Pays de la Loire',           lat: 47.76, lng: -0.55 },
-  { code: '93', label: "Provence-Alpes-Côte d'Azur", lat: 43.94, lng: 6.07  },
-]
+import { REGIONS } from '../../lib/regions'
+import { sigle } from '../../lib/format'
 
 const inputStyle = {
   flex: 1, minWidth: 140, padding: '8px 12px',
   border: '1.5px solid var(--border)', borderRadius: 8,
   fontSize: 13, fontFamily: 'DM Sans, sans-serif',
   color: 'var(--navy)', background: 'white', outline: 'none',
-}
-
-function sigle(nom) {
-  return (nom || '').split(' ').filter(w => w.length > 2).map(w => w[0]).join('').toUpperCase().slice(0, 3) || '?'
 }
 
 // Regroupe les formations LBA par école (UAI ou SIRET comme clé)

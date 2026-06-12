@@ -8,8 +8,6 @@ import { ALL_ROME_BATCHES } from '../../../lib/rome-batches'
 const LBA_BASE = 'https://api.apprentissage.beta.gouv.fr/api'
 const CALLER   = 'allschool'
 
-const ALL_REGIONS = ['84','27','53','24','94','44','32','11','28','75','76','52','93']
-
 // Points stratégiques pour la recherche distanciel avec rayon 300 km (couverture nationale)
 const DISTANCIEL_POINTS = [
   { lat: 48.8566, lng: 2.3522 },   // Paris  — couvre Nord/Est/Centre

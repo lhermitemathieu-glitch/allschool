@@ -6,12 +6,9 @@ import { PanelEntrepriseOffres } from './PanelEntreprise'
 import { SECTEURS } from '../../lib/secteurs'
 import AvatarPhoto from '../ui/AvatarPhoto'
 import { verifier } from '../ui/Toaster'
+import { initiales } from '../../lib/format'
 
 const PAGE_SIZE = 20
-
-function initiales(str) {
-  return (str || '').split(' ').filter(Boolean).map(w => w[0]).join('').toUpperCase().slice(0, 2) || '?'
-}
 
 // ── TAG DIPLÔME coloré ────────────────────────────────────────────────────────
 function DiploTag({ label }) {

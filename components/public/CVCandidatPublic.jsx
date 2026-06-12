@@ -1,16 +1,11 @@
 'use client'
 
 import { useRef } from 'react'
+import { initialesNom, formatTel } from '../../lib/format'
 
 /* ── helpers ─────────────────────────────────────────────────────────────── */
 const MOIS_LABELS = ['Janv.', 'Févr.', 'Mars', 'Avr.', 'Mai', 'Juin', 'Juil.', 'Août', 'Sept.', 'Oct.', 'Nov.', 'Déc.']
 const MOIS_FULL   = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre']
-
-function formatTel(raw) {
-  const digits = (raw || '').replace(/\D/g, '').slice(0, 10)
-  if (digits.length === 0) return ''
-  return digits.match(/.{1,2}/g).join('.')
-}
 
 function formatDispo(p) {
   if (p.dispo_mois && p.dispo_annee) return `Disponible en ${MOIS_FULL[p.dispo_mois - 1]} ${p.dispo_annee}`
@@ -45,10 +40,6 @@ function dureeExp(exp) {
     return restant ? `${ans} an${ans > 1 ? 's' : ''} ${restant} mois` : `${ans} an${ans > 1 ? 's' : ''}`
   }
   return `${mois} mois`
-}
-
-function initiales(prenom, nom) {
-  return [(prenom || '')[0], (nom || '')[0]].filter(Boolean).join('').toUpperCase() || '?'
 }
 
 function qrUrl(url) {
@@ -166,7 +157,7 @@ export default function CVCandidatPublic({ profil, publicUrl }) {
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   fontFamily: 'Plus Jakarta Sans, sans-serif', fontWeight: 800, fontSize: 28, color: '#1D9E75',
                 }}>
-                  {initiales(profil.prenom, profil.nom)}
+                  {initialesNom(profil.prenom, profil.nom)}
                 </div>
               )}
               <div>

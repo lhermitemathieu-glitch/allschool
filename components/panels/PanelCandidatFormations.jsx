@@ -3,37 +3,19 @@
 import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '../../lib/supabase/client'
 import { SECTEUR_ROME } from '../../lib/rome-mapping'
-import { NIVEAUX } from '../../lib/niveaux'
+import { NIVEAU_LABEL_COURT as NIVEAU_LABEL, niveauStyle } from '../../lib/niveaux'
+import { REGIONS } from '../../lib/regions'
+import { initiales } from '../../lib/format'
 import PanelFormationLBADrawer from './PanelFormationLBADrawer'
 import { verifier, notifierErreur } from '../ui/Toaster'
 
 const SECTEURS = Object.keys(SECTEUR_ROME).sort()
-
-const REGIONS = [
-  { code: '84', label: 'Auvergne-Rhône-Alpes' },
-  { code: '27', label: 'Bourgogne-Franche-Comté' },
-  { code: '53', label: 'Bretagne' },
-  { code: '24', label: 'Centre-Val de Loire' },
-  { code: '94', label: 'Corse' },
-  { code: '44', label: 'Grand Est' },
-  { code: '32', label: 'Hauts-de-France' },
-  { code: '11', label: 'Île-de-France' },
-  { code: '28', label: 'Normandie' },
-  { code: '75', label: 'Nouvelle-Aquitaine' },
-  { code: '76', label: 'Occitanie' },
-  { code: '52', label: 'Pays de la Loire' },
-  { code: '93', label: "Provence-Alpes-Côte d'Azur" },
-]
 
 const NIVEAUX_FILTER_LBA = [
   'CAP', 'Bac Pro', 'BP', 'BTS', 'Titre Pro',
   'Licence Pro', 'Licence', 'Bachelor', 'DCG',
   'Master', 'Mastère Spé.', 'DSCG',
 ]
-
-function sigle(nom) {
-  return (nom || '').split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 3) || '?'
-}
 
 const MODALITE_MAP = {
   presentiel: { label: 'Présentiel', icon: 'ti-building', bg: '#e0f2fe', color: '#0369a1' },
@@ -49,41 +31,6 @@ function ModaliteTag({ value }) {
       <i className={`ti ${m.icon}`} style={{ fontSize: 9 }} /> {m.label}
     </span>
   )
-}
-
-const NIVEAU_LABEL = {
-  cap: 'CAP', bac: 'Bac Pro', bts: 'BTS', bts_agri: 'BTS Agricole',
-  deust: 'DEUST', afpa3: 'Niv 3 – AFPA', niv3: 'Niv 3 – Autre',
-  bach: 'Bachelor', master: 'Master', autre: 'Autre',
-}
-
-const NIVEAUX_FILTER = [
-  { value: 'cap',      label: 'CAP' },
-  { value: 'bac',      label: 'Bac Pro' },
-  { value: 'bts',      label: 'BTS' },
-  { value: 'bts_agri', label: 'BTS Agricole' },
-  { value: 'deust',    label: 'DEUST' },
-  { value: 'afpa3',    label: 'Niv 3 – AFPA' },
-  { value: 'niv3',     label: 'Niv 3 – Autre' },
-  { value: 'bach',     label: 'Bachelor / Licence' },
-  { value: 'master',   label: 'Master / Ingénieur' },
-  { value: 'autre',    label: 'Autre' },
-]
-
-function niveauStyle(niveau) {
-  const map = {
-    cap:      { background: '#fef9c3', color: '#854d0e' },
-    bac:      { background: '#ffedd5', color: '#9a3412' },
-    bts:      { background: '#e0f2fe', color: '#0369a1' },
-    bts_agri: { background: '#d1fae5', color: '#065f46' },
-    deust:    { background: '#ede9fe', color: '#5b21b6' },
-    afpa3:    { background: '#fce7f3', color: '#9d174d' },
-    niv3:     { background: '#f1f5f9', color: '#475569' },
-    bach:     { background: '#dcfce7', color: '#166534' },
-    master:   { background: '#fce7f3', color: '#9d174d' },
-    autre:    { background: '#ede9fe', color: '#7c3aed' },
-  }
-  return map[niveau] || map.autre
 }
 
 const inputStyle = {
@@ -688,7 +635,7 @@ export default function PanelCandidatFormations({ candidatId, onNavigateFormatio
                         onClick={() => onNavigateEcole?.(f.ecole.id, 'candidat-formations', filters)}
                       >
                         <div style={{ width: 22, height: 22, borderRadius: 5, background: 'var(--purple-soft)', color: 'var(--purple)', fontSize: 8, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                          {sigle(f.ecole.nom)}
+                          {initiales(f.ecole.nom, 3)}
                         </div>
                         <div style={{ maxWidth: 160 }}>
                           <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--navy)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{f.ecole.nom}</div>

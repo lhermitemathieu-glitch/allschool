@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { createClient } from '../../lib/supabase/client'
 import AvatarPhoto from '../ui/AvatarPhoto'
 import { verifier } from '../ui/Toaster'
+import { initialesNom, formatTel } from '../../lib/format'
 
 /* ─── Constantes ─────────────────────────────────────────────── */
 const SOFT_SKILLS = [
@@ -59,12 +60,6 @@ function formatDispo(d) {
   return d.disponibilite || null
 }
 
-function formatTel(raw) {
-  const digits = (raw || '').replace(/\D/g, '').slice(0, 10)
-  if (digits.length === 0) return ''
-  return digits.match(/.{1,2}/g).join('.')
-}
-
 const CONTRATS_EXP = ['CDI', 'CDD', 'Alternance', 'Intérim', 'Bénévolat', 'Autre']
 
 function newExp()  { return { id: Date.now(), entreprise: '', poste: '', contrat: '', ville: '', mois_debut: '', annee_debut: '', mois_fin: '', annee_fin: '', en_cours: false, missions: [] } }
@@ -115,10 +110,6 @@ function completion(profil) {
     (profil.langues?.length    || 0) > 0,
   ]
   return Math.round(checks.filter(Boolean).length / checks.length * 100)
-}
-
-function initiales(prenom, nom) {
-  return [(prenom || '')[0], (nom || '')[0]].filter(Boolean).join('').toUpperCase() || '?'
 }
 
 /* ─── CityAutocomplete ───────────────────────────────────────── */
@@ -352,7 +343,7 @@ export default function PanelCandidatProfil({ candidatIdOverride, onBack }) {
       <div className="s-card" style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start', marginBottom: 0 }}>
         <AvatarPhoto
           url={dispUrl}
-          initials={initiales(data.prenom, data.nom)}
+          initials={initialesNom(data.prenom, data.nom)}
           size={64}
           onUpload={handlePhotoUpload}
           uploading={uploading}

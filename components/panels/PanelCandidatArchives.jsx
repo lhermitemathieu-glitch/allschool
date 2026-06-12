@@ -4,12 +4,7 @@ import { useState, useEffect } from 'react'
 import { createClient } from '../../lib/supabase/client'
 import { typeInfo } from '../../lib/offre-types'
 import { verifier } from '../ui/Toaster'
-
-const NIVEAU_LABEL = {
-  cap: 'CAP', bac: 'Bac Pro', bts: 'BTS', bts_agri: 'BTS Agricole',
-  deust: 'DEUST', afpa3: 'Niv 3 – AFPA', niv3: 'Niv 3 – Autre',
-  bach: 'Bachelor', master: 'Master', autre: 'Autre',
-}
+import { NIVEAU_LABEL_COURT as NIVEAU_LABEL } from '../../lib/niveaux'
 
 export default function PanelCandidatArchives() {
   const supabase = createClient()

@@ -6,10 +6,7 @@ import { TYPES, typeInfo } from '../../lib/offre-types'
 import PanelFormationLBADrawer from './PanelFormationLBADrawer'
 import { verifier } from '../ui/Toaster'
 import { STATUTS_CANDIDATURE as STATUTS, statutInfo } from '../../lib/candidature-statuts'
-
-function sigle(nom) {
-  return (nom || '').split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) || '?'
-}
+import { initiales } from '../../lib/format'
 
 const TYPES_OFFRES     = TYPES.filter(t => t.key !== 'formation' && t.key !== 'ecole')
 const TYPES_FORMATIONS = TYPES.filter(t => t.key === 'formation')
@@ -444,10 +441,10 @@ function ListRow({ item, onglet, onEdit, onDelete, onStatut, onFavori, onNavigat
       {/* Avatar */}
       {isFormation ? (
         <div style={{ width: 36, height: 36, borderRadius: 8, background: 'var(--purple-soft)', color: 'var(--purple)', fontSize: 10, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-          {sigle(ecoleNom)}
+          {initiales(ecoleNom)}
         </div>
       ) : (
-        <div className="e-av accent" style={{ flexShrink: 0 }}>{sigle(item.nom_entreprise)}</div>
+        <div className="e-av accent" style={{ flexShrink: 0 }}>{initiales(item.nom_entreprise)}</div>
       )}
 
       <div style={{ flex: 1, minWidth: 0 }}>

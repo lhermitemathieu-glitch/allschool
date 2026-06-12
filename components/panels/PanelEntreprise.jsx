@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { createClient } from '../../lib/supabase/client'
 import { SECTEURS } from '../../lib/secteurs'
 import { NIVEAUX, niveauLabel } from '../../lib/niveaux'
+import { initialesNom, sigle } from '../../lib/format'
 import AvatarPhoto from '../ui/AvatarPhoto'
 import { verifier } from '../ui/Toaster'
 
@@ -333,10 +334,6 @@ export function PanelEntrepriseRecherche({ onNavigate }) {
 
   const toggle = key => setToggles(t => ({ ...t, [key]: !t[key] }))
 
-  function initiales(prenom, nom) {
-    return [(prenom || '')[0], (nom || '')[0]].filter(Boolean).join('').toUpperCase() || '?'
-  }
-
   const BG_COLORS = ['var(--teal-soft)', 'var(--purple-soft)', 'var(--accent-soft)']
   const FG_COLORS = ['var(--teal-mid)', 'var(--purple-mid)', '#993C1D']
 
@@ -394,7 +391,7 @@ export function PanelEntrepriseRecherche({ onNavigate }) {
             <div key={p.id} className="p-card">
               <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', marginBottom: 10 }}>
                 <div style={{ width: 44, height: 44, borderRadius: '50%', background: BG_COLORS[i % 3], display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Syne, sans-serif', fontSize: 15, fontWeight: 800, color: FG_COLORS[i % 3], flexShrink: 0 }}>
-                  {initiales(p.prenom, p.nom)}
+                  {initialesNom(p.prenom, p.nom)}
                 </div>
                 <div>
                   <div style={{ fontFamily: 'Syne, sans-serif', fontSize: 14, fontWeight: 700, color: 'var(--navy)' }}>
@@ -498,10 +495,6 @@ export function PanelEntrepriseEcoles({ onNavigateEcole }) {
     setLoading(false)
   }, [ville, rayon, secteur, modalite])
 
-  function sigleEcole(nom) {
-    return (nom || '').split(' ').filter(w => w.length > 2).map(w => w[0]).join('').toUpperCase().slice(0, 3) || '?'
-  }
-
   return (
     <>
       <div className="topbar">
@@ -582,7 +575,7 @@ export function PanelEntrepriseEcoles({ onNavigateEcole }) {
             <div key={e.id} className="s-card" style={{ marginBottom: 0 }}>
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 10 }}>
                 <div style={{ width: 44, height: 44, borderRadius: 10, background: 'var(--light)', border: '0.5px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Syne, sans-serif', fontSize: 10, fontWeight: 800, color: 'var(--navy)', flexShrink: 0 }}>
-                  {sigleEcole(e.nom)}
+                  {sigle(e.nom)}
                 </div>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontFamily: 'Syne, sans-serif', fontSize: 14, fontWeight: 700, color: 'var(--navy)' }}>{e.nom}</div>

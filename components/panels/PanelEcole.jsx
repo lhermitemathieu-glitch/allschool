@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { createClient } from '../../lib/supabase/client'
 import { SECTEURS } from '../../lib/secteurs'
 import { verifier } from '../ui/Toaster'
+import { initialesNom } from '../../lib/format'
 
 const REGIONS_FR = [
   'Auvergne-Rhône-Alpes',
@@ -567,10 +568,6 @@ export function PanelEcoleApprentis() {
   const CLS_BG = ['var(--teal-soft)', 'var(--purple-soft)', 'var(--accent-soft)']
   const CLS_FG = ['var(--teal-mid)', 'var(--purple-mid)', '#993C1D']
 
-  function initiales(c) {
-    return [(c?.prenom || '')[0], (c?.nom || '')[0]].filter(Boolean).join('').toUpperCase() || '?'
-  }
-
   if (loading) return <div style={{ padding: '2rem', color: 'var(--muted)', fontSize: 14 }}>Chargement…</div>
 
   return (
@@ -610,7 +607,7 @@ export function PanelEcoleApprentis() {
         ) : apprentis.map((a, i) => (
           <div key={a.id} className="entry-row">
             <div style={{ width: 36, height: 36, borderRadius: '50%', background: CLS_BG[i % 3], display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Syne, sans-serif', fontSize: 12, fontWeight: 800, color: CLS_FG[i % 3], flexShrink: 0 }}>
-              {initiales(a.candidat)}
+              {initialesNom(a.candidat?.prenom, a.candidat?.nom)}
             </div>
             <div style={{ flex: 1 }}>
               <div className="e-name">{a.candidat?.prenom} {a.candidat?.nom}</div>
