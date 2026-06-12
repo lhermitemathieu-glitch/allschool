@@ -156,7 +156,7 @@ const inlineInputStyle = {
   background: 'white', outline: 'none', boxSizing: 'border-box',
 }
 
-export default function PanelCandidatCandidatures({ onNavigateEcole, onNavigateFormation, initialTab }) {
+export default function PanelCandidatCandidatures({ onNavigateEcole, onNavigateFormation, initialTab, candidatId }) {
   const supabase = createClient()
 
   const [items,           setItems]           = useState([])
@@ -383,6 +383,8 @@ export default function PanelCandidatCandidatures({ onNavigateEcole, onNavigateF
           formation={drawerFormation}
           onClose={() => setDrawerFormation(null)}
           onNavigateEcole={onNavigateEcole}
+          candidatId={candidatId}
+          onSuiviChange={load}
         />
       )}
 

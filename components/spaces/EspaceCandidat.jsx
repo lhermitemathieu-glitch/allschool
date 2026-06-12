@@ -34,6 +34,7 @@ export default function EspaceCandidat({ userId, role }) {
             />
           case 'candidat-candidatures': return <PanelCandidatCandidatures
               initialTab={data?.tab}
+              candidatId={candidatId}
               onNavigateEcole={(id, fromTab) => navigateTo('ecole-publique', { ecoleId: id, from: 'candidat-candidatures', fromTab })}
               onNavigateFormation={id => navigateTo('formation-publique', { formationId: id, from: 'candidat-candidatures' })}
             />
@@ -49,6 +50,7 @@ export default function EspaceCandidat({ userId, role }) {
           case 'ecole-lba':             return (
             <PanelEcoleLBAPublique
               ecole={data?.ecole}
+              candidatId={candidatId}
               onBack={() => navigateTo(data?.from || 'candidat-ecoles', { filters: data?.filters })}
             />
           )
