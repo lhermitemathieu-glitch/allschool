@@ -1,8 +1,10 @@
 'use client'
 
 import AppShell from './AppShell'
-import { PanelEntrepriseSiret, PanelEntrepriseRecherche, PanelEntrepriseEcoles, PanelEntrepriseOffres, PanelEntrepriseSimulateur } from '../panels/PanelEntreprise'
+import { PanelEntrepriseSiret, PanelEntrepriseRecherche, PanelEntrepriseOffres, PanelEntrepriseSimulateur } from '../panels/PanelEntreprise'
+import PanelCandidatEcoles from '../panels/PanelCandidatEcoles'
 import PanelEcolePublique from '../panels/PanelEcolePublique'
+import PanelEcoleLBAPublique from '../panels/PanelEcoleLBAPublique'
 
 export default function EspaceEntreprise({ userId, role }) {
   return (
@@ -11,9 +13,19 @@ export default function EspaceEntreprise({ userId, role }) {
         switch (activePanel) {
           case 'entreprise-siret':      return <PanelEntrepriseSiret />
           case 'entreprise-recherche':  return <PanelEntrepriseRecherche onNavigate={panel => navigateTo(panel)} />
-          case 'entreprise-ecoles':     return <PanelEntrepriseEcoles onNavigateEcole={id => navigateTo('ecole-publique', { ecoleId: id, from: 'entreprise-ecoles' })} />
+          // Recherche d'écoles : même moteur que l'espace candidat (annuaire LBA),
+          // l'ancienne recherche sur la table interne (vidée) ne renvoyait rien.
+          case 'entreprise-ecoles':     return <PanelCandidatEcoles
+              onNavigateEcole={ecole => navigateTo('ecole-lba', { ecole, from: 'entreprise-ecoles' })}
+            />
           case 'entreprise-offres':     return <PanelEntrepriseOffres />
           case 'entreprise-simulateur': return <PanelEntrepriseSimulateur />
+          case 'ecole-lba':             return (
+            <PanelEcoleLBAPublique
+              ecole={data?.ecole}
+              onBack={() => navigateTo(data?.from || 'entreprise-ecoles')}
+            />
+          )
           case 'ecole-publique':        return (
             <PanelEcolePublique
               ecoleId={data?.ecoleId}

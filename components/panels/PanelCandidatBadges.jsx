@@ -4,10 +4,10 @@ import { useState, useEffect } from 'react'
 import { createClient } from '../../lib/supabase/client'
 
 const PALIERS = [
-  { key: 'recherche_active', min: 10,  max: 19,  label: 'Recherche active',  icon: 'ti-search',        color: '#0369a1', bg: '#e0f2fe', desc: '10 offres envoyées' },
-  { key: 'perseverant',      min: 20,  max: 49,  label: 'Persévérant',       icon: 'ti-flame',         color: '#c2410c', bg: '#fff7ed', desc: '20 offres envoyées' },
-  { key: 'determine',        min: 50,  max: 99,  label: 'Déterminé',         icon: 'ti-bolt',          color: '#7e22ce', bg: '#fdf4ff', desc: '50 offres envoyées' },
-  { key: 'inarretable',      min: 100, max: null, label: 'Inarrêtable',      icon: 'ti-trophy',        color: '#b45309', bg: '#fef3c7', desc: '100 offres envoyées' },
+  { key: 'recherche_active', min: 10,  max: 19,  label: 'Recherche active',  icon: 'ti-search',        color: '#0369a1', bg: '#e0f2fe', desc: '10 candidatures' },
+  { key: 'perseverant',      min: 20,  max: 49,  label: 'Persévérant',       icon: 'ti-flame',         color: '#c2410c', bg: '#fff7ed', desc: '20 candidatures' },
+  { key: 'determine',        min: 50,  max: 99,  label: 'Déterminé',         icon: 'ti-bolt',          color: '#7e22ce', bg: '#fdf4ff', desc: '50 candidatures' },
+  { key: 'inarretable',      min: 100, max: null, label: 'Inarrêtable',      icon: 'ti-trophy',        color: '#b45309', bg: '#fef3c7', desc: '100 candidatures' },
 ]
 
 const BADGES_DEF = [
@@ -129,9 +129,9 @@ export default function PanelCandidatBadges() {
       const admis = (candidatures || []).some(c => (c.type === 'formation' || c.type === 'ecole') && c.statut === 'admis')
       if (admis) e.add('ecole_admis')
 
-      // 5. Paliers offres (hors formations/écoles, uniquement statuts actifs)
+      // 5. Paliers : toutes les candidatures (offres + formations) dont le statut
+      //    montre une démarche engagée (envoyée, entretien, admis, archivée).
       const offres = (candidatures || []).filter(c =>
-        c.type !== 'formation' && c.type !== 'ecole' &&
         ['envoyee', 'entretien', 'admis', 'archive'].includes(c.statut)
       ).length
       setNbOffres(offres)
@@ -206,7 +206,7 @@ export default function PanelCandidatBadges() {
                   Encore {nextPalier.min - nbOffres} candidature{nextPalier.min - nbOffres > 1 ? 's' : ''} pour débloquer <strong>{nextPalier.label}</strong> !
                 </div>
                 <div style={{ fontSize: 12, color: 'var(--gold)', marginTop: 2 }}>
-                  {nbOffres} / {nextPalier.min} offres envoyées
+                  {nbOffres} / {nextPalier.min} candidatures
                 </div>
               </div>
             </div>
