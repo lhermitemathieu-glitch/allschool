@@ -5,6 +5,7 @@ import { createClient } from '../../lib/supabase/client'
 import { SECTEURS } from '../../lib/secteurs'
 import { typeInfo } from '../../lib/offre-types'
 import { NIVEAUX, niveauLabel } from '../../lib/niveaux'
+import { verifier } from '../ui/Toaster'
 
 // Centres géographiques approximatifs des régions (pour l'API LBA qui n'accepte que lat/lng)
 const REGIONS = [
@@ -264,16 +265,17 @@ export default function PanelCandidatOffres({ onNavigateCandidatures, onNavigate
   async function masquer(offre) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
-    await supabase.from('candidat_offres_cachees').upsert({
+    const { error } = await supabase.from('candidat_offres_cachees').upsert({
       candidat_id: user.id, offre_id: offre._id, offre_data: offre,
     }, { onConflict: 'candidat_id,offre_id' })
+    if (!verifier(error, 'Impossible de masquer cette offre.')) return
     setCachedIds(prev => new Set([...prev, offre._id]))
   }
 
   async function enregistrer(offre) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
-    await supabase.from('candidat_candidatures').insert({
+    const { error } = await supabase.from('candidat_candidatures').insert({
       candidat_id:    user.id,
       nom_entreprise: offre.entreprise || 'Entreprise',
       poste:          offre.titre,
@@ -282,6 +284,7 @@ export default function PanelCandidatOffres({ onNavigateCandidatures, onNavigate
       statut:         'a_faire',
       notes:          '',
     })
+    if (!verifier(error, 'L\'enregistrement de l\'offre dans vos candidatures a échoué.')) return
     setSavedIds(prev => new Set([...prev, offre._id]))
   }
 

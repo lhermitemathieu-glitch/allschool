@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { createClient } from '../../lib/supabase/client'
+import { verifier } from '../ui/Toaster'
 
 const MODALITE_MAP = {
   presentiel: { label: 'Présentiel', icon: 'ti-building', bg: '#e0f2fe', color: '#0369a1' },
@@ -156,11 +157,11 @@ export default function PanelFormationPublique({ formationId, candidatId, onBack
     setSavingStatut(true)
     if (statut === key) {
       // Désélectionner
-      await supabase.from('formation_statuts').delete().eq('candidat_id', candidatId).eq('formation_id', formationId)
-      setStatut(null)
+      const { error } = await supabase.from('formation_statuts').delete().eq('candidat_id', candidatId).eq('formation_id', formationId)
+      if (verifier(error, 'Le retrait du statut a échoué.')) setStatut(null)
     } else {
-      await supabase.from('formation_statuts').upsert({ candidat_id: candidatId, formation_id: formationId, statut: key, updated_at: new Date().toISOString() })
-      setStatut(key)
+      const { error } = await supabase.from('formation_statuts').upsert({ candidat_id: candidatId, formation_id: formationId, statut: key, updated_at: new Date().toISOString() })
+      if (verifier(error, 'L\'enregistrement du statut a échoué.')) setStatut(key)
     }
     setSavingStatut(false)
   }
@@ -169,13 +170,14 @@ export default function PanelFormationPublique({ formationId, candidatId, onBack
     if (!candidatId) return
     if (!payload) {
       // Supprimer
-      await supabase.from('formation_actions').delete().eq('candidat_id', candidatId).eq('formation_id', formationId)
-      setAction(null)
+      const { error } = await supabase.from('formation_actions').delete().eq('candidat_id', candidatId).eq('formation_id', formationId)
+      if (verifier(error, 'La suppression de l\'action a échoué.')) setAction(null)
       return
     }
-    const { data } = await supabase.from('formation_actions')
+    const { data, error } = await supabase.from('formation_actions')
       .upsert({ candidat_id: candidatId, formation_id: formationId, ...payload, fait: false, updated_at: new Date().toISOString() })
       .select().single()
+    if (!verifier(error, 'L\'enregistrement de l\'action a échoué.')) return
     setAction(data)
   }
 

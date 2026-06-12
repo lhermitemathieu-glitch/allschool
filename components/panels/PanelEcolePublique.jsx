@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { createClient } from '../../lib/supabase/client'
+import { verifier } from '../ui/Toaster'
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 function initiales(str) {
@@ -90,7 +91,8 @@ export default function PanelEcolePublique({ ecoleId, onBack, onEdit, onNavigate
   async function handleToggle() {
     if (!isAdmin || !ecole) return
     setToggling(true)
-    const { data } = await supabase.from('ecoles').update({ publiee: !ecole.publiee }).eq('id', ecole.id).select().single()
+    const { data, error } = await supabase.from('ecoles').update({ publiee: !ecole.publiee }).eq('id', ecole.id).select().single()
+    verifier(error, 'Le changement de statut en ligne/hors ligne a échoué.')
     if (data) setEcole(data)
     setToggling(false)
   }

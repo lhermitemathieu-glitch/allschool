@@ -6,6 +6,7 @@ import { STATUTS } from './PanelFormationPublique'
 import { SECTEUR_ROME } from '../../lib/rome-mapping'
 import { NIVEAUX } from '../../lib/niveaux'
 import PanelFormationLBADrawer from './PanelFormationLBADrawer'
+import { verifier, notifierErreur } from '../ui/Toaster'
 
 const SECTEURS = Object.keys(SECTEUR_ROME).sort()
 
@@ -111,14 +112,14 @@ function StatutPicker({ formationId, currentStatut, candidatId, onChange }) {
     setSaving(true)
     setOpen(false)
     if (currentStatut === key) {
-      await supabase.from('formation_statuts').delete().eq('candidat_id', candidatId).eq('formation_id', formationId)
-      onChange(formationId, null)
+      const { error } = await supabase.from('formation_statuts').delete().eq('candidat_id', candidatId).eq('formation_id', formationId)
+      if (verifier(error, 'Le retrait du statut a échoué.')) onChange(formationId, null)
     } else {
-      await supabase.from('formation_statuts').upsert({
+      const { error } = await supabase.from('formation_statuts').upsert({
         candidat_id: candidatId, formation_id: formationId,
         statut: key, updated_at: new Date().toISOString(),
       })
-      onChange(formationId, key)
+      if (verifier(error, 'L\'enregistrement du statut a échoué.')) onChange(formationId, key)
     }
     setSaving(false)
   }
@@ -375,7 +376,7 @@ export default function PanelCandidatFormations({ candidatId, onNavigateFormatio
     setSaving(prev => new Set([...prev, f.id]))
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { setSaving(prev => { const s = new Set(prev); s.delete(f.id); return s }); return }
-    await supabase.from('candidat_candidatures').insert({
+    const { error } = await supabase.from('candidat_candidatures').insert({
       candidat_id:    user.id,
       nom_entreprise: f.ecole?.nom || 'École',
       poste:          f.nom,
@@ -384,7 +385,9 @@ export default function PanelCandidatFormations({ candidatId, onNavigateFormatio
       notes:          '',
       formation_id:   f.id,
     })
-    setSavedIds(prev => new Set([...prev, f.id]))
+    if (verifier(error, 'L\'enregistrement de la formation a échoué.')) {
+      setSavedIds(prev => new Set([...prev, f.id]))
+    }
     setSaving(prev => { const s = new Set(prev); s.delete(f.id); return s })
   }
 
@@ -404,8 +407,12 @@ export default function PanelCandidatFormations({ candidatId, onNavigateFormatio
         setLbaSavedIds(prev => new Set([...prev, f.lba_id]))
       } else {
         console.error('[enregistrerLBA] erreur:', json)
+        notifierErreur('L\'enregistrement de la formation a échoué.')
       }
-    } catch (err) { console.error('[enregistrerLBA] fetch error:', err) }
+    } catch (err) {
+      console.error('[enregistrerLBA] fetch error:', err)
+      notifierErreur('L\'enregistrement de la formation a échoué (problème réseau).')
+    }
     setSaving(prev => { const s = new Set(prev); s.delete(f.id); return s })
   }
 
@@ -417,11 +424,12 @@ export default function PanelCandidatFormations({ candidatId, onNavigateFormatio
     }
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
-    await supabase.from('candidat_formations_cachees').upsert({
+    const { error } = await supabase.from('candidat_formations_cachees').upsert({
       candidat_id:    user.id,
       formation_id:   f.id,
       formation_data: { id: f.id, nom: f.nom, niveau: f.niveau, ecole_nom: f.ecole?.nom, ecole_ville: f.ecole?.ville },
     }, { onConflict: 'candidat_id,formation_id' })
+    if (!verifier(error, 'Impossible de masquer cette formation.')) return
     setCachedIds(prev => new Set([...prev, f.id]))
     setFormations(prev => prev.filter(x => x.id !== f.id))
   }
@@ -464,7 +472,8 @@ export default function PanelCandidatFormations({ candidatId, onNavigateFormatio
 
   async function supprimerRecherche(id, e) {
     e.stopPropagation()
-    await supabase.from('candidat_recherches_formations').delete().eq('id', id)
+    const { error } = await supabase.from('candidat_recherches_formations').delete().eq('id', id)
+    if (!verifier(error, 'La suppression de la recherche sauvegardée a échoué.')) return
     setRecherches(prev => prev.filter(r => r.id !== id))
   }
 

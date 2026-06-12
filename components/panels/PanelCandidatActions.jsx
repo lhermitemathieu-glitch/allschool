@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { createClient } from '../../lib/supabase/client'
+import { verifier } from '../ui/Toaster'
 
 function formatDate(echeance) {
   return new Date(echeance).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
@@ -68,8 +69,10 @@ export default function PanelCandidatActions({ onNavigateFormation }) {
   async function handleMarquerFait(id, type) {
     setMarkingId(id)
     const table = type === 'candidature' ? 'candidature_actions' : 'formation_actions'
-    await supabase.from(table).update({ fait: true, updated_at: new Date().toISOString() }).eq('id', id)
-    setRows(prev => prev.filter(r => r.id !== id))
+    const { error } = await supabase.from(table).update({ fait: true, updated_at: new Date().toISOString() }).eq('id', id)
+    if (verifier(error, 'Impossible de marquer cette action comme faite.')) {
+      setRows(prev => prev.filter(r => r.id !== id))
+    }
     setMarkingId(null)
   }
 
