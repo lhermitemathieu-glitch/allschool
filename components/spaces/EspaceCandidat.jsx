@@ -8,7 +8,6 @@ import PanelCandidatCandidatures from '../panels/PanelCandidatCandidatures'
 import PanelCandidatBadges from '../panels/PanelCandidatBadges'
 import PanelCandidatOffres from '../panels/PanelCandidatOffres'
 import PanelCandidatArchives from '../panels/PanelCandidatArchives'
-import PanelCandidatStatuts from '../panels/PanelCandidatStatuts'
 import PanelCandidatActions from '../panels/PanelCandidatActions'
 import PanelEcolePublique from '../panels/PanelEcolePublique'
 import PanelEcoleLBAPublique from '../panels/PanelEcoleLBAPublique'
@@ -39,9 +38,6 @@ export default function EspaceCandidat({ userId, role }) {
               onNavigateFormation={id => navigateTo('formation-publique', { formationId: id, from: 'candidat-candidatures' })}
             />
           case 'candidat-badges':       return <PanelCandidatBadges />
-          case 'candidat-statuts':      return <PanelCandidatStatuts
-              onNavigateFormation={id => navigateTo('formation-publique', { formationId: id, from: 'candidat-statuts' })}
-            />
           case 'candidat-actions':      return <PanelCandidatActions
               onNavigateFormation={id => navigateTo('formation-publique', { formationId: id, from: 'candidat-actions' })}
             />

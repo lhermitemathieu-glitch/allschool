@@ -206,6 +206,8 @@ export interface CandidatCandidature {
   url: string | null;
   notes: string | null;
   statut: StatutCandidature;
+  /** Marqueur favori (remplace l'ancien statut 'favori' de formation_statuts, cf. migration 040) */
+  favori: boolean;
   ecole_id: UUID | null;
   formation_id: UUID | null;
   created_at: string;

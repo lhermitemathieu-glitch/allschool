@@ -1,8 +1,7 @@
 'use client'
 
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '../../lib/supabase/client'
-import { STATUTS } from './PanelFormationPublique'
 import { SECTEUR_ROME } from '../../lib/rome-mapping'
 import { NIVEAUX } from '../../lib/niveaux'
 import PanelFormationLBADrawer from './PanelFormationLBADrawer'
@@ -94,87 +93,6 @@ const inputStyle = {
   color: 'var(--navy)', background: 'white', outline: 'none',
 }
 
-// ── Sélecteur de statut compact ───────────────────────────────────────────────
-function StatutPicker({ formationId, currentStatut, candidatId, onChange }) {
-  const supabase = createClient()
-  const [open, setOpen]     = useState(false)
-  const [saving, setSaving] = useState(false)
-  const ref = useRef(null)
-
-  useEffect(() => {
-    if (!open) return
-    function handle(e) { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
-    document.addEventListener('mousedown', handle)
-    return () => document.removeEventListener('mousedown', handle)
-  }, [open])
-
-  async function select(key) {
-    setSaving(true)
-    setOpen(false)
-    if (currentStatut === key) {
-      const { error } = await supabase.from('formation_statuts').delete().eq('candidat_id', candidatId).eq('formation_id', formationId)
-      if (verifier(error, 'Le retrait du statut a échoué.')) onChange(formationId, null)
-    } else {
-      const { error } = await supabase.from('formation_statuts').upsert({
-        candidat_id: candidatId, formation_id: formationId,
-        statut: key, updated_at: new Date().toISOString(),
-      })
-      if (verifier(error, 'L\'enregistrement du statut a échoué.')) onChange(formationId, key)
-    }
-    setSaving(false)
-  }
-
-  const cfg = STATUTS.find(s => s.key === currentStatut)
-
-  return (
-    <div ref={ref} style={{ position: 'relative', flexShrink: 0 }}>
-      <button
-        onClick={() => !saving && setOpen(v => !v)}
-        style={{
-          display: 'inline-flex', alignItems: 'center', gap: 5,
-          padding: '4px 10px', borderRadius: 20, fontSize: 11, fontWeight: 500,
-          cursor: saving ? 'wait' : 'pointer',
-          border: `1.5px solid ${cfg ? cfg.color : 'var(--border)'}`,
-          background: cfg ? cfg.bg : 'white',
-          color: cfg ? cfg.color : 'var(--muted)',
-          whiteSpace: 'nowrap',
-          transition: 'all 0.15s',
-        }}
-      >
-        <i className={`ti ${saving ? 'ti-loader' : cfg ? cfg.icon : 'ti-bookmark'}`} style={{ fontSize: 11 }} />
-        {cfg ? cfg.label : 'Statut'}
-      </button>
-
-      {open && (
-        <div style={{
-          position: 'absolute', right: 0, top: 'calc(100% + 4px)',
-          background: 'white', border: '1.5px solid var(--border)', borderRadius: 10,
-          zIndex: 200, boxShadow: '0 4px 16px rgba(0,0,0,0.12)', minWidth: 200, overflow: 'hidden',
-        }}>
-          {STATUTS.map((s, i) => (
-            <div
-              key={s.key}
-              onMouseDown={() => select(s.key)}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 8,
-                padding: '8px 12px', cursor: 'pointer', fontSize: 12,
-                background: currentStatut === s.key ? s.bg : 'white',
-                color: currentStatut === s.key ? s.color : 'var(--navy)',
-                fontWeight: currentStatut === s.key ? 600 : 400,
-                borderBottom: i < STATUTS.length - 1 ? '0.5px solid var(--border)' : 'none',
-              }}
-            >
-              <i className={`ti ${s.icon}`} style={{ fontSize: 12, color: s.color, flexShrink: 0 }} />
-              {s.label}
-              {currentStatut === s.key && <i className="ti ti-check" style={{ marginLeft: 'auto', fontSize: 11 }} />}
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  )
-}
-
 // ── Panel principal ───────────────────────────────────────────────────────────
 export default function PanelCandidatFormations({ candidatId, onNavigateFormation, onNavigateEcole, onNavigateArchives, initialFilters }) {
   const supabase = createClient()
@@ -186,7 +104,6 @@ export default function PanelCandidatFormations({ candidatId, onNavigateFormatio
 
   const [drawerFormation, setDrawerFormation] = useState(null)
 
-  const [statuts,    setStatuts]    = useState({})
   const [savedIds,   setSavedIds]   = useState(new Set())   // formation_id enregistrées (Supabase)
   const [lbaSavedIds, setLbaSavedIds] = useState(new Set()) // lba_id enregistrés
   const [cachedIds,  setCachedIds]  = useState(new Set())   // formation_id masquées
@@ -349,25 +266,12 @@ export default function PanelCandidatFormations({ candidatId, onNavigateFormatio
       const allschoolRows = []
 
       setFormations([...allschoolRows, ...lbaRows])
-
-      // Statuts pour les formations Allschool
-      if (candidatId && allschoolRows.length > 0) {
-        const fIds = allschoolRows.map(f => f.id)
-        const { data: sData } = await supabase
-          .from('formation_statuts').select('formation_id, statut')
-          .eq('candidat_id', candidatId).in('formation_id', fIds)
-        setStatuts(Object.fromEntries((sData || []).map(s => [s.formation_id, s.statut])))
-      }
     } catch (err) {
       console.error('[formations]', err)
     } finally {
       setLoading(false)
     }
   }, [keyword, secteur, niveau, modalite, ville, geoSel, rayon, candidatId, cachedIds])
-
-  function handleStatutChange(formationId, newStatut) {
-    setStatuts(prev => ({ ...prev, [formationId]: newStatut }))
-  }
 
   // Enregistrer une formation Allschool (Supabase)
   async function enregistrer(f, e) {
@@ -797,9 +701,6 @@ export default function PanelCandidatFormations({ candidatId, onNavigateFormatio
                       <button className="btn-sm teal" style={{ fontSize: 11, flexShrink: 0 }} onClick={() => window.open(f.url_onisep, '_blank')}>
                         <i className="ti ti-external-link" /> ONISEP
                       </button>
-                    )}
-                    {candidatId && (
-                      <StatutPicker formationId={f.id} currentStatut={statuts[f.id] || null} candidatId={candidatId} onChange={handleStatutChange} />
                     )}
                     <button
                       className="btn-sm"

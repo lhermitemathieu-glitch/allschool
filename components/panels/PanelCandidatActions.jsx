@@ -41,35 +41,21 @@ export default function PanelCandidatActions({ onNavigateFormation }) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
 
-    const [{ data: formActs }, { data: candActs }] = await Promise.all([
-      supabase.from('formation_actions')
-        .select('*, formations(id, nom, niveau, ecole_id, ecoles(nom, ville))')
-        .eq('candidat_id', user.id)
-        .eq('fait', false)
-        .order('echeance', { ascending: true, nullsFirst: false }),
-      supabase.from('candidature_actions')
-        .select('*, candidat_candidatures(id, nom_entreprise, poste, type)')
-        .eq('candidat_id', user.id)
-        .eq('fait', false)
-        .order('echeance', { ascending: true, nullsFirst: false }),
-    ])
+    // Source unique : les rappels de candidatures (les rappels de formations
+    // ont été migrés dans ce système, cf. migration 040).
+    const { data: candActs } = await supabase.from('candidature_actions')
+      .select('*, candidat_candidatures(id, nom_entreprise, poste, type, formation_id)')
+      .eq('candidat_id', user.id)
+      .eq('fait', false)
+      .order('echeance', { ascending: true, nullsFirst: false })
 
-    const formation  = (formActs  || []).map(r => ({ ...r, _type: 'formation' }))
-    const candidature = (candActs || []).map(r => ({ ...r, _type: 'candidature' }))
-    const all = [...formation, ...candidature].sort((a, b) => {
-      if (!a.echeance && !b.echeance) return 0
-      if (!a.echeance) return 1
-      if (!b.echeance) return -1
-      return new Date(a.echeance) - new Date(b.echeance)
-    })
-    setRows(all)
+    setRows((candActs || []).map(r => ({ ...r, _type: 'candidature' })))
     setLoading(false)
   }
 
-  async function handleMarquerFait(id, type) {
+  async function handleMarquerFait(id) {
     setMarkingId(id)
-    const table = type === 'candidature' ? 'candidature_actions' : 'formation_actions'
-    const { error } = await supabase.from(table).update({ fait: true, updated_at: new Date().toISOString() }).eq('id', id)
+    const { error } = await supabase.from('candidature_actions').update({ fait: true, updated_at: new Date().toISOString() }).eq('id', id)
     if (verifier(error, 'Impossible de marquer cette action comme faite.')) {
       setRows(prev => prev.filter(r => r.id !== id))
     }
@@ -143,16 +129,18 @@ export default function PanelCandidatActions({ onNavigateFormation }) {
                       {/* Contenu */}
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--navy)' }}>{row.texte}</div>
-                        {row._type === 'formation' ? (
+                        {row.candidat_candidatures?.formation_id && onNavigateFormation ? (
                           <div
-                            style={{ fontSize: 12, color: 'var(--teal)', cursor: 'pointer', marginTop: 2 }}
-                            onClick={() => onNavigateFormation?.(row.formation_id)}
+                            style={{ fontSize: 12, color: 'var(--teal)', cursor: 'pointer', marginTop: 2, display: 'flex', alignItems: 'center', gap: 4 }}
+                            onClick={() => onNavigateFormation(row.candidat_candidatures.formation_id)}
                           >
-                            {row.formations?.nom || 'Formation'}{row.formations?.ecoles?.nom ? ` · ${row.formations.ecoles.nom}` : ''}
+                            <i className="ti ti-certificate" style={{ fontSize: 11 }} />
+                            {row.candidat_candidatures?.poste || 'Formation'}
+                            {row.candidat_candidatures?.nom_entreprise ? ` · ${row.candidat_candidatures.nom_entreprise}` : ''}
                           </div>
                         ) : (
                           <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2, display: 'flex', alignItems: 'center', gap: 4 }}>
-                            <i className="ti ti-certificate" style={{ fontSize: 11 }} />
+                            <i className="ti ti-briefcase" style={{ fontSize: 11 }} />
                             {row.candidat_candidatures?.nom_entreprise || 'Candidature'}
                             {row.candidat_candidatures?.poste ? ` · ${row.candidat_candidatures.poste}` : ''}
                           </div>
@@ -170,7 +158,7 @@ export default function PanelCandidatActions({ onNavigateFormation }) {
                         className="btn-sm teal"
                         style={{ fontSize: 11, flexShrink: 0 }}
                         disabled={markingId === row.id}
-                        onClick={() => handleMarquerFait(row.id, row._type)}
+                        onClick={() => handleMarquerFait(row.id)}
                       >
                         <i className="ti ti-check" /> {markingId === row.id ? '…' : 'Fait'}
                       </button>

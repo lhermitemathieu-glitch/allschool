@@ -54,10 +54,10 @@ export default function AppShell({ spaceKey, role, userId, children }) {
           const initiales = [cand.prenom?.[0], cand.nom?.[0]].filter(Boolean).join('').toUpperCase()
           setDynamicUser({ name: fullName, av: initiales, role: 'Candidat', bg: 'var(--teal)' })
         }
-        // Actions en retard ou à faire aujourd'hui
+        // Rappels en retard ou à faire aujourd'hui (système unifié, cf. migration 040)
         const today = new Date().toISOString().split('T')[0]
         const { count } = await supabase
-          .from('formation_actions')
+          .from('candidature_actions')
           .select('id', { count: 'exact', head: true })
           .eq('candidat_id', userId)
           .eq('fait', false)
