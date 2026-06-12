@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getRomesForSecteur } from '../../../lib/rome-mapping'
 import { lbaNiveauToKey, niveauLabel } from '../../../lib/niveaux'
+import { ALL_ROME_BATCHES } from '../../../lib/rome-batches'
 
 const LBA_BASE = 'https://api.apprentissage.beta.gouv.fr/api'
 const CALLER   = 'allschool'
@@ -20,15 +21,18 @@ function parseGeo(latRaw, lngRaw, radiusRaw) {
 /**
  * GET /api/alternance?secteur=...&latitude=...&longitude=...&radius=30
  *
- * Retourne les offres d'alternance La Bonne Alternance pour un secteur et une localisation.
+ * Retourne les offres d'alternance La Bonne Alternance pour une localisation.
+ * - avec `secteur` : une requête LBA sur les codes ROME du secteur ;
+ * - sans `secteur` : couverture complète via les lots de codes ROME en parallèle
+ *   (même approche que la recherche de formations).
  */
 export async function GET(request) {
   const { searchParams } = new URL(request.url)
-  const secteur   = searchParams.get('secteur')
+  const secteur = searchParams.get('secteur')
 
-  if (!secteur || !searchParams.get('latitude') || !searchParams.get('longitude')) {
+  if (!searchParams.get('latitude') || !searchParams.get('longitude')) {
     return NextResponse.json(
-      { error: 'Paramètres manquants : secteur, latitude, longitude requis.' },
+      { error: 'Paramètres manquants : latitude et longitude requis.' },
       { status: 400 }
     )
   }
@@ -42,13 +46,18 @@ export async function GET(request) {
   }
   const { lat: latitude, lng: longitude, radius } = geo
 
-  const romes = getRomesForSecteur(secteur)
-  if (romes.length === 0) {
-    return NextResponse.json({ jobs: [], trainings: [] })
+  // Avec secteur : un seul lot (les 20 premiers codes ROME du secteur).
+  // Sans secteur : tous les lots ROME → couverture complète.
+  let batches
+  if (secteur) {
+    const romes = getRomesForSecteur(secteur)
+    if (romes.length === 0) {
+      return NextResponse.json({ jobs: [], warnings: [] })
+    }
+    batches = [romes.slice(0, 20).join(',')]
+  } else {
+    batches = ALL_ROME_BATCHES
   }
-
-  // L'API accepte max 20 codes ROME — on prend les 20 premiers
-  const romesParam = romes.slice(0, 20).join(',')
 
   const token = process.env.LBA_API_TOKEN
   const headers = {
@@ -56,7 +65,7 @@ export async function GET(request) {
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
   }
 
-  try {
+  const fetchBatch = async (romesParam) => {
     const params = new URLSearchParams({
       caller:    CALLER,
       romes:     romesParam,
@@ -64,34 +73,53 @@ export async function GET(request) {
       longitude,
       radius,
     })
-    const url = `${LBA_BASE}/job/v1/search?${params}`
-
-    const res = await fetch(url, { headers, next: { revalidate: 3600 } })
-
+    const res = await fetch(`${LBA_BASE}/job/v1/search?${params}`, { headers, next: { revalidate: 3600 } })
     if (!res.ok) {
       const text = await res.text()
       console.error('[LBA] Erreur API:', res.status, text)
+      return { ok: false, status: res.status }
+    }
+    return { ok: true, data: await res.json() }
+  }
+
+  try {
+    const results = await Promise.all(batches.map(fetchBatch))
+
+    // Si TOUT a échoué, on remonte une vraie erreur (sinon on sert ce qu'on a).
+    if (results.every(r => !r.ok)) {
+      const status = results[0]?.status || 502
       return NextResponse.json(
-        { error: `Erreur La Bonne Alternance : ${res.status}` },
-        { status: res.status }
+        { error: `Erreur La Bonne Alternance : ${status}` },
+        { status }
       )
     }
 
-    const data = await res.json()
-
     // jobs = vraies offres (France Travail, etc.) → tag "sourcee"
     // recruiters = entreprises ouvertes aux candidatures → tag "spontanee"
-    const jobs       = (data.jobs       || []).map(item => normalizeJob(item, 'sourcee'))
-    const recruiters = (data.recruiters || []).map(item => normalizeJob(item, 'spontanee'))
+    // Dédoublonnage par id (ou titre+entreprise à défaut) entre les lots.
+    const seen = new Set()
+    const jobs = []
+    const warnings = []
+    for (const r of results) {
+      if (!r.ok) continue
+      const data = r.data
+      for (const item of (data.jobs || []))       pushUnique(jobs, seen, normalizeJob(item, 'sourcee'))
+      for (const item of (data.recruiters || [])) pushUnique(jobs, seen, normalizeJob(item, 'spontanee'))
+      if (Array.isArray(data.warnings)) warnings.push(...data.warnings)
+    }
 
-    return NextResponse.json({
-      jobs: [...jobs, ...recruiters],
-      warnings: data.warnings || [],
-    })
+    return NextResponse.json({ jobs, warnings })
   } catch (err) {
     console.error('[LBA] Erreur fetch:', err)
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
   }
+}
+
+function pushUnique(arr, seen, job) {
+  const key = job.id || `${job.titre}|${job.entreprise}`
+  if (seen.has(key)) return
+  seen.add(key)
+  arr.push(job)
 }
 
 // ── Normalisateur ─────────────────────────────────────────────────────────────
