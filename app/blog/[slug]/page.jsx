@@ -46,6 +46,36 @@ function renderMarkdown(md) {
             ))}
           </div>
         )
+      } else if (type === 'featured') {
+        const [title, desc] = blockLines[0].split('|')
+        elements.push(
+          <div key={i} style={{ background: 'white', border: '2px solid var(--teal)', borderRadius: 12, padding: '1.25rem', margin: '1.5rem 0' }}>
+            <p style={{ fontSize: 15, fontWeight: 600, color: 'var(--navy)', margin: '0 0 0.5rem' }}>{title}</p>
+            <p style={{ fontSize: 14, color: 'var(--muted)', margin: 0, lineHeight: 1.6 }}>{desc}</p>
+          </div>
+        )
+      } else if (type === 'tools') {
+        const BADGE = {
+          classic:   { bg: '#F1EFE8', color: '#5F5E5A' },
+          officiel:  { bg: 'var(--teal-soft)', color: 'var(--teal-mid)' },
+          emploi:    { bg: '#E6F1FB', color: '#185FA5' },
+          specialise:{ bg: 'var(--gold-soft)', color: 'var(--gold)' },
+        }
+        const tools = blockLines.map(l => l.split('|'))
+        elements.push(
+          <div key={i} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12, margin: '1.5rem 0' }}>
+            {tools.map((t, idx) => {
+              const b = BADGE[t[0]] ?? BADGE.classic
+              return (
+                <div key={idx} style={{ background: 'white', border: '0.5px solid var(--border)', borderRadius: 12, padding: '1rem 1.25rem' }}>
+                  <span style={{ display: 'inline-block', fontSize: 11, padding: '2px 8px', borderRadius: 6, marginBottom: 8, background: b.bg, color: b.color, fontWeight: 500 }}>{t[1]}</span>
+                  <p style={{ fontSize: 15, fontWeight: 600, color: 'var(--navy)', margin: '0 0 4px' }}>{t[2]}</p>
+                  <p style={{ fontSize: 13, color: 'var(--muted)', margin: 0, lineHeight: 1.5 }}>{t[3]}</p>
+                </div>
+              )
+            })}
+          </div>
+        )
       } else if (type === 'steps') {
         const steps = blockLines.map(l => l.split('|'))
         elements.push(
