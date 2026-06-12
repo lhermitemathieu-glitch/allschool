@@ -2,22 +2,7 @@
 
 import { useEffect } from 'react'
 import SuiviFormation from './SuiviFormation'
-
-const NIVEAU_LABEL = {
-  cap: 'CAP', bac: 'Bac Pro', bts: 'BTS', bach: 'Bachelor', master: 'Master', autre: 'Autre',
-}
-
-function niveauStyle(niveau) {
-  const map = {
-    cap:    { background: '#fef9c3', color: '#854d0e' },
-    bac:    { background: '#ffedd5', color: '#9a3412' },
-    bts:    { background: '#e0f2fe', color: '#0369a1' },
-    bach:   { background: '#dcfce7', color: '#166534' },
-    master: { background: '#fce7f3', color: '#9d174d' },
-    autre:  { background: '#ede9fe', color: '#7c3aed' },
-  }
-  return map[niveau] || map.autre
-}
+import { NIVEAU_LABEL_COURT as NIVEAU_LABEL, niveauStyle } from '../../lib/niveaux'
 
 function fmt(iso) {
   if (!iso) return null

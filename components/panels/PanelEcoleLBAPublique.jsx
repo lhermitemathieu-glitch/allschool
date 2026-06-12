@@ -3,18 +3,8 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '../../lib/supabase/client'
 import PanelFormationLBADrawer from './PanelFormationLBADrawer'
-
-const niveauColors = {
-  cap:    { bg: '#fef9c3', color: '#854d0e' },
-  bac:    { bg: '#ffedd5', color: '#9a3412' },
-  bts:    { bg: '#e0f2fe', color: '#0369a1' },
-  bach:   { bg: '#dcfce7', color: '#166534' },
-  master: { bg: '#fce7f3', color: '#9d174d' },
-}
-
-function sigle(nom) {
-  return (nom || '').split(' ').filter(w => w.length > 2).map(w => w[0]).join('').toUpperCase().slice(0, 3) || '?'
-}
+import { NIVEAU_COULEURS } from '../../lib/niveaux'
+import { sigle } from '../../lib/format'
 
 export default function PanelEcoleLBAPublique({ ecole: ecoleInit, onBack, candidatId }) {
   const supabase = createClient()
@@ -208,7 +198,8 @@ export default function PanelEcoleLBAPublique({ ecole: ecoleInit, onBack, candid
 
 // ── Ligne formation ───────────────────────────────────────────────────────────
 function FormationRow({ formation: f, onClick }) {
-  const nc = niveauColors[f.niveau] || { bg: '#f1f5f9', color: '#475569' }
+  // Fallback gris (= niv3) pour les formations sans niveau identifié
+  const nc = NIVEAU_COULEURS[f.niveau] || NIVEAU_COULEURS.niv3
 
   return (
     <div

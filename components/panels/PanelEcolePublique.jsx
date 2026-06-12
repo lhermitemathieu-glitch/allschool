@@ -3,11 +3,7 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '../../lib/supabase/client'
 import { verifier } from '../ui/Toaster'
-
-// ── helpers ───────────────────────────────────────────────────────────────────
-function initiales(str) {
-  return (str || '').split(' ').filter(Boolean).map(w => w[0]).join('').toUpperCase().slice(0, 2) || '?'
-}
+import { initiales } from '../../lib/format'
 
 const NIVEAUX = [
   { value: 'cap',      label: 'CAP',                bg: '#fef9c3', color: '#854d0e' },

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '../../lib/supabase/client'
 import { verifier } from '../ui/Toaster'
+import { initiales } from '../../lib/format'
 
 // ── Parseur CSV (gère les champs entre guillemets avec virgules internes) ─────
 function parseCSV(text) {
@@ -250,10 +251,6 @@ export function PanelBackOverview({ onNavigate }) {
     loadDetail(onglet, 0, e.target.value)
   }
 
-  function initiales(str) {
-    return (str || '').split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 3) || '?'
-  }
-
   const ONGLETS = [
     { key: 'candidats',   label: 'Candidats',   icon: 'ti-users',    color: 'teal',   count: counts.candidats   },
     { key: 'ecoles',      label: 'Écoles',       icon: 'ti-school',   color: 'purple', count: counts.ecoles      },
@@ -299,7 +296,7 @@ export function PanelBackOverview({ onNavigate }) {
               ? <div style={{ fontSize: 12, color: 'var(--muted)' }}>Aucun candidat.</div>
               : recent.candidats.map((c, i) => (
                 <div key={i} className="entry-row">
-                  <div className="e-av teal">{initiales(`${c.prenom} ${c.nom}`)}</div>
+                  <div className="e-av teal">{initiales(`${c.prenom} ${c.nom}`, 3)}</div>
                   <div style={{ flex: 1 }}>
                     <div className="e-name">{c.prenom} {c.nom}</div>
                     <div className="e-meta">{[c.formation, c.ville].filter(Boolean).join(' · ')}</div>
@@ -319,7 +316,7 @@ export function PanelBackOverview({ onNavigate }) {
               ? <div style={{ fontSize: 12, color: 'var(--muted)' }}>Aucune école.</div>
               : recent.ecoles.map((e, i) => (
                 <div key={i} className="entry-row">
-                  <div className="e-av purple">{initiales(e.nom)}</div>
+                  <div className="e-av purple">{initiales(e.nom, 3)}</div>
                   <div style={{ flex: 1 }}>
                     <div className="e-name">{e.nom}</div>
                     <div className="e-meta">{[e.type_ecole, e.ville].filter(Boolean).join(' · ')}</div>
@@ -339,7 +336,7 @@ export function PanelBackOverview({ onNavigate }) {
               ? <div style={{ fontSize: 12, color: 'var(--muted)' }}>Aucune entreprise.</div>
               : recent.entreprises.map((e, i) => (
                 <div key={i} className="entry-row">
-                  <div className="e-av accent">{initiales(e.raison_sociale)}</div>
+                  <div className="e-av accent">{initiales(e.raison_sociale, 3)}</div>
                   <div style={{ flex: 1 }}>
                     <div className="e-name">{e.raison_sociale}</div>
                     <div className="e-meta">{[e.secteur, e.ville].filter(Boolean).join(' · ')}</div>
@@ -389,7 +386,7 @@ export function PanelBackOverview({ onNavigate }) {
             ) : detail.map((row, i) => {
               if (onglet === 'candidats') return (
                 <div key={row.id} className="entry-row" style={{ padding: '6px 0', borderBottom: i < detail.length - 1 ? '0.5px solid var(--border)' : 'none' }}>
-                  <div className="e-av teal">{initiales(`${row.prenom} ${row.nom}`)}</div>
+                  <div className="e-av teal">{initiales(`${row.prenom} ${row.nom}`, 3)}</div>
                   <div style={{ flex: 1 }}>
                     <div className="e-name">{row.prenom} {row.nom}</div>
                     <div className="e-meta">{[row.formation, row.ville].filter(Boolean).join(' · ')}</div>
@@ -399,7 +396,7 @@ export function PanelBackOverview({ onNavigate }) {
               )
               if (onglet === 'ecoles') return (
                 <div key={row.id} className="entry-row" style={{ padding: '6px 0', borderBottom: i < detail.length - 1 ? '0.5px solid var(--border)' : 'none' }}>
-                  <div className="e-av purple">{initiales(row.nom)}</div>
+                  <div className="e-av purple">{initiales(row.nom, 3)}</div>
                   <div style={{ flex: 1 }}>
                     <div className="e-name">{row.nom}</div>
                     <div className="e-meta">{[row.type_ecole, row.ville, row.region].filter(Boolean).join(' · ')}</div>
@@ -409,7 +406,7 @@ export function PanelBackOverview({ onNavigate }) {
               )
               return (
                 <div key={row.id} className="entry-row" style={{ padding: '6px 0', borderBottom: i < detail.length - 1 ? '0.5px solid var(--border)' : 'none' }}>
-                  <div className="e-av accent">{initiales(row.raison_sociale)}</div>
+                  <div className="e-av accent">{initiales(row.raison_sociale, 3)}</div>
                   <div style={{ flex: 1 }}>
                     <div className="e-name">{row.raison_sociale}</div>
                     <div className="e-meta">{[row.secteur, row.ville].filter(Boolean).join(' · ')}</div>

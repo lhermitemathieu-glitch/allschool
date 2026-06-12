@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '../../lib/supabase/client'
 import SuiviFormation from './SuiviFormation'
+import { NIVEAU_LABEL_LONG, NIVEAU_COULEURS } from '../../lib/niveaux'
+import { initiales } from '../../lib/format'
 
 const MODALITE_MAP = {
   presentiel: { label: 'Présentiel', icon: 'ti-building', bg: '#e0f2fe', color: '#0369a1' },
@@ -10,30 +12,13 @@ const MODALITE_MAP = {
   hybride:    { label: 'Hybride',    icon: 'ti-refresh',  bg: '#fef9c3', color: '#854d0e' },
 }
 
-const NIVEAU_MAP = {
-  cap:      { label: 'CAP',                bg: '#fef9c3', color: '#854d0e' },
-  bac:      { label: 'Bac Pro',            bg: '#ffedd5', color: '#9a3412' },
-  bts:      { label: 'BTS',               bg: '#e0f2fe', color: '#0369a1' },
-  bts_agri: { label: 'BTS Agricole',      bg: '#d1fae5', color: '#065f46' },
-  deust:    { label: 'DEUST',             bg: '#ede9fe', color: '#5b21b6' },
-  afpa3:    { label: 'Niv 3 – AFPA',      bg: '#fce7f3', color: '#9d174d' },
-  niv3:     { label: 'Niv 3 – Autre',     bg: '#f1f5f9', color: '#475569' },
-  bach:     { label: 'Bachelor / Licence',bg: '#dcfce7', color: '#166534' },
-  master:   { label: 'Master / Ingénieur',bg: '#fce7f3', color: '#9d174d' },
-  autre:    { label: 'Autre',             bg: '#ede9fe', color: '#7c3aed' },
-}
-
 function NiveauTag({ value }) {
-  const n = NIVEAU_MAP[value] || NIVEAU_MAP.autre
+  const c = NIVEAU_COULEURS[value] || NIVEAU_COULEURS.autre
   return (
-    <span style={{ background: n.bg, color: n.color, fontSize: 12, fontWeight: 600, padding: '4px 12px', borderRadius: 20 }}>
-      {n.label}
+    <span style={{ background: c.bg, color: c.color, fontSize: 12, fontWeight: 600, padding: '4px 12px', borderRadius: 20 }}>
+      {NIVEAU_LABEL_LONG[value] || NIVEAU_LABEL_LONG.autre}
     </span>
   )
-}
-
-function sigle(nom) {
-  return (nom || '').split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 3) || '?'
 }
 
 export default function PanelFormationPublique({ formationId, candidatId, onBack, onNavigateEcole }) {
@@ -168,7 +153,7 @@ export default function PanelFormationPublique({ formationId, candidatId, onBack
             onClick={() => onNavigateEcole?.(ecole.id)}
           >
             <div style={{ width: 44, height: 44, borderRadius: 10, background: 'var(--purple-soft)', color: 'var(--purple)', fontWeight: 800, fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              {sigle(ecole.nom)}
+              {initiales(ecole.nom, 3)}
             </div>
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--navy)' }}>{ecole.nom}</div>

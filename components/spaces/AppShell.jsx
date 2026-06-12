@@ -8,6 +8,7 @@ import Sidebar from '../Sidebar'
 import Toaster from '../ui/Toaster'
 import { SPACES } from './spacesConfig'
 import { ROLE_TO_ALLOWED_SPACES, SPACE_PATHS } from '../../lib/roles'
+import { initiales, initialesNom } from '../../lib/format'
 
 /**
  * Coquille commune des espaces : TopNav + Sidebar + navigation interne par panel.
@@ -44,15 +45,13 @@ export default function AppShell({ spaceKey, role, userId, children }) {
       if (role === 'entreprise') {
         const { data: ent } = await supabase.from('entreprises').select('raison_sociale').eq('user_id', userId).maybeSingle()
         if (ent?.raison_sociale) {
-          const initiales = ent.raison_sociale.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)
-          setDynamicUser({ name: ent.raison_sociale, av: initiales, role: 'Entreprise', bg: 'var(--accent)' })
+          setDynamicUser({ name: ent.raison_sociale, av: initiales(ent.raison_sociale), role: 'Entreprise', bg: 'var(--accent)' })
         }
       } else if (role === 'candidat') {
         const { data: cand } = await supabase.from('candidats').select('prenom, nom').eq('id', userId).maybeSingle()
         if (cand?.prenom || cand?.nom) {
-          const fullName  = [cand.prenom, cand.nom].filter(Boolean).join(' ')
-          const initiales = [cand.prenom?.[0], cand.nom?.[0]].filter(Boolean).join('').toUpperCase()
-          setDynamicUser({ name: fullName, av: initiales, role: 'Candidat', bg: 'var(--teal)' })
+          const fullName = [cand.prenom, cand.nom].filter(Boolean).join(' ')
+          setDynamicUser({ name: fullName, av: initialesNom(cand.prenom, cand.nom), role: 'Candidat', bg: 'var(--teal)' })
         }
         // Rappels en retard ou à faire aujourd'hui (système unifié, cf. migration 040)
         const today = new Date().toISOString().split('T')[0]
