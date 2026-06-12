@@ -46,6 +46,19 @@ function renderMarkdown(md) {
             ))}
           </div>
         )
+      } else if (type === 'steps') {
+        const steps = blockLines.map(l => l.split('|'))
+        elements.push(
+          <div key={i} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12, margin: '1.5rem 0' }}>
+            {steps.map((s, idx) => (
+              <div key={idx} style={{ background: 'var(--light)', borderRadius: 12, padding: '1rem' }}>
+                <p style={{ fontSize: 12, color: 'var(--teal-mid)', fontWeight: 500, margin: '0 0 4px' }}>{s[0]}</p>
+                <p style={{ fontSize: 15, fontWeight: 600, color: 'var(--navy)', margin: '0 0 4px' }}>{s[1]}</p>
+                <p style={{ fontSize: 13, color: 'var(--muted)', margin: 0, lineHeight: 1.5 }}>{s[2]}</p>
+              </div>
+            ))}
+          </div>
+        )
       } else if (type === 'highlight') {
         elements.push(
           <div key={i} style={{ borderLeft: '3px solid var(--teal)', padding: '0.75rem 1rem', margin: '1.5rem 0', background: 'var(--teal-soft)', borderRadius: '0 10px 10px 0' }}>
