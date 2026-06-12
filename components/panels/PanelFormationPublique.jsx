@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { createClient } from '../../lib/supabase/client'
-import { verifier } from '../ui/Toaster'
+import { verifier, notifierErreur } from '../ui/Toaster'
 
 const MODALITE_MAP = {
   presentiel: { label: 'Présentiel', icon: 'ti-building', bg: '#e0f2fe', color: '#0369a1' },
@@ -184,29 +184,49 @@ export default function PanelFormationPublique({ formationId, candidatId, onBack
     return data
   }
 
+  // finally garantit que les boutons sont TOUJOURS réactivés, même si
+  // l'opération lève une exception (réseau, etc.).
   async function handleStatut(key) {
     if (!candidatId) return
     setSavingStatut(true)
-    await upsertCandidature({ statut: key })
-    setSavingStatut(false)
+    try {
+      await upsertCandidature({ statut: key })
+    } catch (err) {
+      console.error('[suivi formation] statut', err)
+      notifierErreur('La mise à jour du suivi a échoué (problème réseau ?).')
+    } finally {
+      setSavingStatut(false)
+    }
   }
 
   async function toggleFavori() {
     if (!candidatId) return
     setSavingStatut(true)
-    await upsertCandidature({ favori: !(candidature?.favori) })
-    setSavingStatut(false)
+    try {
+      await upsertCandidature({ favori: !(candidature?.favori) })
+    } catch (err) {
+      console.error('[suivi formation] favori', err)
+      notifierErreur('La mise à jour du favori a échoué (problème réseau ?).')
+    } finally {
+      setSavingStatut(false)
+    }
   }
 
   async function retirerSuivi() {
     if (!candidature) return
     setSavingStatut(true)
-    const { error } = await supabase.from('candidat_candidatures').delete().eq('id', candidature.id)
-    if (verifier(error, 'Le retrait du suivi a échoué.')) {
-      setCandidature(null)
-      setAction(null) // le rappel est supprimé en cascade côté base
+    try {
+      const { error } = await supabase.from('candidat_candidatures').delete().eq('id', candidature.id)
+      if (verifier(error, 'Le retrait du suivi a échoué.')) {
+        setCandidature(null)
+        setAction(null) // le rappel est supprimé en cascade côté base
+      }
+    } catch (err) {
+      console.error('[suivi formation] retrait', err)
+      notifierErreur('Le retrait du suivi a échoué (problème réseau ?).')
+    } finally {
+      setSavingStatut(false)
     }
-    setSavingStatut(false)
   }
 
   async function handleSaveAction(payload) {
