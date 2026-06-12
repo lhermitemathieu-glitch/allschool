@@ -5,16 +5,7 @@ import { createClient } from '../../lib/supabase/client'
 import { TYPES, typeInfo } from '../../lib/offre-types'
 import PanelFormationLBADrawer from './PanelFormationLBADrawer'
 import { verifier } from '../ui/Toaster'
-
-const STATUTS = [
-  { key: 'a_faire',   label: 'À faire',             color: '#0369a1',       bg: '#e0f2fe' },
-  { key: 'envoyee',   label: 'Candidature envoyée', color: 'var(--teal)',   bg: 'var(--teal-soft)' },
-  { key: 'entretien', label: 'Entretien',            color: 'var(--accent)', bg: '#fff3e0' },
-  { key: 'admis',     label: 'Admis',               color: '#15803d',       bg: '#dcfce7' },
-  { key: 'archive',   label: 'Archivé',              color: '#9e9e9e',       bg: '#f5f5f5' },
-]
-
-function statutInfo(key) { return STATUTS.find(s => s.key === key) || STATUTS[0] }
+import { STATUTS_CANDIDATURE as STATUTS, statutInfo } from '../../lib/candidature-statuts'
 
 function sigle(nom) {
   return (nom || '').split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) || '?'
@@ -266,6 +257,12 @@ export default function PanelCandidatCandidatures({ onNavigateEcole, onNavigateF
     if (data) setItems(prev => prev.map(i => i.id === id ? data : i))
   }
 
+  async function toggleFavori(item) {
+    const { data, error } = await supabase.from('candidat_candidatures').update({ favori: !item.favori }).eq('id', item.id).select().single()
+    if (!verifier(error, 'Le marquage en favori a échoué.')) return
+    if (data) setItems(prev => prev.map(i => i.id === item.id ? data : i))
+  }
+
   const itemsOffres     = items.filter(i => i.type !== 'formation' && i.type !== 'ecole')
   const itemsFormations = items.filter(i => i.type === 'formation' || i.type === 'ecole')
   const activeItems     = onglet === 'offres' ? itemsOffres : itemsFormations
@@ -345,6 +342,7 @@ export default function PanelCandidatCandidatures({ onNavigateEcole, onNavigateF
                 onEdit={() => openEdit(item)}
                 onDelete={() => handleDelete(item.id)}
                 onStatut={s => quickStatut(item.id, s)}
+                onFavori={() => toggleFavori(item)}
                 onNavigateEcole={id => onNavigateEcole?.(id, onglet)}
                 onNavigateFormation={onNavigateFormation}
                 onOpenDrawer={setDrawerFormation}
@@ -417,7 +415,7 @@ export default function PanelCandidatCandidatures({ onNavigateEcole, onNavigateF
   )
 }
 
-function ListRow({ item, onglet, onEdit, onDelete, onStatut, onNavigateEcole, onNavigateFormation, onOpenDrawer, action, onAction }) {
+function ListRow({ item, onglet, onEdit, onDelete, onStatut, onFavori, onNavigateEcole, onNavigateFormation, onOpenDrawer, action, onAction }) {
   const st = statutInfo(item.statut)
   const ty = typeInfo(item.type)
   const isFormation = item.type === 'formation' || item.type === 'ecole'
@@ -483,6 +481,18 @@ function ListRow({ item, onglet, onEdit, onDelete, onStatut, onNavigateEcole, on
         {item.notes && <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>{item.notes}</div>}
       </div>
 
+      {/* Favori */}
+      <button
+        onClick={onFavori}
+        title={item.favori ? 'Retirer des favoris' : 'Ajouter aux favoris'}
+        style={{
+          background: 'none', border: 'none', cursor: 'pointer', padding: '4px 2px', flexShrink: 0,
+          color: item.favori ? '#f59e0b' : 'var(--border)', fontSize: 16, lineHeight: 1,
+          transition: 'color 0.15s',
+        }}
+      >
+        <i className={`ti ${item.favori ? 'ti-star-filled' : 'ti-star'}`} />
+      </button>
       <select value={item.statut} onChange={e => onStatut(e.target.value)}
         style={{ fontSize: 11, fontWeight: 600, padding: '4px 8px', borderRadius: 100, border: 'none', background: st.bg, color: st.color, cursor: 'pointer', outline: 'none', fontFamily: 'DM Sans, sans-serif', flexShrink: 0 }}
       >
@@ -528,6 +538,7 @@ function KanbanCard({ item, onEdit, onDelete, onStatut, onNavigateEcole }) {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div style={{ flex: 1 }}>
           <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--navy)', lineHeight: 1.3 }}>
+            {item.favori && <i className="ti ti-star-filled" style={{ color: '#f59e0b', fontSize: 11, marginRight: 4 }} />}
             {isFormation ? formationNom || ecoleNom : item.nom_entreprise}
           </div>
           {isFormation && ecoleNom && (

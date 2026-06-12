@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { createClient } from '../../lib/supabase/client'
-import { verifier } from '../ui/Toaster'
+import { verifier, notifierErreur } from '../ui/Toaster'
 
 const MODALITE_MAP = {
   presentiel: { label: 'Présentiel', icon: 'ti-building', bg: '#e0f2fe', color: '#0369a1' },
@@ -23,14 +23,8 @@ const NIVEAU_MAP = {
   autre:    { label: 'Autre',             bg: '#ede9fe', color: '#7c3aed' },
 }
 
-export const STATUTS = [
-  { key: 'favori',            label: 'Favori',              icon: 'ti-star',      color: '#b45309', bg: '#fef9c3' },
-  { key: 'candidature_faire', label: 'Candidature à faire', icon: 'ti-clipboard', color: 'var(--accent)', bg: '#fff3e0' },
-  { key: 'postule',           label: 'Postulé',              icon: 'ti-send',      color: '#0d9488', bg: '#e0fdf4' },
-  { key: 'en_attente',        label: 'En attente',           icon: 'ti-hourglass', color: '#7c3aed', bg: '#ede9fe' },
-  { key: 'accepte',           label: 'Accepté',              icon: 'ti-check',     color: '#166534', bg: '#dcfce7' },
-  { key: 'pas_interesse',     label: 'Pas intéressé',        icon: 'ti-ban',       color: '#6b7280', bg: '#f3f4f6' },
-]
+// Le suivi utilise le pipeline unique de Mes candidatures (cf. migration 040).
+import { STATUTS_CANDIDATURE } from '../../lib/candidature-statuts'
 
 function NiveauTag({ value }) {
   const n = NIVEAU_MAP[value] || NIVEAU_MAP.autre
@@ -111,8 +105,8 @@ export default function PanelFormationPublique({ formationId, candidatId, onBack
   const [ecole,     setEcole]     = useState(null)
   const [loading,   setLoading]   = useState(true)
 
-  // Suivi candidat
-  const [statut,      setStatut]      = useState(null)
+  // Suivi candidat — pipeline unique de Mes candidatures (cf. migration 040)
+  const [candidature, setCandidature] = useState(null)
   const [action,      setAction]      = useState(null)
   const [showModal,   setShowModal]   = useState(false)
   const [savingStatut, setSavingStatut] = useState(false)
@@ -137,14 +131,22 @@ export default function PanelFormationPublique({ formationId, candidatId, onBack
         setEcole(e)
       }
 
-      // Charger statut + action du candidat si connecté
+      // Charger le suivi du candidat (candidature + rappel) si connecté
       if (candidatId) {
-        const [{ data: s }, { data: a }] = await Promise.all([
-          supabase.from('formation_statuts').select('*').eq('candidat_id', candidatId).eq('formation_id', formationId).maybeSingle(),
-          supabase.from('formation_actions').select('*').eq('candidat_id', candidatId).eq('formation_id', formationId).maybeSingle(),
-        ])
-        setStatut(s?.statut || null)
-        setAction(a || null)
+        const { data: cand } = await supabase
+          .from('candidat_candidatures').select('*')
+          .eq('candidat_id', candidatId).eq('formation_id', formationId)
+          .maybeSingle()
+        setCandidature(cand || null)
+        if (cand) {
+          const { data: a } = await supabase
+            .from('candidature_actions').select('*')
+            .eq('candidat_id', candidatId).eq('candidature_id', cand.id)
+            .maybeSingle()
+          setAction(a || null)
+        } else {
+          setAction(null)
+        }
       }
 
       setLoading(false)
@@ -152,39 +154,108 @@ export default function PanelFormationPublique({ formationId, candidatId, onBack
     load()
   }, [formationId, candidatId])
 
+  // Crée la candidature si elle n'existe pas encore, sinon la met à jour.
+  async function upsertCandidature(patch) {
+    if (candidature) {
+      const { data, error } = await supabase
+        .from('candidat_candidatures')
+        .update({ ...patch })
+        .eq('id', candidature.id)
+        .select().single()
+      if (!verifier(error, 'La mise à jour du suivi a échoué.')) return null
+      setCandidature(data)
+      return data
+    }
+    const { data, error } = await supabase
+      .from('candidat_candidatures')
+      .insert({
+        candidat_id:    candidatId,
+        type:           'formation',
+        nom_entreprise: ecole?.nom || 'École',
+        poste:          formation?.nom || 'Formation',
+        statut:         'a_faire',
+        notes:          '',
+        formation_id:   formationId,
+        ...patch,
+      })
+      .select().single()
+    if (!verifier(error, 'L\'ajout aux candidatures a échoué.')) return null
+    setCandidature(data)
+    return data
+  }
+
+  // finally garantit que les boutons sont TOUJOURS réactivés, même si
+  // l'opération lève une exception (réseau, etc.).
   async function handleStatut(key) {
     if (!candidatId) return
     setSavingStatut(true)
-    if (statut === key) {
-      // Désélectionner
-      const { error } = await supabase.from('formation_statuts').delete().eq('candidat_id', candidatId).eq('formation_id', formationId)
-      if (verifier(error, 'Le retrait du statut a échoué.')) setStatut(null)
-    } else {
-      const { error } = await supabase.from('formation_statuts').upsert({ candidat_id: candidatId, formation_id: formationId, statut: key, updated_at: new Date().toISOString() })
-      if (verifier(error, 'L\'enregistrement du statut a échoué.')) setStatut(key)
+    try {
+      await upsertCandidature({ statut: key })
+    } catch (err) {
+      console.error('[suivi formation] statut', err)
+      notifierErreur('La mise à jour du suivi a échoué (problème réseau ?).')
+    } finally {
+      setSavingStatut(false)
     }
-    setSavingStatut(false)
+  }
+
+  async function toggleFavori() {
+    if (!candidatId) return
+    setSavingStatut(true)
+    try {
+      await upsertCandidature({ favori: !(candidature?.favori) })
+    } catch (err) {
+      console.error('[suivi formation] favori', err)
+      notifierErreur('La mise à jour du favori a échoué (problème réseau ?).')
+    } finally {
+      setSavingStatut(false)
+    }
+  }
+
+  async function retirerSuivi() {
+    if (!candidature) return
+    setSavingStatut(true)
+    try {
+      const { error } = await supabase.from('candidat_candidatures').delete().eq('id', candidature.id)
+      if (verifier(error, 'Le retrait du suivi a échoué.')) {
+        setCandidature(null)
+        setAction(null) // le rappel est supprimé en cascade côté base
+      }
+    } catch (err) {
+      console.error('[suivi formation] retrait', err)
+      notifierErreur('Le retrait du suivi a échoué (problème réseau ?).')
+    } finally {
+      setSavingStatut(false)
+    }
   }
 
   async function handleSaveAction(payload) {
     if (!candidatId) return
     if (!payload) {
-      // Supprimer
-      const { error } = await supabase.from('formation_actions').delete().eq('candidat_id', candidatId).eq('formation_id', formationId)
-      if (verifier(error, 'La suppression de l\'action a échoué.')) setAction(null)
+      // Supprimer le rappel
+      if (!candidature) return
+      const { error } = await supabase.from('candidature_actions').delete()
+        .eq('candidat_id', candidatId).eq('candidature_id', candidature.id)
+      if (verifier(error, 'La suppression du rappel a échoué.')) setAction(null)
       return
     }
-    const { data, error } = await supabase.from('formation_actions')
-      .upsert({ candidat_id: candidatId, formation_id: formationId, ...payload, fait: false, updated_at: new Date().toISOString() })
+    // Un rappel nécessite une candidature : on la crée au besoin
+    const cand = candidature || await upsertCandidature({})
+    if (!cand) return
+    const { data, error } = await supabase.from('candidature_actions')
+      .upsert(
+        { candidat_id: candidatId, candidature_id: cand.id, ...payload, fait: false, updated_at: new Date().toISOString() },
+        { onConflict: 'candidat_id,candidature_id' }
+      )
       .select().single()
-    if (!verifier(error, 'L\'enregistrement de l\'action a échoué.')) return
+    if (!verifier(error, 'L\'enregistrement du rappel a échoué.')) return
     setAction(data)
   }
 
   if (loading) return <div style={{ padding: '2rem', fontSize: 13, color: 'var(--muted)' }}>Chargement…</div>
   if (!formation) return <div style={{ padding: '2rem', fontSize: 13, color: 'var(--muted)' }}>Formation introuvable.</div>
 
-  const statutConfig = STATUTS.find(s => s.key === statut)
+  const statut = candidature?.statut || null
 
   return (
     <div style={{ maxWidth: 720, margin: '0 auto' }}>
@@ -274,18 +345,53 @@ export default function PanelFormationPublique({ formationId, candidatId, onBack
         )}
       </div>
 
-      {/* ── Bloc suivi candidat ─────────────────────────────────────────────── */}
+      {/* ── Bloc suivi candidat — pipeline de Mes candidatures ──────────────── */}
       {candidatId && (
         <div className="s-card" style={{ marginBottom: '1rem' }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 12 }}>
-            <i className="ti ti-bookmark" /> Mon suivi
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              <i className="ti ti-bookmark" /> Mon suivi
+            </div>
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+              {/* Favori */}
+              <button
+                disabled={savingStatut}
+                onClick={toggleFavori}
+                title={candidature?.favori ? 'Retirer des favoris' : 'Ajouter aux favoris'}
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 5,
+                  padding: '5px 12px', borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                  border: `1.5px solid ${candidature?.favori ? '#b45309' : 'var(--border)'}`,
+                  background: candidature?.favori ? '#fef9c3' : 'white',
+                  color: candidature?.favori ? '#b45309' : 'var(--muted)',
+                  transition: 'all 0.15s',
+                }}
+              >
+                <i className={`ti ${candidature?.favori ? 'ti-star-filled' : 'ti-star'}`} style={{ fontSize: 12 }} />
+                Favori
+              </button>
+              {candidature && (
+                <button
+                  disabled={savingStatut}
+                  onClick={retirerSuivi}
+                  title="Retirer cette formation de mes candidatures"
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, color: 'var(--muted)', textDecoration: 'underline' }}
+                >
+                  Retirer du suivi
+                </button>
+              )}
+            </div>
           </div>
 
-          {/* Statuts */}
+          {/* Statuts — mêmes étapes que Mes candidatures */}
           <div style={{ marginBottom: 14 }}>
-            <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 8 }}>Statut</div>
+            <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 8 }}>
+              {candidature
+                ? 'Statut — visible dans Mes candidatures'
+                : 'Choisis un statut pour ajouter cette formation à tes candidatures'}
+            </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-              {STATUTS.map(s => {
+              {STATUTS_CANDIDATURE.map(s => {
                 const active = statut === s.key
                 return (
                   <button
