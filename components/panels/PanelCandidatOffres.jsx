@@ -172,8 +172,27 @@ export default function PanelCandidatOffres({ onNavigateCandidatures, onNavigate
     setResultats(allschoolOffres)
     setLoading(false)
 
-    // ── 2. Offres LBA (si géo sélectionnée) ─────────────────────────────────
-    if (!geoSel) return
+    // ── 2. Offres LBA ────────────────────────────────────────────────────────
+    // Ville tapée sans clic sur une suggestion : on résout la commune
+    // automatiquement (sinon la recherche nationale était sautée en silence).
+    let geo = geoSel
+    if (!geo && ville.trim()) {
+      try {
+        const res = await fetch(`https://geo.api.gouv.fr/communes?nom=${encodeURIComponent(ville.trim())}&fields=nom,centre&boost=population&limit=1`)
+        const [commune] = await res.json()
+        if (commune?.centre) {
+          geo = { type: 'commune', label: commune.nom, lat: commune.centre.coordinates[1], lng: commune.centre.coordinates[0] }
+        }
+      } catch { /* géocodage indisponible */ }
+      if (!geo) {
+        setGeoErr(`Localisation « ${ville.trim()} » introuvable — choisissez une suggestion dans la liste.`)
+        return
+      }
+    }
+    if (!geo) {
+      setLbaError('Indiquez une localisation (ville, département, région ou France) pour voir les offres nationales.')
+      return
+    }
 
     setLbaLoading(true)
     try {
@@ -185,19 +204,24 @@ export default function PanelCandidatOffres({ onNavigateCandidatures, onNavigate
       }
 
       let fetches = []
-      if (geoSel.type === 'france') {
+      if (geo.type === 'france') {
         fetches = REGIONS.map(r =>
           fetch(`/api/alternance?${buildParams(r.lat, r.lng, r.radius)}`).then(res => res.json()).catch(() => ({ jobs: [] }))
         )
-      } else if (geoSel.type === 'region') {
-        const reg = REGIONS.find(r => r.code === geoSel.code)
+      } else if (geo.type === 'region') {
+        const reg = REGIONS.find(r => r.code === geo.code)
         if (reg) fetches = [fetch(`/api/alternance?${buildParams(reg.lat, reg.lng, reg.radius)}`).then(res => res.json()).catch(() => ({ jobs: [] }))]
       } else {
         // commune ou département
-        fetches = [fetch(`/api/alternance?${buildParams(geoSel.lat, geoSel.lng, rayon || '30')}`).then(res => res.json()).catch(() => ({ jobs: [] }))]
+        fetches = [fetch(`/api/alternance?${buildParams(geo.lat, geo.lng, rayon || '30')}`).then(res => res.json()).catch(() => ({ jobs: [] }))]
       }
 
       const jsons = await Promise.all(fetches)
+
+      // Erreur API : on l'affiche au lieu de montrer "0 offre" en silence
+      if (jsons.length > 0 && jsons.every(j => j.error)) {
+        setLbaError(jsons[0].error)
+      }
       const seen = new Set()
       const niveauFiltre = niveau ? niveauLabel(niveau) : null
 
