@@ -19,7 +19,9 @@ const SCHEMA = {
       site_web:   row.site_web   || null,
       linkedin:   row.linkedin   || null,
       qualiopi:   row.qualiopi === 'true' || row.qualiopi === '1',
-      source:     'csv',
+      // ecoles.source est contraint à ('lba','allschool','partenaire') ;
+      // un import manuel équipe Allschool = 'allschool' (cf. migration 033).
+      source:     'allschool',
       user_id:    null,
     }),
   },
@@ -39,10 +41,16 @@ const SCHEMA = {
   },
 }
 
+// Le rôle fait autorité dans app_metadata (non modifiable côté client),
+// cf. migration 034. On ne se fie plus à user_metadata (spoofable).
+function isAdmin(user) {
+  return user?.app_metadata?.role === 'admin'
+}
+
 export async function POST(request) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user || user.user_metadata?.role !== 'admin') {
+  if (!user || !isAdmin(user)) {
     return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
   }
 
@@ -114,7 +122,9 @@ async function importCatalogue(admin, user, filename, rawRows) {
         site_web:        row['Site web']?.trim()         || null,
         academie:        row['académie']?.trim()         || null,
         region:          row['région']?.trim()           || null,
-        source:          'catalogue',
+        // ecoles.source contraint à ('lba','allschool','partenaire') ; catalogue
+        // national importé par l'équipe = 'allschool' (cf. migration 033).
+        source:          'allschool',
         user_id:         null,
       })
     }

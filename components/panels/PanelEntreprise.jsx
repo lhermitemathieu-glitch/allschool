@@ -4,33 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { createClient } from '../../lib/supabase/client'
 import { SECTEURS } from '../../lib/secteurs'
 import { NIVEAUX, niveauLabel } from '../../lib/niveaux'
-
-function AvatarPhoto({ url, initials, size = 64, bg = '#fff3e0', color = 'var(--accent)', onUpload, uploading }) {
-  const inputRef = useRef(null)
-  const [hover, setHover] = useState(false)
-  return (
-    <div
-      style={{ position: 'relative', width: size, height: size, flexShrink: 0, cursor: onUpload ? 'pointer' : 'default' }}
-      onClick={() => onUpload && inputRef.current?.click()}
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
-    >
-      {url ? (
-        <img src={url} alt="" style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover', display: 'block' }} />
-      ) : (
-        <div style={{ width: size, height: size, borderRadius: '50%', background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Syne, sans-serif', fontSize: size * 0.3, fontWeight: 800, color }}>
-          {initials}
-        </div>
-      )}
-      {onUpload && (hover || uploading) && (
-        <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', background: 'rgba(0,0,0,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <i className={`ti ${uploading ? 'ti-loader' : 'ti-camera'}`} style={{ color: 'white', fontSize: Math.round(size * 0.3) }} />
-        </div>
-      )}
-      {onUpload && <input ref={inputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={e => { const f = e.target.files[0]; if (f) onUpload(f); e.target.value = '' }} />}
-    </div>
-  )
-}
+import AvatarPhoto from '../ui/AvatarPhoto'
 
 // ── SIRET ─────────────────────────────────────────────────────────────────────
 // Composant champ lecture/édition
@@ -263,6 +237,8 @@ export function PanelEntrepriseSiret({ entrepriseIdOverride, onBack }) {
             url={displayUrl}
             initials={initials(f?.raison_sociale)}
             size={64}
+            bg="#fff3e0"
+            color="var(--accent)"
             onUpload={fiche ? handlePhotoUpload : undefined}
             uploading={uploading}
           />
@@ -339,11 +315,17 @@ export function PanelEntrepriseRecherche({ onNavigate }) {
   const load = useCallback(async () => {
     setLoading(true)
     setSearched(true)
-    let q = supabase.from('candidats').select('id, prenom, nom, ville, formation, disponibilite, passions')
+    // Sécurité : ne lister que les profils publics et non en pause, sans champs
+    // de contact (email/téléphone). La RLS le garantit aussi côté base (035).
+    let q = supabase.from('candidats')
+      .select('id, prenom, nom, ville, formation, disponibilite, passions')
+      .eq('profil_public', true)
+      .eq('profil_en_pause', false)
     if (filters.formation)     q = q.ilike('formation', `%${filters.formation}%`)
     if (filters.ville)         q = q.ilike('ville', `%${filters.ville}%`)
     if (filters.disponibilite) q = q.ilike('disponibilite', `%${filters.disponibilite}%`)
-    const { data } = await q.limit(20)
+    const { data, error } = await q.limit(20)
+    if (error) console.error('[recherche profils]', error)
     setProfils(data || [])
     setLoading(false)
   }, [filters])
