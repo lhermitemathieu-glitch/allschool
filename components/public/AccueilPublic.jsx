@@ -291,15 +291,6 @@ export default function AccueilPublic() {
         </div>
       </section>
 
-      {/* ── CTA BAND ────────────────────────────────────────────────────────── */}
-      <section style={{ background: C.white, borderTop: `1px solid ${C.border}`, padding: '56px 24px', textAlign: 'center' }}>
-        <p style={{ fontSize: 20, fontWeight: 700, color: C.ink, maxWidth: 560, margin: '0 auto 24px', lineHeight: 1.4 }}>
-          Tu as trouvé une offre intéressante ? Crée un compte pour sauvegarder tes candidatures et suivre ta progression.
-        </p>
-        <Link href="/login" className="acc-btn-primary acc-btn-lg">Créer mon espace candidat</Link>
-        <div style={{ fontSize: 13, color: C.sub, marginTop: 12 }}>Gratuit · Pas de carte bancaire</div>
-      </section>
-
       {/* ── FOOTER ──────────────────────────────────────────────────────────── */}
       <footer style={{ background: C.white, borderTop: `1px solid ${C.border}`, padding: '48px 40px 24px' }}>
         <div className="acc-footer-cols">
