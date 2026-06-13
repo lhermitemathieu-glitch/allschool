@@ -67,7 +67,6 @@ export const SPACES = {
       { icon: 'ti-dashboard', label: "Vue d'ensemble",  panel: 'back-overview', cls: 'back' },
       { icon: 'ti-history',   label: 'Journal imports', panel: 'back-logs',     cls: 'back' },
       { section: 'Imports CSV' },
-      { icon: 'ti-users',    label: 'Apprentis',   panel: 'back-apprentis',   cls: 'back' },
       { icon: 'ti-school',   label: 'Écoles',      panel: 'back-ecoles',      cls: 'back' },
       { icon: 'ti-building', label: 'Entreprises', panel: 'back-entreprises', cls: 'back' },
       { section: 'Vue détaillée' },

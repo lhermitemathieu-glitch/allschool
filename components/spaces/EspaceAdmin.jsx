@@ -1,7 +1,7 @@
 'use client'
 
 import AppShell from './AppShell'
-import { PanelBackOverview, PanelBackApprentis, PanelBackEcoles, PanelBackEntreprises, PanelBackLogs } from '../panels/PanelBackoffice'
+import { PanelBackOverview, PanelBackEcoles, PanelBackEntreprises, PanelBackLogs } from '../panels/PanelBackoffice'
 import { PanelBackDetailEcoles, PanelBackDetailCandidats, PanelBackDetailEntreprises, PanelAdminEntreprise, PanelAdminCandidat } from '../panels/PanelBackDetail'
 import { PanelEcolePage } from '../panels/PanelEcole'
 import PanelEcolePublique from '../panels/PanelEcolePublique'
@@ -13,7 +13,6 @@ export default function EspaceAdmin({ userId, role }) {
       {(activePanel, data, navigateTo) => {
         switch (activePanel) {
           case 'back-overview':    return <PanelBackOverview onNavigate={panel => navigateTo(panel)} />
-          case 'back-apprentis':   return <PanelBackApprentis    onImported={() => navigateTo('back-logs')} />
           case 'back-ecoles':      return <PanelBackEcoles       onImported={() => navigateTo('back-logs')} />
           case 'back-entreprises': return <PanelBackEntreprises  onImported={() => navigateTo('back-logs')} />
           case 'back-logs':        return <PanelBackLogs />

@@ -3,11 +3,6 @@ import { createAdminClient } from '../../../../lib/supabase/admin'
 import { createClient } from '../../../../lib/supabase/server'
 
 const SCHEMA = {
-  apprentis: {
-    table: 'candidats_import',
-    required: ['nom', 'prenom', 'email', 'diplome', 'ville'],
-    optional: ['telephone', 'date_naissance', 'ecole_rattachee', 'disponibilite', 'secteur', 'teletravail'],
-  },
   ecoles: {
     table: 'ecoles',
     required: ['nom_ecole', 'type', 'ville', 'email_contact'],
