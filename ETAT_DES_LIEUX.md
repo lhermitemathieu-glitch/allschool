@@ -49,7 +49,7 @@ lib/
   format.js               ← helpers (initiales, sigle, tel) — créé, PAS encore adopté partout
   types.ts                ← types des entités (documentaire)
   supabase/               ← client.js (navigateur), server.js (SSR), admin.js (service role)
-supabase/migrations/      ← 001→041 + rollbacks (TOUTES appliquées en prod jusqu'à 041 incluse)
+supabase/migrations/      ← 001→042 + rollbacks (TOUTES appliquées en prod jusqu'à 042 incluse)
 ```
 
 ### Règles de sécurité en vigueur
@@ -95,7 +95,7 @@ supabase/migrations/      ← 001→041 + rollbacks (TOUTES appliquées en prod 
 | Adoption des helpers partagés `lib/format` / `lib/regions` / `lib/niveaux` (copies locales `initiales`/`sigle`/`formatTel`/`REGIONS`/tables niveau→couleur supprimées, ~150 lignes en moins, code mort retiré) | ✅ en prod (merge `971665d`) |
 | Projet sorti d'iCloud → `~/Developer/allschool` (cause des corruptions git résolue, cf. §4) | ✅ |
 
-**Migrations appliquées en prod : 001 → 041, toutes.** Chaque migration ≥034 a son rollback.
+**Migrations appliquées en prod : 001 → 042, toutes.** Chaque migration ≥034 a son rollback.
 
 ## 6. À faire — backlog priorisé
 
@@ -111,7 +111,7 @@ supabase/migrations/      ← 001→041 + rollbacks (TOUTES appliquées en prod 
 
 > ✅ Fait en session 14 (retiré du backlog) : bloc « Mon suivi » dans le drawer LBA · adoption de `lib/format`/`lib/regions`/`lib/niveaux` · sortie d'iCloud.
 > ✅ Fait en session 15 : ajout de candidature unifié (item #4 ci-dessus).
-> ✅ Fait en session 16 : suppression du code mort signup + recherche « formations Allschool » (item #5) · migration 041 de nettoyage des tables mortes + retrait import candidats (item #2).
+> ✅ Fait en session 16 : suppression du code mort signup + recherche « formations Allschool » (item #5) · migration 041 de nettoyage des tables mortes + retrait import candidats (item #2) · fix complétion profil bloquée à 92 % (critère `loisirs` toujours raté) + migration 042 suppression colonne morte `loisirs` (centres d'intérêt consolidés dans `passions`).
 
 ## 7. Démarrage rapide d'une nouvelle session
 
