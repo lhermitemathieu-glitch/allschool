@@ -7,6 +7,7 @@ import PanelFormationLBADrawer from './PanelFormationLBADrawer'
 import { verifier } from '../ui/Toaster'
 import { STATUTS_CANDIDATURE as STATUTS, statutInfo } from '../../lib/candidature-statuts'
 import { initiales } from '../../lib/format'
+import { ajouterCandidature } from '../../lib/candidatures'
 
 const TYPES_OFFRES     = TYPES.filter(t => t.key !== 'formation' && t.key !== 'ecole')
 const TYPES_FORMATIONS = TYPES.filter(t => t.key === 'formation')
@@ -235,7 +236,7 @@ export default function PanelCandidatCandidatures({ onNavigateEcole, onNavigateF
       if (!verifier(error, 'La mise à jour de la candidature a échoué.')) { setSaving(false); return }
       if (data) setItems(prev => prev.map(i => i.id === editing ? data : i))
     } else {
-      const { data, error } = await supabase.from('candidat_candidatures').insert({ ...form, candidat_id: user.id }).select().single()
+      const { data, error } = await ajouterCandidature(supabase, { ...form, candidat_id: user.id })
       if (!verifier(error, 'L\'ajout de la candidature a échoué.')) { setSaving(false); return }
       if (data) setItems(prev => [data, ...prev])
     }

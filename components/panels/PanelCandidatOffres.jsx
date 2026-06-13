@@ -7,6 +7,7 @@ import { typeInfo } from '../../lib/offre-types'
 import { NIVEAUX, niveauLabel } from '../../lib/niveaux'
 import { REGIONS } from '../../lib/regions'
 import { verifier } from '../ui/Toaster'
+import { ajouterCandidature } from '../../lib/candidatures'
 
 const TYPE_INFO = {
   sourcee:   { label: 'Offre sourcée',         icon: 'ti-search',       color: '#15803d', bg: '#f0fdf4',
@@ -259,14 +260,12 @@ export default function PanelCandidatOffres({ onNavigateCandidatures, onNavigate
   async function enregistrer(offre) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
-    const { error } = await supabase.from('candidat_candidatures').insert({
+    const { error } = await ajouterCandidature(supabase, {
       candidat_id:    user.id,
+      type:           offre.tag === 'allschool' ? 'allschool' : offre.tag,
       nom_entreprise: offre.entreprise || 'Entreprise',
       poste:          offre.titre,
       url:            offre.url || '',
-      type:           offre.tag === 'allschool' ? 'allschool' : offre.tag,
-      statut:         'a_faire',
-      notes:          '',
     })
     if (!verifier(error, 'L\'enregistrement de l\'offre dans vos candidatures a échoué.')) return
     setSavedIds(prev => new Set([...prev, offre._id]))

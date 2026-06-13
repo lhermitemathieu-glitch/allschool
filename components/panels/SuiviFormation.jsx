@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { createClient } from '../../lib/supabase/client'
 import { verifier, notifierErreur } from '../ui/Toaster'
 import { STATUTS_CANDIDATURE } from '../../lib/candidature-statuts'
+import { ajouterCandidature } from '../../lib/candidatures'
 
 /**
  * Bloc « Mon suivi » — pipeline unique de Mes candidatures (cf. migration 040).
@@ -111,19 +112,14 @@ export default function SuiviFormation({ candidatId, formationId: formationIdPro
     }
 
     // Formation interne (fiche) : insertion directe
-    const { data, error } = await supabase
-      .from('candidat_candidatures')
-      .insert({
-        candidat_id:    candidatId,
-        type:           'formation',
-        nom_entreprise: insertDefaults?.nom_entreprise || lbaFormation?.ecole_nom || 'École',
-        poste:          insertDefaults?.poste || lbaFormation?.nom || 'Formation',
-        statut:         'a_faire',
-        notes:          '',
-        formation_id:   formationId,
-        ...patch,
-      })
-      .select().single()
+    const { data, error } = await ajouterCandidature(supabase, {
+      candidat_id:    candidatId,
+      type:           'formation',
+      nom_entreprise: insertDefaults?.nom_entreprise || lbaFormation?.ecole_nom || 'École',
+      poste:          insertDefaults?.poste || lbaFormation?.nom || 'Formation',
+      formation_id:   formationId,
+      ...patch,
+    })
     if (!verifier(error, 'L\'ajout aux candidatures a échoué.')) return null
     setCandidature(data)
     onSuiviChange?.({ saved: true })

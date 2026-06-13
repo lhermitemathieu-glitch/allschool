@@ -8,6 +8,7 @@ import { REGIONS } from '../../lib/regions'
 import { initiales } from '../../lib/format'
 import PanelFormationLBADrawer from './PanelFormationLBADrawer'
 import { verifier, notifierErreur } from '../ui/Toaster'
+import { ajouterCandidature } from '../../lib/candidatures'
 
 const SECTEURS = Object.keys(SECTEUR_ROME).sort()
 
@@ -227,13 +228,11 @@ export default function PanelCandidatFormations({ candidatId, onNavigateFormatio
     setSaving(prev => new Set([...prev, f.id]))
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { setSaving(prev => { const s = new Set(prev); s.delete(f.id); return s }); return }
-    const { error } = await supabase.from('candidat_candidatures').insert({
+    const { error } = await ajouterCandidature(supabase, {
       candidat_id:    user.id,
+      type:           'formation',
       nom_entreprise: f.ecole?.nom || 'École',
       poste:          f.nom,
-      type:           'formation',
-      statut:         'a_faire',
-      notes:          '',
       formation_id:   f.id,
     })
     if (verifier(error, 'L\'enregistrement de la formation a échoué.')) {

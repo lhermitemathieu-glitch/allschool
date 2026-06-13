@@ -44,6 +44,7 @@ lib/
   roles.js                ← rôles/espaces/chemins (source de vérité)
   auth-server.js          ← gardes serveur requireSpace()/getUserAndRole()
   candidature-statuts.js  ← pipeline de candidature (5 statuts, source de vérité)
+  candidatures.js         ← ajout de candidature (construireCandidature/ajouterCandidature)
   secteurs.js  niveaux.js  regions.js  rome-mapping.js  rome-batches.js
   format.js               ← helpers (initiales, sigle, tel) — créé, PAS encore adopté partout
   types.ts                ← types des entités (documentaire)
@@ -101,13 +102,14 @@ supabase/migrations/      ← 001→040 + rollbacks (TOUTES appliquées en prod 
 1. **Surveiller en prod** le bug « boutons de statut bloqués » sur la fiche formation : corrigé défensivement (try/finally + message), mais la cause racine n'a pas été identifiée. Si un message rouge « La mise à jour du suivi a échoué » apparaît, récupérer le texte + console. (La logique vit désormais dans le composant partagé `SuiviFormation`.)
 2. Migration de **nettoyage** : DROP `formation_statuts` + `formation_actions` (après quelques jours de validation), et au même moment supprimer `candidats_import` (orpheline) ou la raccorder.
 3. Brancher les **filtres RQTH / télétravail** de la recherche entreprise (les colonnes existent dans `candidats`, les toggles UI ne filtrent rien).
-4. **Hook `useCandidatures()`** partagé : des implémentations divergentes d'insertion de candidature subsistent (PanelCandidatOffres, PanelCandidatFormations, API formations-lba) — valeurs par défaut incohérentes. (La fiche formation et le drawer LBA partagent déjà `SuiviFormation`.)
+4. ~~**Ajout de candidature unifié** (helper `useCandidatures`)~~ ✅ **fait (session 15)** : helper partagé `lib/candidatures.js` (`construireCandidature` + `ajouterCandidature`) avec valeurs par défaut canoniques. Adopté par les 5 sites d'insertion (SuiviFormation, PanelCandidatOffres, PanelCandidatFormations, PanelCandidatCandidatures, API formations-lba). Plus aucune insertion littérale dans `candidat_candidatures`.
 5. Supprimer le code mort : branche signup de `app/login/page.jsx`, branche « formations Allschool » de `PanelCandidatFormations` (la recherche interne ne renvoie plus rien).
 6. Migration progressive **`.jsx` → `.tsx`** en s'appuyant sur `lib/types.ts` ; générer les types Supabase (`supabase gen types typescript`).
 7. Performance : recherche « France entière » sans secteur = ~150 appels LBA (12 lots ROME × 13 régions) — prévoir un cache applicatif ou une limitation.
 8. Produit (plus tard) : page « avis écoles » (les liens existent dans le dashboard école mais aucune table), espaces école « Mes offres / Partenaires / Événements / Avis » encore en « À venir », responsive mobile, bannière cookies RGPD.
 
 > ✅ Fait en session 14 (retiré du backlog) : bloc « Mon suivi » dans le drawer LBA · adoption de `lib/format`/`lib/regions`/`lib/niveaux` · sortie d'iCloud.
+> ✅ Fait en session 15 : ajout de candidature unifié (item #4 ci-dessus).
 
 ## 7. Démarrage rapide d'une nouvelle session
 

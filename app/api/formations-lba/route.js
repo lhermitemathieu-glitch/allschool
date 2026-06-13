@@ -4,6 +4,7 @@ import { createClient as createServerClient } from '../../../lib/supabase/server
 import { getRomesForSecteurs } from '../../../lib/rome-mapping'
 import { lbaNiveauToKey } from '../../../lib/niveaux'
 import { ALL_ROME_BATCHES } from '../../../lib/rome-batches'
+import { construireCandidature } from '../../../lib/candidatures'
 
 const LBA_BASE = 'https://api.apprentissage.beta.gouv.fr/api'
 const CALLER   = 'allschool'
@@ -332,15 +333,13 @@ export async function POST(request) {
 
   const { data: cand, error: candErr } = await supabase
     .from('candidat_candidatures')
-    .insert({
+    .insert(construireCandidature({
       candidat_id:    user.id,
+      type:           'formation',
       nom_entreprise: formation.ecole_nom || 'CFA',
       poste:          formation.nom,
-      type:           'formation',
-      statut:         'a_faire',
-      notes:          '',
       formation_id:   snap.id,
-    })
+    }))
     .select('id')
     .single()
 
