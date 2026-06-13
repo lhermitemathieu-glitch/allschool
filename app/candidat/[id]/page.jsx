@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation'
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-const SELECT_FIELDS = 'prenom,nom,photo_url,ville,formation,bio,disponibilite,dispo_mois,dispo_annee,experiences,competences_hard,competences_soft,langues,niveau_etudes,email,telephone,linkedin_url,permis,masquer_experiences,pas_experience_pro,passions,loisirs,cv_masquer_apropos,cv_masquer_competences_hard,cv_masquer_soft_skills,cv_masquer_langues,cv_masquer_interets'
+const SELECT_FIELDS = 'prenom,nom,photo_url,ville,formation,bio,disponibilite,dispo_mois,dispo_annee,experiences,competences_hard,competences_soft,langues,niveau_etudes,email,telephone,linkedin_url,permis,masquer_experiences,pas_experience_pro,passions,cv_masquer_apropos,cv_masquer_competences_hard,cv_masquer_soft_skills,cv_masquer_langues,cv_masquer_interets'
 
 async function getCandidatPublic(id) {
   const url = `${SUPABASE_URL}/rest/v1/candidats?id=eq.${id}&profil_public=eq.true&select=${SELECT_FIELDS}`

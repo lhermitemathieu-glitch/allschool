@@ -69,7 +69,6 @@ function safeData(data) {
   return {
     ...data,
     passions:              Array.isArray(data.passions)             ? data.passions             : [],
-    loisirs:               Array.isArray(data.loisirs)              ? data.loisirs              : [],
     experiences:           Array.isArray(data.experiences)          ? data.experiences          : [],
     competences_soft:      Array.isArray(data.competences_soft)     ? data.competences_soft     : [],
     langues:               Array.isArray(data.langues)              ? data.langues              : [],
@@ -102,7 +101,6 @@ function completion(profil) {
     ...CHAMPS_BASE.map(c => !!profil[c]?.trim()),
     !!(profil.dispo_mois && profil.dispo_annee) || !!profil.disponibilite,
     (profil.passions?.length   || 0) > 0,
-    (profil.loisirs?.length    || 0) > 0,
     expComplete,
     !!profil.competences_hard?.trim(),
     (profil.competences_soft?.length || 0) > 0,
@@ -170,7 +168,7 @@ export default function PanelCandidatProfil({ candidatIdOverride, onBack }) {
   const [uploading, setUploading] = useState(false)
   const [showQR, setShowQR]       = useState(false)
 
-  // Input brut centres d'intérêt (fusion passions + loisirs)
+  // Input brut centres d'intérêt (stocké dans la colonne passions)
   const [interetsStr, setInteretsStr] = useState('')
 
   useEffect(() => {
@@ -185,11 +183,11 @@ export default function PanelCandidatProfil({ candidatIdOverride, onBack }) {
       if (data) {
         const d = safeData(data)
         setProfil(d); setForm(d)
-        setInteretsStr([...(d.passions || []), ...(d.loisirs || [])].join(', '))
+        setInteretsStr((d.passions || []).join(', '))
       } else {
         const vide = safeData({
           id: uid, prenom: '', nom: '', ville: '', formation: '', disponibilite: '', bio: '',
-          passions: [], loisirs: [], experiences: [], competences_hard: '', competences_soft: [],
+          passions: [], experiences: [], competences_hard: '', competences_soft: [],
           niveau_etudes: '', langues: [], linkedin_url: '', permis: false,
           dispo_mois: '', dispo_annee: '', profil_en_pause: false, profil_visible_ecoles: false,
           masquer_experiences: false, pas_experience_pro: false,
@@ -203,14 +201,14 @@ export default function PanelCandidatProfil({ candidatIdOverride, onBack }) {
   }, [candidatIdOverride])
 
   function startEdit() {
-    setInteretsStr([...(form.passions || []), ...(form.loisirs || [])].join(', '))
+    setInteretsStr((form.passions || []).join(', '))
     setEditing(true)
   }
 
   async function handleSave() {
     setSaving(true); setMessage('')
     const interets = interetsStr.split(',').map(s => s.trim()).filter(Boolean)
-    const payload  = { ...form, passions: interets, loisirs: [], updated_at: new Date().toISOString() }
+    const payload  = { ...form, passions: interets, updated_at: new Date().toISOString() }
     let error
     if (candidatIdOverride) {
       ({ error } = await supabase.from('candidats').update(payload).eq('id', candidatIdOverride))
@@ -855,8 +853,8 @@ export default function PanelCandidatProfil({ candidatIdOverride, onBack }) {
             </>
           ) : (
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
-              {[...(profil.passions || []), ...(profil.loisirs || [])].length
-                ? [...(profil.passions || []), ...(profil.loisirs || [])].map(t => <span key={t} className="tag hi">{t}</span>)
+              {(profil.passions || []).length
+                ? (profil.passions || []).map(t => <span key={t} className="tag hi">{t}</span>)
                 : <span style={{ fontSize: 13, color: 'var(--muted)' }}>Aucun centre d'intérêt renseigné</span>}
             </div>
           )}
