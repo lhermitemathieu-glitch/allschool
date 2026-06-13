@@ -3,12 +3,10 @@
 import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '../../lib/supabase/client'
 import { SECTEUR_ROME } from '../../lib/rome-mapping'
-import { NIVEAU_LABEL_COURT as NIVEAU_LABEL, niveauStyle } from '../../lib/niveaux'
+import { niveauStyle } from '../../lib/niveaux'
 import { REGIONS } from '../../lib/regions'
-import { initiales } from '../../lib/format'
 import PanelFormationLBADrawer from './PanelFormationLBADrawer'
 import { verifier, notifierErreur } from '../ui/Toaster'
-import { ajouterCandidature } from '../../lib/candidatures'
 
 const SECTEURS = Object.keys(SECTEUR_ROME).sort()
 
@@ -18,22 +16,6 @@ const NIVEAUX_FILTER_LBA = [
   'Master', 'Mastère Spé.', 'DSCG',
 ]
 
-const MODALITE_MAP = {
-  presentiel: { label: 'Présentiel', icon: 'ti-building', bg: '#e0f2fe', color: '#0369a1' },
-  distanciel: { label: 'Distanciel', icon: 'ti-wifi',     bg: '#dcfce7', color: '#166534' },
-  hybride:    { label: 'Hybride',    icon: 'ti-refresh',  bg: '#fef9c3', color: '#854d0e' },
-}
-
-function ModaliteTag({ value }) {
-  const m = MODALITE_MAP[value]
-  if (!m) return null
-  return (
-    <span style={{ background: m.bg, color: m.color, fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 20, display: 'inline-flex', alignItems: 'center', gap: 3 }}>
-      <i className={`ti ${m.icon}`} style={{ fontSize: 9 }} /> {m.label}
-    </span>
-  )
-}
-
 const inputStyle = {
   flex: 1, minWidth: 140, padding: '8px 12px',
   border: '1.5px solid var(--border)', borderRadius: 8,
@@ -42,17 +24,15 @@ const inputStyle = {
 }
 
 // ── Panel principal ───────────────────────────────────────────────────────────
-export default function PanelCandidatFormations({ candidatId, onNavigateFormation, onNavigateEcole, onNavigateArchives, initialFilters }) {
+export default function PanelCandidatFormations({ candidatId, onNavigateEcole, onNavigateArchives, initialFilters }) {
   const supabase = createClient()
 
   const [formations, setFormations] = useState([])
   const [loading, setLoading]       = useState(false)
   const [searched, setSearched]     = useState(false)
-  const [total, setTotal]           = useState(null)
 
   const [drawerFormation, setDrawerFormation] = useState(null)
 
-  const [savedIds,   setSavedIds]   = useState(new Set())   // formation_id enregistrées (Supabase)
   const [lbaSavedIds, setLbaSavedIds] = useState(new Set()) // lba_id enregistrés
   const [cachedIds,  setCachedIds]  = useState(new Set())   // formation_id masquées
   const [saving,     setSaving]     = useState(new Set())   // IDs en cours d'enregistrement
@@ -78,17 +58,12 @@ export default function PanelCandidatFormations({ candidatId, onNavigateFormatio
   const [geoLoading,  setGeoLoading]  = useState(false)
 
   useEffect(() => {
-    supabase.from('formations').select('id', { count: 'exact', head: true })
-      .eq('source', 'allschool')
-      .then(({ count }) => setTotal(count))
-
     supabase.auth.getUser().then(async ({ data: { user } }) => {
       if (!user) return
       const [{ data: cands }, { data: cachees }] = await Promise.all([
         supabase.from('candidat_candidatures').select('formation_id').eq('candidat_id', user.id).eq('type', 'formation').not('formation_id', 'is', null),
         supabase.from('candidat_formations_cachees').select('formation_id').eq('candidat_id', user.id),
       ])
-      if (cands)   setSavedIds(new Set(cands.map(c => c.formation_id)))
       if (cachees) setCachedIds(new Set(cachees.map(c => c.formation_id)))
 
       // Récupère les lba_id déjà enregistrés
@@ -210,36 +185,13 @@ export default function PanelCandidatFormations({ candidatId, onNavigateFormatio
         } catch { /* LBA non disponible */ }
       }
 
-      // ── 2. Recherche Allschool (Supabase) — plus de formations allschool ────
-      const allschoolRows = []
-
-      setFormations([...allschoolRows, ...lbaRows])
+      setFormations(lbaRows)
     } catch (err) {
       console.error('[formations]', err)
     } finally {
       setLoading(false)
     }
   }, [keyword, secteur, niveau, modalite, ville, geoSel, rayon, candidatId, cachedIds])
-
-  // Enregistrer une formation Allschool (Supabase)
-  async function enregistrer(f, e) {
-    e.stopPropagation()
-    if (savedIds.has(f.id) || saving.has(f.id)) return
-    setSaving(prev => new Set([...prev, f.id]))
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) { setSaving(prev => { const s = new Set(prev); s.delete(f.id); return s }); return }
-    const { error } = await ajouterCandidature(supabase, {
-      candidat_id:    user.id,
-      type:           'formation',
-      nom_entreprise: f.ecole?.nom || 'École',
-      poste:          f.nom,
-      formation_id:   f.id,
-    })
-    if (verifier(error, 'L\'enregistrement de la formation a échoué.')) {
-      setSavedIds(prev => new Set([...prev, f.id]))
-    }
-    setSaving(prev => { const s = new Set(prev); s.delete(f.id); return s })
-  }
 
   // Enregistrer une formation LBA (snapshot + candidature via API route)
   async function enregistrerLBA(f, e) {
@@ -266,25 +218,10 @@ export default function PanelCandidatFormations({ candidatId, onNavigateFormatio
     setSaving(prev => { const s = new Set(prev); s.delete(f.id); return s })
   }
 
-  async function masquer(f, e) {
+  function masquer(f, e) {
     e.stopPropagation()
-    if (f._source === 'lba') {
-      setFormations(prev => prev.filter(x => x.id !== f.id))
-      return
-    }
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
-    const { error } = await supabase.from('candidat_formations_cachees').upsert({
-      candidat_id:    user.id,
-      formation_id:   f.id,
-      formation_data: { id: f.id, nom: f.nom, niveau: f.niveau, ecole_nom: f.ecole?.nom, ecole_ville: f.ecole?.ville },
-    }, { onConflict: 'candidat_id,formation_id' })
-    if (!verifier(error, 'Impossible de masquer cette formation.')) return
-    setCachedIds(prev => new Set([...prev, f.id]))
     setFormations(prev => prev.filter(x => x.id !== f.id))
   }
-
-  const filters = { keyword, secteur, niveau, modalite, ville, rayon }
 
   // ── localStorage ─────────────────────────────────────────────────────────────
   function persistFilters() {
@@ -504,19 +441,13 @@ export default function PanelCandidatFormations({ candidatId, onNavigateFormatio
             <>
             <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 10 }}>
               {formations.length} formation{formations.length > 1 ? 's' : ''}
-              {formations.some(f => f._source === 'lba') && (
-                <span style={{ marginLeft: 8, background: '#e0f2fe', color: '#0369a1', padding: '1px 7px', borderRadius: 10, fontWeight: 600 }}>
-                  dont LBA
-                </span>
-              )}
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
               {formations.map(f => {
-                const isLBA    = f._source === 'lba'
-                const isSaved  = isLBA ? lbaSavedIds.has(f.lba_id) : savedIds.has(f.id)
+                const isSaved  = lbaSavedIds.has(f.lba_id)
                 const isSaving = saving.has(f.id)
 
-                if (isLBA) return (
+                return (
                   <div key={f.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '10px 4px', borderBottom: '0.5px solid var(--border)' }}>
 
                     {/* Niveau */}
@@ -593,72 +524,6 @@ export default function PanelCandidatFormations({ candidatId, onNavigateFormatio
                         <i className="ti ti-eye-off" />
                       </button>
                     </div>
-                  </div>
-                )
-
-                // Formation Allschool (inchangée)
-                return (
-                  <div key={f.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 4px', borderBottom: '0.5px solid var(--border)' }}>
-                    <div style={{ flexShrink: 0, width: 80, textAlign: 'center' }}>
-                      {f.niveau && f.niveau !== 'autre' && (
-                        <span style={{ ...niveauStyle(f.niveau), fontSize: 10, padding: '3px 8px', borderRadius: 20, whiteSpace: 'nowrap' }}>
-                          {NIVEAU_LABEL[f.niveau] || f.niveau}
-                        </span>
-                      )}
-                    </div>
-                    <div
-                      style={{ flex: 1, minWidth: 0, cursor: onNavigateFormation ? 'pointer' : 'default' }}
-                      onClick={() => onNavigateFormation?.(f.id, 'candidat-formations', filters)}
-                    >
-                      <div style={{ fontSize: 13, fontWeight: 600, color: onNavigateFormation ? 'var(--teal)' : 'var(--navy)', lineHeight: 1.4 }}>
-                        {f.nom}
-                        {onNavigateFormation && <i className="ti ti-chevron-right" style={{ fontSize: 11, marginLeft: 4 }} />}
-                      </div>
-                      <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 2 }}>
-                        {(f.localite_formation || f.ville) && (
-                          <span style={{ fontSize: 11, color: 'var(--muted)' }}>
-                            <i className="ti ti-map-pin" style={{ fontSize: 10 }} /> {f.localite_formation || f.ville}
-                          </span>
-                        )}
-                        <ModaliteTag value={f.modalite || f.ecole?.modalites?.[0]} />
-                        {f.ecole && (
-                          <span style={{ fontSize: 11, color: 'var(--muted)' }}>
-                            · <i className="ti ti-school" style={{ fontSize: 10 }} /> {f.ecole.nom}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    {f.ecole && (
-                      <div
-                        style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, cursor: onNavigateEcole ? 'pointer' : 'default', padding: '4px 8px', borderRadius: 8, background: 'var(--light)' }}
-                        onClick={() => onNavigateEcole?.(f.ecole.id, 'candidat-formations', filters)}
-                      >
-                        <div style={{ width: 22, height: 22, borderRadius: 5, background: 'var(--purple-soft)', color: 'var(--purple)', fontSize: 8, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                          {initiales(f.ecole.nom, 3)}
-                        </div>
-                        <div style={{ maxWidth: 160 }}>
-                          <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--navy)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{f.ecole.nom}</div>
-                          <div style={{ fontSize: 10, color: 'var(--muted)' }}>{[f.ecole.ville, f.ecole.region].filter(Boolean).join(' · ')}</div>
-                        </div>
-                        {onNavigateEcole && <i className="ti ti-chevron-right" style={{ fontSize: 11, color: 'var(--teal)' }} />}
-                      </div>
-                    )}
-                    {f.url_onisep && (
-                      <button className="btn-sm teal" style={{ fontSize: 11, flexShrink: 0 }} onClick={() => window.open(f.url_onisep, '_blank')}>
-                        <i className="ti ti-external-link" /> ONISEP
-                      </button>
-                    )}
-                    <button
-                      className="btn-sm"
-                      style={{ fontSize: 10, padding: '3px 8px', flexShrink: 0, background: isSaved ? 'var(--teal-soft)' : undefined, color: isSaved ? 'var(--teal)' : undefined, opacity: isSaved ? 0.7 : 1 }}
-                      onClick={ev => enregistrer(f, ev)}
-                      disabled={isSaved || isSaving}
-                    >
-                      <i className={`ti ${isSaved ? 'ti-check' : isSaving ? 'ti-loader' : 'ti-bookmark'}`} />
-                    </button>
-                    <button className="btn-sm" style={{ fontSize: 10, padding: '3px 8px', flexShrink: 0, color: 'var(--muted)' }} onClick={ev => masquer(f, ev)}>
-                      <i className="ti ti-eye-off" />
-                    </button>
                   </div>
                 )
               })}

@@ -28,7 +28,6 @@ export default function EspaceCandidat({ userId, role }) {
           case 'candidat-formations':   return <PanelCandidatFormations
               initialFilters={data?.filters}
               candidatId={candidatId}
-              onNavigateFormation={(id, from, filters) => navigateTo('formation-publique', { formationId: id, from, filters })}
               onNavigateEcole={(id, from, filters) => navigateTo('ecole-publique', { ecoleId: id, from, filters })}
               onNavigateArchives={() => navigateTo('candidat-archives')}
             />

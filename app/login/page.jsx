@@ -4,18 +4,10 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '../../lib/supabase/client'
 
-const ROLES = [
-  { value: 'candidat',   label: 'Candidat',   icon: 'ti-user-circle', color: 'var(--teal)',   soft: 'var(--teal-soft)' },
-  { value: 'entreprise', label: 'Entreprise',  icon: 'ti-building',    color: 'var(--accent)', soft: 'var(--accent-soft)' },
-  { value: 'ecole',      label: 'École',       icon: 'ti-school',      color: 'var(--purple)', soft: 'var(--purple-soft)' },
-]
-
 export default function LoginPage() {
   const router = useRouter()
   const supabase = createClient()
 
-  const [mode, setMode]       = useState('login')   // 'login' only
-  const [role, setRole]       = useState('candidat')
   const [email, setEmail]     = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -26,35 +18,12 @@ export default function LoginPage() {
     setError('')
     setLoading(true)
 
-    if (mode === 'signup') {
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: { role },
-        },
-      })
-      if (error) {
-        setError(error.message)
-      } else {
-        // Compte créé → on connecte directement
-        const { error: loginError } = await supabase.auth.signInWithPassword({ email, password })
-        if (loginError) {
-          setError('Compte créé ! Connecte-toi maintenant.')
-          setMode('login')
-        } else {
-          router.push('/app')
-          router.refresh()
-        }
-      }
+    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    if (error) {
+      setError('Email ou mot de passe incorrect.')
     } else {
-      const { error } = await supabase.auth.signInWithPassword({ email, password })
-      if (error) {
-        setError('Email ou mot de passe incorrect.')
-      } else {
-        router.push('/app')
-        router.refresh()
-      }
+      router.push('/app')
+      router.refresh()
     }
 
     setLoading(false)
@@ -98,14 +67,7 @@ export default function LoginPage() {
 
             {/* Mot de passe */}
             <div style={styles.field}>
-              <label style={styles.label} htmlFor="password">
-                Mot de passe
-                {mode === 'signup' && (
-                  <span style={{ color: 'var(--muted)', fontWeight: 400, fontSize: 12 }}>
-                    {' '}(min. 6 caractères)
-                  </span>
-                )}
-              </label>
+              <label style={styles.label} htmlFor="password">Mot de passe</label>
               <input
                 id="password"
                 type="password"
@@ -123,9 +85,7 @@ export default function LoginPage() {
 
             {/* Bouton submit */}
             <button type="submit" disabled={loading} style={styles.submit}>
-              {loading
-                ? 'Chargement…'
-                : mode === 'login' ? 'Se connecter' : 'Créer mon compte'}
+              {loading ? 'Chargement…' : 'Se connecter'}
             </button>
           </form>
         </div>
@@ -190,32 +150,6 @@ const styles = {
     maxWidth: 420,
     boxShadow: '0 4px 24px rgba(14,27,46,0.07)',
   },
-  tabs: {
-    display: 'flex',
-    gap: 4,
-    background: 'var(--light)',
-    borderRadius: 10,
-    padding: 4,
-    marginBottom: '1.5rem',
-  },
-  tab: {
-    flex: 1,
-    padding: '8px 0',
-    border: 'none',
-    borderRadius: 8,
-    cursor: 'pointer',
-    background: 'transparent',
-    fontFamily: 'DM Sans, sans-serif',
-    fontSize: 14,
-    fontWeight: 500,
-    color: 'var(--muted)',
-    transition: 'all 0.15s',
-  },
-  tabActive: {
-    background: 'white',
-    color: 'var(--navy)',
-    boxShadow: '0 1px 4px rgba(14,27,46,0.1)',
-  },
   form: {
     display: 'flex',
     flexDirection: 'column',
@@ -241,25 +175,6 @@ const styles = {
     background: 'white',
     outline: 'none',
     transition: 'border-color 0.15s',
-  },
-  roleRow: {
-    display: 'flex',
-    gap: 8,
-  },
-  roleBtn: {
-    flex: 1,
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    gap: 6,
-    padding: '12px 8px',
-    border: '1.5px solid var(--border)',
-    borderRadius: 10,
-    cursor: 'pointer',
-    background: 'white',
-    color: 'var(--muted)',
-    transition: 'all 0.15s',
-    fontFamily: 'DM Sans, sans-serif',
   },
   error: {
     fontSize: 13,
