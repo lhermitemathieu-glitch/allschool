@@ -271,9 +271,17 @@ export default function PanelCandidatOffres({ onNavigateCandidatures, onNavigate
     setSavedIds(prev => new Set([...prev, offre._id]))
   }
 
+  // Date de publication en timestamp ; 0 si absente (cas des candidatures
+  // spontanées, qui n'ont pas de date) → elles se retrouvent en bas du tri.
+  const tsPublication = d => {
+    const t = d ? new Date(d).getTime() : 0
+    return Number.isNaN(t) ? 0 : t
+  }
+
   const resultatsAffiches = resultats
     .filter(o => !cachedIds.has(o._id))
     .filter(o => typesFiltres.includes(o.tag))
+    .sort((a, b) => tsPublication(b.date) - tsPublication(a.date)) // plus récent d'abord
   const nbResultats = resultatsAffiches.length
 
   return (
