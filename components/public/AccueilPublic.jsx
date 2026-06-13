@@ -282,8 +282,6 @@ export default function AccueilPublic() {
             { num: '608 000+', label: 'candidatures envoyées en 2025 via La Bonne Alternance' },
             { num: '44%',      label: 'des candidats en difficulté pour trouver une alternance' },
             { num: '50%',      label: 'des entreprises en difficulté pour trouver le bon candidat' },
-            { num: '300',      label: 'candidatures en moyenne pour décrocher une alternance' },
-            { num: '4%',       label: 'de taux de réponse des entreprises' },
           ].map((s, i) => (
             <div key={i} style={{ textAlign: 'center' }}>
               <div style={{ fontSize: 32, fontWeight: 800, color: C.ink, letterSpacing: '-1px' }}>{s.num}</div>
@@ -417,8 +415,7 @@ const styleSheet = `
 .acc-feature { display: inline-flex; align-items: center; gap: 8px; color: rgba(255,255,255,0.78); font-size: 14px; font-weight: 500; }
 .acc-feature i { color: ${C.green}; font-size: 18px; }
 
-.acc-stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 24px; max-width: 1040px; margin: 0 auto; }
-@media (max-width: 920px) { .acc-stats { grid-template-columns: repeat(3, 1fr); } }
+.acc-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; max-width: 820px; margin: 0 auto; }
 .acc-footer-cols { display: grid; grid-template-columns: 1.4fr 1fr 1.4fr; gap: 32px; max-width: 980px; margin: 0 auto; }
 .acc-foot-link { display: block; font-size: 14px; color: ${C.sub}; text-decoration: none; margin-bottom: 10px; }
 .acc-foot-link:hover { color: ${C.orange}; }
