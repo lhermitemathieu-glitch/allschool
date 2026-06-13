@@ -290,7 +290,6 @@ export function PanelBackOverview({ onNavigate }) {
           <div className="s-card" style={{ marginBottom: 0 }}>
             <div className="s-card-header">
               <div className="s-card-title"><i className="ti ti-users" /> Derniers candidats</div>
-              <button className="btn-sm teal" style={{ fontSize: 11 }} onClick={() => onNavigate('back-apprentis')}>Importer</button>
             </div>
             {recent.candidats.length === 0
               ? <div style={{ fontSize: 12, color: 'var(--muted)' }}>Aucun candidat.</div>
@@ -430,27 +429,6 @@ export function PanelBackOverview({ onNavigate }) {
         </div>
       </div>
     </>
-  )
-}
-
-// ── IMPORT APPRENTIS ──────────────────────────────────────────────────────────
-export function PanelBackApprentis({ onImported }) {
-  return (
-    <ImportCSV
-      titre="Import — Candidats"
-      sub="Importez des profils en masse via CSV"
-      type="apprentis"
-      btnCls="teal"
-      barColor="var(--teal)"
-      onImported={onImported}
-      colonnes={[
-        { label: 'nom', req: true }, { label: 'prenom', req: true }, { label: 'email', req: true },
-        { label: 'diplome', req: true }, { label: 'ville', req: true },
-        { label: 'telephone', req: false }, { label: 'date_naissance', req: false },
-        { label: 'ecole_rattachee', req: false }, { label: 'disponibilite', req: false },
-        { label: 'secteur', req: false }, { label: 'teletravail', req: false },
-      ]}
-    />
   )
 }
 
