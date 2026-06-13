@@ -91,6 +91,8 @@ supabase/migrations/      ← 001→040 + rollbacks (TOUTES appliquées en prod 
 | Notifications d'erreur (Toaster + ~20 mutations protégées, migration 039) | ✅ en prod |
 | Unification du suivi formations (migration 040, favori, fiche formation → pipeline) | ✅ en prod (merge `2aaa6f3`) |
 | Bloc « Mon suivi » dans le panneau latéral LBA (composant partagé `SuiviFormation`, création via POST snapshot) | ✅ en prod (merge `761ba7b`) |
+| Adoption des helpers partagés `lib/format` / `lib/regions` / `lib/niveaux` (copies locales `initiales`/`sigle`/`formatTel`/`REGIONS`/tables niveau→couleur supprimées, ~150 lignes en moins, code mort retiré) | ✅ en prod (merge `971665d`) |
+| Projet sorti d'iCloud → `~/Developer/allschool` (cause des corruptions git résolue, cf. §4) | ✅ |
 
 **Migrations appliquées en prod : 001 → 040, toutes.** Chaque migration ≥034 a son rollback.
 
@@ -100,11 +102,12 @@ supabase/migrations/      ← 001→040 + rollbacks (TOUTES appliquées en prod 
 2. Migration de **nettoyage** : DROP `formation_statuts` + `formation_actions` (après quelques jours de validation), et au même moment supprimer `candidats_import` (orpheline) ou la raccorder.
 3. Brancher les **filtres RQTH / télétravail** de la recherche entreprise (les colonnes existent dans `candidats`, les toggles UI ne filtrent rien).
 4. **Hook `useCandidatures()`** partagé : des implémentations divergentes d'insertion de candidature subsistent (PanelCandidatOffres, PanelCandidatFormations, API formations-lba) — valeurs par défaut incohérentes. (La fiche formation et le drawer LBA partagent déjà `SuiviFormation`.)
-5. Adopter `lib/format.js` et `lib/regions.js` dans les panels (copies locales d'`initiales`/`sigle`/`REGIONS` encore présentes), idem pour les tables niveau→couleur dupliquées.
-6. Supprimer le code mort : branche signup de `app/login/page.jsx`, branche « formations Allschool » de `PanelCandidatFormations` (la recherche interne ne renvoie plus rien).
-7. Migration progressive **`.jsx` → `.tsx`** en s'appuyant sur `lib/types.ts` ; générer les types Supabase (`supabase gen types typescript`).
-8. Performance : recherche « France entière » sans secteur = ~150 appels LBA (12 lots ROME × 13 régions) — prévoir un cache applicatif ou une limitation.
-9. Produit (plus tard) : page « avis écoles » (les liens existent dans le dashboard école mais aucune table), espaces école « Mes offres / Partenaires / Événements / Avis » encore en « À venir ».
+5. Supprimer le code mort : branche signup de `app/login/page.jsx`, branche « formations Allschool » de `PanelCandidatFormations` (la recherche interne ne renvoie plus rien).
+6. Migration progressive **`.jsx` → `.tsx`** en s'appuyant sur `lib/types.ts` ; générer les types Supabase (`supabase gen types typescript`).
+7. Performance : recherche « France entière » sans secteur = ~150 appels LBA (12 lots ROME × 13 régions) — prévoir un cache applicatif ou une limitation.
+8. Produit (plus tard) : page « avis écoles » (les liens existent dans le dashboard école mais aucune table), espaces école « Mes offres / Partenaires / Événements / Avis » encore en « À venir », responsive mobile, bannière cookies RGPD.
+
+> ✅ Fait en session 14 (retiré du backlog) : bloc « Mon suivi » dans le drawer LBA · adoption de `lib/format`/`lib/regions`/`lib/niveaux` · sortie d'iCloud.
 
 ## 7. Démarrage rapide d'une nouvelle session
 
