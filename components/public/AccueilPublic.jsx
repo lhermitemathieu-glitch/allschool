@@ -25,6 +25,19 @@ const CHIPS = [
   { metier: 'Graphisme',       ville: 'Toulouse' },
 ]
 
+const PAINS = [
+  { icon: 'ti-clock-hour-4', titre: 'Des semaines sans réponse', texte: "Tu postules et c'est le silence radio. Impossible de savoir ce que deviennent tes candidatures." },
+  { icon: 'ti-layers-subtract', titre: 'Des dizaines de candidatures', texte: 'Éparpillées entre mails, sites et tableurs — tu finis par perdre le fil de qui t\'a répondu.' },
+  { icon: 'ti-mood-sad', titre: 'Une motivation qui s\'effrite', texte: 'À force de chercher sans résultat, on baisse les bras. Tu mérites un vrai coup de pouce.' },
+]
+
+const FEATURES = [
+  { icon: 'ti-checklist',  label: 'Suivi des candidatures' },
+  { icon: 'ti-bell',       label: 'Alertes offres' },
+  { icon: 'ti-school',     label: 'Visible des écoles' },
+  { icon: 'ti-chart-line', label: 'Suivi de progression' },
+]
+
 // Plafond d'affichage : sans métier précis, une ville comme Paris remonte
 // plusieurs milliers d'offres — on n'en rend qu'un nombre raisonnable.
 const MAX_AFFICHES = 60
@@ -114,7 +127,7 @@ export default function AccueilPublic() {
       <style>{styleSheet}</style>
 
       {/* ── NAV ─────────────────────────────────────────────────────────────── */}
-      <nav style={{ background: C.white, borderBottom: `1px solid ${C.border}`, padding: '18px 40px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }} className="acc-nav">
+      <nav style={{ background: C.white, borderBottom: `1px solid ${C.border}`, padding: '18px 40px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 100 }} className="acc-nav">
         <span style={{ fontWeight: 800, fontSize: 22, letterSpacing: '-0.5px' }}>
           All<span style={{ color: C.orange }}>school</span>
         </span>
@@ -134,7 +147,7 @@ export default function AccueilPublic() {
           Trouve ton alternance sans <span style={{ color: C.orange }}>galère</span>.
         </h1>
         <p style={{ fontSize: 18, color: C.sub, lineHeight: 1.5, maxWidth: 620, margin: '0 auto 32px' }}>
-          Des milliers d'offres disponibles maintenant. Recherche, compare, postule — sans créer de compte.
+          Toutes les offres disponibles au même endroit. Recherche, compare, postule — sans créer de compte.
         </p>
 
         {/* Barre de recherche */}
@@ -231,6 +244,35 @@ export default function AccueilPublic() {
             )}
           </>
         )}
+      </section>
+
+      {/* ── CONVERSION (sombre) ─────────────────────────────────────────────── */}
+      <section style={{ background: C.ink, padding: '72px 24px' }}>
+        <div style={{ maxWidth: 880, margin: '0 auto', textAlign: 'center' }}>
+          <h2 style={{ color: '#fff', fontSize: 'clamp(26px, 4vw, 38px)', fontWeight: 800, letterSpacing: '-1px', lineHeight: 1.2 }}>
+            Pas assez d'offres ?<br />Fatigué de chercher sans résultats ?
+          </h2>
+
+          <div className="acc-pains">
+            {PAINS.map((p, i) => (
+              <div key={i} className="acc-pain-card">
+                <i className={`ti ${p.icon} acc-pain-icon`} />
+                <div style={{ color: '#fff', fontWeight: 700, fontSize: 16, margin: '12px 0 6px' }}>{p.titre}</div>
+                <div style={{ color: 'rgba(255,255,255,0.55)', fontSize: 14, lineHeight: 1.5 }}>{p.texte}</div>
+              </div>
+            ))}
+          </div>
+
+          <Link href="/login" className="acc-btn-primary acc-btn-lg">Créer mon espace candidat — c'est gratuit</Link>
+
+          <div className="acc-features">
+            {FEATURES.map((f, i) => (
+              <div key={i} className="acc-feature">
+                <i className={`ti ${f.icon}`} /> {f.label}
+              </div>
+            ))}
+          </div>
+        </div>
       </section>
 
       {/* ── STATS BAND ──────────────────────────────────────────────────────── */}
@@ -375,6 +417,13 @@ const styleSheet = `
 .acc-spinner { display: inline-block; width: 32px; height: 32px; border: 3px solid ${C.greenSoft}; border-top-color: ${C.orange}; border-radius: 50%; animation: acc-spin .7s linear infinite; }
 @keyframes acc-spin { to { transform: rotate(360deg); } }
 
+.acc-pains { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin: 40px 0; text-align: left; }
+.acc-pain-card { background: #161B22; border: 1px solid #232A33; border-radius: 12px; padding: 22px; }
+.acc-pain-icon { color: ${C.orange}; font-size: 26px; }
+.acc-features { display: flex; flex-wrap: wrap; justify-content: center; gap: 14px 28px; margin-top: 36px; }
+.acc-feature { display: inline-flex; align-items: center; gap: 8px; color: rgba(255,255,255,0.78); font-size: 14px; font-weight: 500; }
+.acc-feature i { color: ${C.green}; font-size: 18px; }
+
 .acc-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; max-width: 720px; margin: 0 auto; }
 .acc-footer-cols { display: grid; grid-template-columns: 1.4fr 1fr 1.4fr; gap: 32px; max-width: 980px; margin: 0 auto; }
 .acc-foot-link { display: block; font-size: 14px; color: ${C.sub}; text-decoration: none; margin-bottom: 10px; }
@@ -390,6 +439,7 @@ const styleSheet = `
   .acc-btn-search { justify-content: center; }
   .acc-stats { grid-template-columns: 1fr; gap: 28px; }
   .acc-footer-cols { grid-template-columns: 1fr; gap: 28px; }
+  .acc-pains { grid-template-columns: 1fr; }
 }
 @media (max-width: 480px) {
   .acc-nav-cta { display: none; }
