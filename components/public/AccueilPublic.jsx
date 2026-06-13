@@ -16,30 +16,91 @@ const C = {
   border:    '#E5E7EB',
 }
 
-const CHIPS = [
-  { metier: 'Développeur web', ville: 'Paris' },
-  { metier: 'Marketing',       ville: 'Lyon' },
-  { metier: 'Comptabilité',    ville: 'Bordeaux' },
-  { metier: 'Commerce',        ville: 'Marseille' },
-  { metier: 'RH',              ville: 'Nantes' },
-  { metier: 'Graphisme',       ville: 'Toulouse' },
-]
+/* ── Configuration des deux modes (entreprise / école) ──────────────────────── */
+const MODES = {
+  offres: {
+    tab:         { label: 'Je cherche une entreprise', icon: 'ti-briefcase' },
+    accent:      C.orange,
+    accentDark:  '#e8501f',
+    accentSoft:  '#FFF1EC',
+    badge:       'Offres en temps réel · La Bonne Alternance',
+    h1:          { before: 'Trouve ton alternance sans ', hi: 'galère', after: '.' },
+    sous:        'Toutes les offres disponibles au même endroit. Recherche, compare, postule — sans créer de compte.',
+    fieldIcon:   'ti-briefcase',
+    placeholder: 'Métier, secteur, compétence…',
+    chips: [
+      { kw: 'Développeur web', ville: 'Paris' },
+      { kw: 'Marketing',       ville: 'Lyon' },
+      { kw: 'Comptabilité',    ville: 'Bordeaux' },
+      { kw: 'Commerce',        ville: 'Marseille' },
+      { kw: 'RH',              ville: 'Nantes' },
+      { kw: 'Graphisme',       ville: 'Toulouse' },
+    ],
+    loadingLabel: 'Recherche des offres en cours…',
+    noun:        'offre',
+    emptyTitle:  'Aucune offre trouvée',
+    emptyText:   "Essaie d'élargir ta recherche : un métier plus large, ou une autre ville.",
+    conv: {
+      titre: { before: "Pas assez d'offres ? ", hi: 'Fatigué de chercher sans résultats ?' },
+      sous:  "La recherche d'alternance dure en moyenne plusieurs mois. On t'aide à mieux cibler, ne rien rater et garder le fil.",
+      cards: [
+        { icon: 'ti-clock-hour-4', titre: 'Des semaines sans réponse',   texte: "Tu postules et c'est le silence radio. Impossible de savoir ce que deviennent tes candidatures." },
+        { icon: 'ti-copy',         titre: 'Des dizaines de candidatures', texte: "Éparpillées entre mails, sites et tableurs — tu finis par perdre le fil de qui t'a répondu." },
+        { icon: 'ti-mood-sad',     titre: "Une motivation qui s'effrite", texte: 'À force de chercher sans résultat, on baisse les bras. Tu mérites un vrai coup de pouce.' },
+      ],
+      cta: "Créer mon espace candidat — c'est gratuit",
+      features: [
+        { icon: 'ti-checklist',  label: 'Suivi des candidatures' },
+        { icon: 'ti-bell',       label: 'Alertes offres' },
+        { icon: 'ti-eye',        label: 'Visible des écoles' },
+        { icon: 'ti-chart-line', label: 'Suivi de progression' },
+      ],
+    },
+  },
 
-const PAINS = [
-  { icon: 'ti-clock-hour-4', titre: 'Des semaines sans réponse', texte: "Tu postules et c'est le silence radio. Impossible de savoir ce que deviennent tes candidatures." },
-  { icon: 'ti-layers-subtract', titre: 'Des dizaines de candidatures', texte: 'Éparpillées entre mails, sites et tableurs — tu finis par perdre le fil de qui t\'a répondu.' },
-  { icon: 'ti-mood-sad', titre: 'Une motivation qui s\'effrite', texte: 'À force de chercher sans résultat, on baisse les bras. Tu mérites un vrai coup de pouce.' },
-]
+  ecoles: {
+    tab:         { label: 'Je cherche une école', icon: 'ti-school' },
+    accent:      C.green,
+    accentDark:  '#178a64',
+    accentSoft:  C.greenSoft,
+    badge:       'Formations référencées · La Bonne Alternance',
+    h1:          { before: 'Trouve ton école sans ', hi: 'te perdre', after: '.' },
+    sous:        'Un maximum de formations référencées près de chez toi. Compare les taux de réussite et trouve la formation qui te correspond.',
+    fieldIcon:   'ti-school',
+    placeholder: 'Formation, diplôme visé, domaine…',
+    chips: [
+      { kw: 'BTS Commerce',       ville: 'Paris' },
+      { kw: 'Bachelor Marketing', ville: 'Lyon' },
+      { kw: 'BTS Informatique',   ville: 'Bordeaux' },
+      { kw: 'Master RH',          ville: 'Nantes' },
+      { kw: 'BTS Design',         ville: 'Toulouse' },
+      { kw: 'CAP Cuisine',        ville: 'Marseille' },
+    ],
+    loadingLabel: 'Recherche des formations en cours…',
+    noun:        'formation',
+    emptyTitle:  'Aucune formation trouvée',
+    emptyText:   'Essaie un diplôme plus large, ou une autre ville.',
+    conv: {
+      titre: { before: "Trop d'écoles ? ", hi: 'Du mal à savoir laquelle choisir ?' },
+      sous:  "Entre les CFA publics, privés, les taux de réussite et les dates d'admission — s'y retrouver seul, c'est compliqué. On t'aide à construire ta shortlist.",
+      cards: [
+        { icon: 'ti-heart',            titre: 'Sauvegarde tes écoles favorites', texte: "Épingle les formations qui t'intéressent et retrouve-les en un clic, sans jongler entre les onglets." },
+        { icon: 'ti-layout-dashboard', titre: 'Un dashboard clair',              texte: "Toutes tes écoles en un coup d'œil : dates d'admission, taux de réussite, statut de ta candidature." },
+        { icon: 'ti-stars',            titre: 'Compare et décide',               texte: 'Mets les formations côte à côte sur les critères qui comptent pour toi : proximité, résultats, pédagogie.' },
+      ],
+      cta: "Créer mon espace école — c'est gratuit",
+      features: [
+        { icon: 'ti-heart',     label: 'Écoles sauvegardées' },
+        { icon: 'ti-calendar',  label: "Dates d'admission" },
+        { icon: 'ti-chart-bar', label: 'Taux de réussite' },
+        { icon: 'ti-checklist', label: 'Suivi des candidatures' },
+      ],
+    },
+  },
+}
 
-const FEATURES = [
-  { icon: 'ti-checklist',  label: 'Suivi des candidatures' },
-  { icon: 'ti-bell',       label: 'Alertes offres' },
-  { icon: 'ti-school',     label: 'Visible des écoles' },
-  { icon: 'ti-chart-line', label: 'Suivi de progression' },
-]
-
-// Plafond d'affichage : sans métier précis, une ville comme Paris remonte
-// plusieurs milliers d'offres — on n'en rend qu'un nombre raisonnable.
+// Plafond d'affichage : sans mot-clé précis, une grande ville remonte des
+// milliers de résultats — on n'en rend qu'un nombre raisonnable.
 const MAX_AFFICHES = 60
 
 // Date de publication → timestamp ; 0 si absente (candidatures spontanées) → en bas du tri.
@@ -49,17 +110,27 @@ function tsPublication(d) {
 }
 
 export default function AccueilPublic() {
-  const [metier, setMetier]   = useState('')
-  const [ville,  setVille]    = useState('')
-  const [coords, setCoords]   = useState(null)   // {lat, lng, nom} si choisi dans la liste
+  const [mode,    setMode]    = useState('offres') // 'offres' | 'ecoles'
+  const [keyword, setKeyword] = useState('')
+  const [ville,   setVille]   = useState('')
+  const [coords,  setCoords]  = useState(null)     // {lat, lng, nom} si choisi dans la liste
   const [suggestions, setSuggestions] = useState([])
 
-  const [status,  setStatus]  = useState('idle') // idle | loading | done | error
+  const [status,  setStatus]  = useState('idle')   // idle | loading | done | error
   const [results, setResults] = useState([])
   const [error,   setError]   = useState('')
   const [searchedCity, setSearchedCity] = useState('')
 
   const resultsRef = useRef(null)
+  const cfg = MODES[mode]
+
+  function switchMode(next) {
+    if (next === mode) return
+    setMode(next)
+    // On repart d'une recherche vierge (les résultats de l'autre univers
+    // n'ont pas le même format).
+    setKeyword(''); setStatus('idle'); setResults([]); setError(''); setSuggestions([])
+  }
 
   // ── Autocomplétion ville (API gouv) ────────────────────────────────────────
   async function fetchVilleSuggestions(val) {
@@ -79,8 +150,8 @@ export default function AccueilPublic() {
     setSuggestions([])
   }
 
-  // ── Recherche ───────────────────────────────────────────────────────────────
-  async function rechercher(metierVal = metier, villeVal = ville, coordsArg = coords) {
+  // ── Recherche (dispatch selon le mode) ─────────────────────────────────────
+  async function rechercher(kwVal = keyword, villeVal = ville, coordsArg = coords) {
     if (!villeVal.trim()) { setStatus('error'); setError('Indique une ville pour lancer la recherche.'); return }
     setStatus('loading'); setError(''); setResults([]); setSuggestions([])
 
@@ -95,35 +166,43 @@ export default function AccueilPublic() {
     }
     if (!geo) { setStatus('error'); setError(`Ville « ${villeVal.trim()} » introuvable — vérifie l'orthographe.`); return }
 
-    // 2. Offres La Bonne Alternance via le proxy interne (token géré côté serveur)
+    // 2. Recherche selon l'univers (proxys internes, token géré côté serveur)
     try {
-      const res  = await fetch(`/api/alternance?latitude=${geo.lat}&longitude=${geo.lng}&radius=30`)
-      const data = await res.json()
-      if (!res.ok || data.error) { setStatus('error'); setError(data.error || 'La recherche d\'offres a échoué.'); return }
-
-      let jobs = data.jobs || []
-      const kw = metierVal.trim().toLowerCase()
-      if (kw) {
-        jobs = jobs.filter(j => `${j.titre || ''} ${j.entreprise || ''} ${j.description || ''}`.toLowerCase().includes(kw))
+      if (mode === 'offres') {
+        const res  = await fetch(`/api/alternance?latitude=${geo.lat}&longitude=${geo.lng}&radius=30`)
+        const data = await res.json()
+        if (!res.ok || data.error) { setStatus('error'); setError(data.error || "La recherche d'offres a échoué."); return }
+        let jobs = data.jobs || []
+        const kw = kwVal.trim().toLowerCase()
+        if (kw) jobs = jobs.filter(j => `${j.titre || ''} ${j.entreprise || ''} ${j.description || ''}`.toLowerCase().includes(kw))
+        jobs.sort((a, b) => tsPublication(b.date_creation) - tsPublication(a.date_creation))
+        setResults(jobs)
+      } else {
+        const params = new URLSearchParams({ latitude: geo.lat, longitude: geo.lng, radius: '30' })
+        if (kwVal.trim()) params.set('keyword', kwVal.trim())
+        const res  = await fetch(`/api/formations-lba?${params}`)
+        const data = await res.json()
+        if (!res.ok || data.error) { setStatus('error'); setError(data.error || 'La recherche de formations a échoué.'); return }
+        setResults(data.results || [])
       }
-      jobs.sort((a, b) => tsPublication(b.date_creation) - tsPublication(a.date_creation))
-
-      setResults(jobs)
       setSearchedCity(geo.nom)
       setStatus('done')
       setTimeout(() => resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80)
     } catch {
-      setStatus('error'); setError('Impossible de joindre le service d\'offres (problème réseau).')
+      setStatus('error'); setError('Impossible de joindre le service de recherche (problème réseau).')
     }
   }
 
   function lancerChip(c) {
-    setMetier(c.metier); setVille(c.ville); setCoords(null)
-    rechercher(c.metier, c.ville, null)
+    setKeyword(c.kw); setVille(c.ville); setCoords(null)
+    rechercher(c.kw, c.ville, null)
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: C.bg, color: C.ink, fontFamily: 'Inter, system-ui, sans-serif', display: 'flex', flexDirection: 'column' }}>
+    <div
+      style={{ minHeight: '100vh', background: C.bg, color: C.ink, fontFamily: 'Inter, system-ui, sans-serif', display: 'flex', flexDirection: 'column',
+               '--acc': cfg.accent, '--acc-dark': cfg.accentDark, '--acc-soft': cfg.accentSoft }}
+    >
       <style>{styleSheet}</style>
 
       {/* ── NAV ─────────────────────────────────────────────────────────────── */}
@@ -138,27 +217,44 @@ export default function AccueilPublic() {
       </nav>
 
       {/* ── HERO ────────────────────────────────────────────────────────────── */}
-      <section style={{ padding: '64px 24px 40px', textAlign: 'center', maxWidth: 880, margin: '0 auto', width: '100%' }}>
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: C.greenSoft, color: C.green, fontWeight: 600, fontSize: 13, padding: '6px 14px', borderRadius: 100 }}>
-          <i className="ti ti-bolt" style={{ fontSize: 14 }} /> Offres en temps réel · La Bonne Alternance
-        </span>
+      <section style={{ padding: '48px 24px 40px', textAlign: 'center', maxWidth: 880, margin: '0 auto', width: '100%' }}>
+        {/* Onglets */}
+        <div className="acc-toggle">
+          {['offres', 'ecoles'].map(m => (
+            <button
+              key={m}
+              className="acc-toggle-btn"
+              style={mode === m ? { background: MODES[m].accent, color: '#fff' } : { background: 'transparent', color: C.sub }}
+              onClick={() => switchMode(m)}
+            >
+              <i className={`ti ${MODES[m].tab.icon}`} style={{ fontSize: 16 }} /> {MODES[m].tab.label}
+            </button>
+          ))}
+        </div>
 
-        <h1 style={{ fontSize: 'clamp(32px, 5vw, 52px)', fontWeight: 800, lineHeight: 1.1, letterSpacing: '-1.5px', margin: '24px 0 16px' }}>
-          Trouve ton alternance sans <span style={{ color: C.orange }}>galère</span>.
-        </h1>
-        <p style={{ fontSize: 18, color: C.sub, lineHeight: 1.5, maxWidth: 620, margin: '0 auto 32px' }}>
-          Toutes les offres disponibles au même endroit. Recherche, compare, postule — sans créer de compte.
-        </p>
+        {/* Contenu dynamique (fade à chaque changement de mode) */}
+        <div key={mode} className="acc-fade">
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--acc-soft)', color: 'var(--acc)', fontWeight: 600, fontSize: 13, padding: '6px 14px', borderRadius: 100, marginTop: 24 }}>
+            <i className="ti ti-bolt" style={{ fontSize: 14 }} /> {cfg.badge}
+          </span>
+
+          <h1 style={{ fontSize: 'clamp(32px, 5vw, 52px)', fontWeight: 800, lineHeight: 1.1, letterSpacing: '-1.5px', margin: '20px 0 16px' }}>
+            {cfg.h1.before}<span style={{ color: cfg.accent }}>{cfg.h1.hi}</span>{cfg.h1.after}
+          </h1>
+          <p style={{ fontSize: 18, color: C.sub, lineHeight: 1.5, maxWidth: 620, margin: '0 auto 32px' }}>
+            {cfg.sous}
+          </p>
+        </div>
 
         {/* Barre de recherche */}
         <div className="acc-search">
-          <div className="acc-search-field" style={{ position: 'relative' }}>
-            <i className="ti ti-briefcase acc-field-icon" />
+          <div className="acc-search-field">
+            <i className={`ti ${cfg.fieldIcon} acc-field-icon`} />
             <input
               className="acc-input"
-              placeholder="Métier, secteur, compétence…"
-              value={metier}
-              onChange={e => setMetier(e.target.value)}
+              placeholder={cfg.placeholder}
+              value={keyword}
+              onChange={e => setKeyword(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && rechercher()}
             />
           </div>
@@ -192,10 +288,10 @@ export default function AccueilPublic() {
         </div>
 
         {/* Chips de suggestions */}
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center', marginTop: 18 }}>
-          {CHIPS.map((c, i) => (
+        <div key={`chips-${mode}`} className="acc-fade" style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center', marginTop: 18 }}>
+          {cfg.chips.map((c, i) => (
             <button key={i} className="acc-chip" onClick={() => lancerChip(c)}>
-              {c.metier} · {c.ville}
+              {c.kw} · {c.ville}
             </button>
           ))}
         </div>
@@ -206,13 +302,13 @@ export default function AccueilPublic() {
         {status === 'loading' && (
           <div style={{ textAlign: 'center', padding: '48px 0', color: C.sub }}>
             <span className="acc-spinner" />
-            <div style={{ marginTop: 14, fontSize: 14 }}>Recherche des offres en cours…</div>
+            <div style={{ marginTop: 14, fontSize: 14 }}>{cfg.loadingLabel}</div>
           </div>
         )}
 
         {status === 'error' && (
           <div style={{ textAlign: 'center', padding: '48px 24px', color: C.sub }}>
-            <i className="ti ti-wifi-off" style={{ fontSize: 40, color: C.orange, opacity: 0.8 }} />
+            <i className="ti ti-wifi-off" style={{ fontSize: 40, color: cfg.accent, opacity: 0.85 }} />
             <div style={{ marginTop: 12, fontSize: 15, color: C.ink, fontWeight: 600 }}>Oups, ça n'a pas marché</div>
             <div style={{ marginTop: 4, fontSize: 14 }}>{error}</div>
           </div>
@@ -221,23 +317,27 @@ export default function AccueilPublic() {
         {status === 'done' && (
           <>
             <div style={{ fontSize: 14, fontWeight: 600, color: C.ink, margin: '8px 0 16px' }}>
-              {results.length} offre{results.length > 1 ? 's' : ''} trouvée{results.length > 1 ? 's' : ''} autour de {searchedCity}
+              {results.length} {cfg.noun}{results.length > 1 ? 's' : ''} trouvée{results.length > 1 ? 's' : ''} autour de {searchedCity}
             </div>
 
             {results.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '48px 24px', color: C.sub }}>
                 <i className="ti ti-search-off" style={{ fontSize: 40, opacity: 0.4 }} />
-                <div style={{ marginTop: 12, fontSize: 15, color: C.ink, fontWeight: 600 }}>Aucune offre trouvée</div>
-                <div style={{ marginTop: 4, fontSize: 14 }}>Essaie d'élargir ta recherche : un métier plus large, ou une autre ville.</div>
+                <div style={{ marginTop: 12, fontSize: 15, color: C.ink, fontWeight: 600 }}>{cfg.emptyTitle}</div>
+                <div style={{ marginTop: 4, fontSize: 14 }}>{cfg.emptyText}</div>
               </div>
             ) : (
               <>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                  {results.slice(0, MAX_AFFICHES).map((o, i) => <OffreCard key={o.id || i} offre={o} />)}
+                  {results.slice(0, MAX_AFFICHES).map((r, i) =>
+                    mode === 'offres'
+                      ? <OffreCard key={r.id || i} offre={r} />
+                      : <FormationCard key={r.lba_id || i} f={r} accent={cfg.accent} />
+                  )}
                 </div>
                 {results.length > MAX_AFFICHES && (
                   <div style={{ textAlign: 'center', fontSize: 13, color: C.sub, marginTop: 18 }}>
-                    Affichage des {MAX_AFFICHES} premières offres — précise un métier pour affiner ta recherche.
+                    Affichage des {MAX_AFFICHES} premiers résultats — précise ta recherche pour affiner.
                   </div>
                 )}
               </>
@@ -246,15 +346,18 @@ export default function AccueilPublic() {
         )}
       </section>
 
-      {/* ── CONVERSION (sombre) ─────────────────────────────────────────────── */}
-      <section style={{ background: C.ink, padding: '72px 24px' }}>
-        <div style={{ maxWidth: 880, margin: '0 auto', textAlign: 'center' }}>
+      {/* ── CONVERSION (sombre, dynamique) ──────────────────────────────────── */}
+      <section style={{ background: C.ink, padding: '52px 24px' }}>
+        <div key={`conv-${mode}`} className="acc-fade" style={{ maxWidth: 880, margin: '0 auto', textAlign: 'center' }}>
           <h2 style={{ color: '#fff', fontSize: 'clamp(26px, 4vw, 38px)', fontWeight: 800, letterSpacing: '-1px', lineHeight: 1.2 }}>
-            Pas assez d'offres ?<br />Fatigué de chercher sans résultats ?
+            {cfg.conv.titre.before}<span style={{ color: cfg.accent }}>{cfg.conv.titre.hi}</span>
           </h2>
+          <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 16, lineHeight: 1.55, maxWidth: 640, margin: '14px auto 0' }}>
+            {cfg.conv.sous}
+          </p>
 
           <div className="acc-pains">
-            {PAINS.map((p, i) => (
+            {cfg.conv.cards.map((p, i) => (
               <div key={i} className="acc-pain-card">
                 <i className={`ti ${p.icon} acc-pain-icon`} />
                 <div style={{ color: '#fff', fontWeight: 700, fontSize: 16, margin: '12px 0 6px' }}>{p.titre}</div>
@@ -263,10 +366,10 @@ export default function AccueilPublic() {
             ))}
           </div>
 
-          <Link href="/login" className="acc-btn-primary acc-btn-lg">Créer mon espace candidat — c'est gratuit</Link>
+          <Link href="/login" className="acc-btn-primary acc-btn-lg">{cfg.conv.cta}</Link>
 
           <div className="acc-features">
-            {FEATURES.map((f, i) => (
+            {cfg.conv.features.map((f, i) => (
               <div key={i} className="acc-feature">
                 <i className={`ti ${f.icon}`} /> {f.label}
               </div>
@@ -377,48 +480,94 @@ function OffreCard({ offre }) {
   )
 }
 
+/* ── Carte formation ────────────────────────────────────────────────────────── */
+function FormationCard({ f, accent }) {
+  const url = f.url_onisep || f.ecole_site_web || null
+  const clickable = !!url
+  const rentree = f.prochaine_rentree
+    ? new Date(f.prochaine_rentree).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })
+    : null
+
+  return (
+    <div
+      className={`acc-card${clickable ? ' acc-card-click' : ''}`}
+      onClick={() => clickable && window.open(url, '_blank', 'noopener,noreferrer')}
+      role={clickable ? 'link' : undefined}
+      tabIndex={clickable ? 0 : undefined}
+      onKeyDown={e => { if (clickable && e.key === 'Enter') window.open(url, '_blank', 'noopener,noreferrer') }}
+    >
+      <div className="acc-card-av">{f.diplome_label ? f.diplome_label.slice(0, 3).toUpperCase() : initiales(f.ecole_nom || f.nom || '?', 2)}</div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 15, fontWeight: 700, color: C.ink, lineHeight: 1.3 }}>{f.nom || 'Formation sans titre'}</div>
+        <div style={{ fontSize: 13, color: C.sub, marginTop: 2 }}>
+          {[f.ecole_nom, f.entierement_distance ? 'À distance' : f.ville].filter(Boolean).join(' · ') || 'École non précisée'}
+        </div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 10 }}>
+          {f.diplome_label && (
+            <span style={{ background: C.greenSoft, color: C.green, fontSize: 11, fontWeight: 600, padding: '3px 9px', borderRadius: 100 }}>
+              {f.diplome_label}
+            </span>
+          )}
+          {rentree && (
+            <span style={{ background: '#FFF1EC', color: C.orange, fontSize: 11, fontWeight: 600, padding: '3px 9px', borderRadius: 100, textTransform: 'capitalize' }}>
+              Rentrée {rentree}
+            </span>
+          )}
+        </div>
+      </div>
+      {clickable && <i className="ti ti-external-link" style={{ color: C.sub, fontSize: 16, flexShrink: 0 }} />}
+    </div>
+  )
+}
+
 /* ── Styles (classes + responsive) ─────────────────────────────────────────── */
 const styleSheet = `
 .acc-btn-ghost { font-size: 14px; font-weight: 600; color: ${C.ink}; text-decoration: none; padding: 9px 16px; border-radius: 8px; border: 1px solid ${C.border}; background: ${C.white}; }
 .acc-btn-ghost:hover { background: ${C.bg}; }
-.acc-btn-primary { font-size: 14px; font-weight: 600; color: #fff; text-decoration: none; padding: 9px 16px; border-radius: 8px; background: ${C.orange}; border: none; cursor: pointer; display: inline-block; }
-.acc-btn-primary:hover { background: #e8501f; }
+.acc-btn-primary { font-size: 14px; font-weight: 600; color: #fff; text-decoration: none; padding: 9px 16px; border-radius: 8px; background: var(--acc); border: none; cursor: pointer; display: inline-block; }
+.acc-btn-primary:hover { background: var(--acc-dark); }
 .acc-btn-lg { padding: 14px 28px; font-size: 16px; }
+
+.acc-toggle { display: inline-flex; background: ${C.white}; border: 1px solid ${C.border}; border-radius: 100px; padding: 4px; gap: 4px; }
+.acc-toggle-btn { display: inline-flex; align-items: center; gap: 7px; border: none; border-radius: 100px; padding: 9px 18px; font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit; transition: background .15s, color .15s; }
+
+.acc-fade { animation: acc-fadein 150ms ease; }
+@keyframes acc-fadein { from { opacity: 0; } to { opacity: 1; } }
 
 .acc-search { display: flex; align-items: center; gap: 0; background: ${C.white}; border: 1px solid ${C.border}; border-radius: 12px; padding: 6px; box-shadow: 0 4px 20px rgba(13,17,23,0.05); max-width: 720px; margin: 0 auto; }
 .acc-search-field { flex: 1; display: flex; align-items: center; }
 .acc-field-icon { color: ${C.sub}; font-size: 17px; padding: 0 6px 0 12px; }
 .acc-input { flex: 1; border: none; outline: none; font-size: 15px; padding: 12px 8px; background: transparent; color: ${C.ink}; font-family: inherit; width: 100%; }
 .acc-sep { width: 1px; align-self: stretch; background: ${C.border}; margin: 6px 0; }
-.acc-btn-search { display: inline-flex; align-items: center; gap: 7px; background: ${C.orange}; color: #fff; border: none; border-radius: 8px; padding: 12px 22px; font-size: 15px; font-weight: 600; cursor: pointer; font-family: inherit; white-space: nowrap; }
-.acc-btn-search:hover { background: #e8501f; }
+.acc-btn-search { display: inline-flex; align-items: center; gap: 7px; background: var(--acc); color: #fff; border: none; border-radius: 8px; padding: 12px 22px; font-size: 15px; font-weight: 600; cursor: pointer; font-family: inherit; white-space: nowrap; }
+.acc-btn-search:hover { background: var(--acc-dark); }
 
 .acc-suggest { position: absolute; top: calc(100% + 6px); left: 0; right: 0; background: #fff; border: 1px solid ${C.border}; border-radius: 10px; box-shadow: 0 8px 24px rgba(13,17,23,0.10); overflow: hidden; z-index: 50; text-align: left; }
 .acc-suggest-item { padding: 10px 14px; font-size: 14px; color: ${C.ink}; cursor: pointer; display: flex; align-items: center; gap: 8px; }
 .acc-suggest-item:hover { background: ${C.bg}; }
 
 .acc-chip { background: ${C.white}; border: 1px solid ${C.border}; border-radius: 100px; padding: 7px 14px; font-size: 13px; font-weight: 500; color: ${C.ink}; cursor: pointer; font-family: inherit; }
-.acc-chip:hover { border-color: ${C.orange}; color: ${C.orange}; }
+.acc-chip:hover { border-color: var(--acc); color: var(--acc); }
 
 .acc-card { display: flex; align-items: flex-start; gap: 14px; background: ${C.white}; border: 1px solid ${C.border}; border-radius: 12px; padding: 16px 18px; transition: box-shadow .15s, border-color .15s; }
 .acc-card-click { cursor: pointer; }
-.acc-card-click:hover { border-color: ${C.orange}; box-shadow: 0 4px 16px rgba(13,17,23,0.06); }
-.acc-card-av { width: 44px; height: 44px; border-radius: 10px; background: ${C.greenSoft}; color: ${C.green}; font-weight: 800; font-size: 14px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.acc-card-click:hover { border-color: var(--acc); box-shadow: 0 4px 16px rgba(13,17,23,0.06); }
+.acc-card-av { width: 44px; height: 44px; border-radius: 10px; background: var(--acc-soft); color: var(--acc); font-weight: 800; font-size: 13px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 
-.acc-spinner { display: inline-block; width: 32px; height: 32px; border: 3px solid ${C.greenSoft}; border-top-color: ${C.orange}; border-radius: 50%; animation: acc-spin .7s linear infinite; }
+.acc-spinner { display: inline-block; width: 32px; height: 32px; border: 3px solid ${C.border}; border-top-color: var(--acc); border-radius: 50%; animation: acc-spin .7s linear infinite; }
 @keyframes acc-spin { to { transform: rotate(360deg); } }
 
-.acc-pains { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin: 40px 0; text-align: left; }
-.acc-pain-card { background: #161B22; border: 1px solid #232A33; border-radius: 12px; padding: 22px; }
-.acc-pain-icon { color: ${C.orange}; font-size: 26px; }
-.acc-features { display: flex; flex-wrap: wrap; justify-content: center; gap: 14px 28px; margin-top: 36px; }
+.acc-pains { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin: 36px 0; text-align: left; }
+.acc-pain-card { background: #1A1F2E; border: 1px solid #2D3748; border-radius: 12px; padding: 22px; }
+.acc-pain-icon { color: var(--acc); font-size: 26px; }
+.acc-features { display: flex; flex-wrap: wrap; justify-content: center; gap: 14px 28px; margin-top: 32px; }
 .acc-feature { display: inline-flex; align-items: center; gap: 8px; color: rgba(255,255,255,0.78); font-size: 14px; font-weight: 500; }
-.acc-feature i { color: ${C.green}; font-size: 18px; }
+.acc-feature i { color: var(--acc); font-size: 18px; }
 
 .acc-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; max-width: 820px; margin: 0 auto; }
 .acc-footer-cols { display: grid; grid-template-columns: 1.4fr 1fr 1.4fr; gap: 32px; max-width: 980px; margin: 0 auto; }
 .acc-foot-link { display: block; font-size: 14px; color: ${C.sub}; text-decoration: none; margin-bottom: 10px; }
-.acc-foot-link:hover { color: ${C.orange}; }
+.acc-foot-link:hover { color: var(--acc); }
 .acc-foot-static { font-size: 14px; color: ${C.ink}; margin-bottom: 14px; }
 .acc-foot-note { font-size: 12px; color: ${C.sub}; margin-top: 3px; }
 .acc-badge { display: inline-block; font-size: 11px; font-weight: 600; color: ${C.sub}; background: ${C.bg}; border: 1px solid ${C.border}; border-radius: 100px; padding: 1px 8px; margin-left: 6px; }
@@ -431,6 +580,8 @@ const styleSheet = `
   .acc-stats { grid-template-columns: 1fr; gap: 28px; }
   .acc-footer-cols { grid-template-columns: 1fr; gap: 28px; }
   .acc-pains { grid-template-columns: 1fr; }
+  .acc-toggle { width: 100%; }
+  .acc-toggle-btn { flex: 1; justify-content: center; padding: 9px 10px; }
 }
 @media (max-width: 480px) {
   .acc-nav-cta { display: none; }
