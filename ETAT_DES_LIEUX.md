@@ -107,6 +107,7 @@ supabase/migrations/      ← 001→041 + rollbacks (TOUTES appliquées en prod 
 6. Migration progressive **`.jsx` → `.tsx`** en s'appuyant sur `lib/types.ts` ; générer les types Supabase (`supabase gen types typescript`).
 7. Performance : recherche « France entière » sans secteur = ~150 appels LBA (12 lots ROME × 13 régions) — prévoir un cache applicatif ou une limitation.
 8. Produit (plus tard) : page « avis écoles » (les liens existent dans le dashboard école mais aucune table), espaces école « Mes offres / Partenaires / Événements / Avis » encore en « À venir », responsive mobile, bannière cookies RGPD.
+9. **Refonte de la navigation entre la page d'accueil et les espaces** : rendre le parcours entre la landing publique (`app/page.jsx`) et les différents espaces (Candidat / Entreprise / École / Admin) **cohérent et user-friendly**. Aujourd'hui la navigation interne aux espaces se fait par état (pas par URL) via `AppShell`, et l'entrée depuis la landing passe par `/login`. Repenser les transitions, les points d'entrée et le retour à l'accueil pour une expérience fluide. (Chantier UX, à cadrer avec Mathieu : maquette/parcours avant code.)
 
 > ✅ Fait en session 14 (retiré du backlog) : bloc « Mon suivi » dans le drawer LBA · adoption de `lib/format`/`lib/regions`/`lib/niveaux` · sortie d'iCloud.
 > ✅ Fait en session 15 : ajout de candidature unifié (item #4 ci-dessus).
