@@ -625,8 +625,8 @@ export default function PanelCandidatProfil({ candidatIdOverride, onBack }) {
                       {CONTRATS_EXP.map(c => <option key={c} value={c}>{c}</option>)}
                     </select>
                   </div>
-                  <div style={{ marginBottom: 8 }}>
-                    <input placeholder="Ville" value={exp.ville || ''} onChange={e => updateExp(exp.id, 'ville', e.target.value)} style={{ ...inputStyle, maxWidth: 200 }} />
+                  <div style={{ marginBottom: 8, maxWidth: 200 }}>
+                    <CityAutocomplete value={exp.ville || ''} onChange={v => updateExp(exp.id, 'ville', v)} />
                   </div>
                   <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
                     <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
