@@ -779,8 +779,7 @@ export function PanelAdminCandidat({ candidatId, onBack }) {
             </div>
             <input placeholder="Disponibilité" value={form.disponibilite || ''} onChange={e => setField('disponibilite', e.target.value)} style={inputStyle} />
             <textarea placeholder="Bio" value={form.bio || ''} onChange={e => setField('bio', e.target.value)} rows={3} style={{ ...inputStyle, resize: 'vertical' }} />
-            <input placeholder="Passions (séparées par virgule)" value={(form.passions || []).join(', ')} onChange={e => setTags('passions', e.target.value)} style={inputStyle} />
-            <input placeholder="Loisirs (séparés par virgule)" value={(form.loisirs || []).join(', ')} onChange={e => setTags('loisirs', e.target.value)} style={inputStyle} />
+            <input placeholder="Centres d'intérêt (séparés par virgule)" value={(form.passions || []).join(', ')} onChange={e => setTags('passions', e.target.value)} style={inputStyle} />
           </div>
         ) : (
           <div style={{ flex: 1 }}>
@@ -798,25 +797,13 @@ export function PanelAdminCandidat({ candidatId, onBack }) {
         )}
       </div>
 
-      {/* Passions & loisirs en lecture */}
-      {!editing && ((profil?.passions?.length > 0) || (profil?.loisirs?.length > 0)) && (
-        <div className="grid2">
-          {profil.passions?.length > 0 && (
-            <div className="s-card" style={{ marginBottom: 0 }}>
-              <div className="s-card-title" style={{ marginBottom: 8 }}><i className="ti ti-heart" /> Passions</div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
-                {profil.passions.map(p => <span key={p} className="tag hi">{p}</span>)}
-              </div>
-            </div>
-          )}
-          {profil.loisirs?.length > 0 && (
-            <div className="s-card" style={{ marginBottom: 0 }}>
-              <div className="s-card-title" style={{ marginBottom: 8 }}><i className="ti ti-confetti" /> Loisirs</div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
-                {profil.loisirs.map(l => <span key={l} className="tag">{l}</span>)}
-              </div>
-            </div>
-          )}
+      {/* Centres d'intérêt en lecture */}
+      {!editing && profil?.passions?.length > 0 && (
+        <div className="s-card" style={{ marginBottom: 0 }}>
+          <div className="s-card-title" style={{ marginBottom: 8 }}><i className="ti ti-heart" /> Centres d'intérêt</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+            {profil.passions.map(p => <span key={p} className="tag hi">{p}</span>)}
+          </div>
         </div>
       )}
 

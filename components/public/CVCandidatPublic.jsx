@@ -56,7 +56,7 @@ export default function CVCandidatPublic({ profil, publicUrl }) {
   const hasSoftSkills = (profil.competences_soft || []).length > 0 && !profil.cv_masquer_soft_skills
   const hasHardSkills = !!profil.competences_hard?.trim() && !profil.cv_masquer_competences_hard
   const hasLangues    = (profil.langues || []).length > 0 && !profil.cv_masquer_langues
-  const hasInterets   = ([...(profil.passions || []), ...(profil.loisirs || [])].length > 0) && !profil.cv_masquer_interets
+  const hasInterets   = ((profil.passions || []).length > 0) && !profil.cv_masquer_interets
 
   function handlePrint() {
     window.print()
@@ -314,7 +314,7 @@ export default function CVCandidatPublic({ profil, publicUrl }) {
             {hasInterets && (
               <Section title="Centres d'intérêt" icon="ti-heart">
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                  {[...(profil.passions || []), ...(profil.loisirs || [])].map((t, i) => (
+                  {(profil.passions || []).map((t, i) => (
                     <span key={i} style={{
                       padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 500,
                       background: '#F7F5F0', color: '#0E1B2E', border: '1px solid rgba(14,27,46,0.09)',

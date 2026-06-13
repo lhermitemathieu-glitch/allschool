@@ -56,7 +56,6 @@ export interface Candidat {
   disponibilite: string | null;
   bio: string | null;
   passions: string[];
-  loisirs: string[];
   photo_url: string | null;
   /** Visible par les entreprises */
   profil_public: boolean;
