@@ -49,7 +49,7 @@ lib/
   format.js               ← helpers (initiales, sigle, tel) — créé, PAS encore adopté partout
   types.ts                ← types des entités (documentaire)
   supabase/               ← client.js (navigateur), server.js (SSR), admin.js (service role)
-supabase/migrations/      ← 001→040 + rollbacks (TOUTES appliquées en prod jusqu'à 040 incluse)
+supabase/migrations/      ← 001→041 + rollbacks (TOUTES appliquées en prod jusqu'à 041 incluse)
 ```
 
 ### Règles de sécurité en vigueur
@@ -95,12 +95,12 @@ supabase/migrations/      ← 001→040 + rollbacks (TOUTES appliquées en prod 
 | Adoption des helpers partagés `lib/format` / `lib/regions` / `lib/niveaux` (copies locales `initiales`/`sigle`/`formatTel`/`REGIONS`/tables niveau→couleur supprimées, ~150 lignes en moins, code mort retiré) | ✅ en prod (merge `971665d`) |
 | Projet sorti d'iCloud → `~/Developer/allschool` (cause des corruptions git résolue, cf. §4) | ✅ |
 
-**Migrations appliquées en prod : 001 → 040, toutes.** Chaque migration ≥034 a son rollback.
+**Migrations appliquées en prod : 001 → 041, toutes.** Chaque migration ≥034 a son rollback.
 
 ## 6. À faire — backlog priorisé
 
 1. **Surveiller en prod** le bug « boutons de statut bloqués » sur la fiche formation : corrigé défensivement (try/finally + message), mais la cause racine n'a pas été identifiée. Si un message rouge « La mise à jour du suivi a échoué » apparaît, récupérer le texte + console. (La logique vit désormais dans le composant partagé `SuiviFormation`.)
-2. Migration de **nettoyage** : DROP `formation_statuts` + `formation_actions` (après quelques jours de validation), et au même moment supprimer `candidats_import` (orpheline) ou la raccorder.
+2. ~~Migration de **nettoyage** : DROP `formation_statuts` + `formation_actions` + `candidats_import`~~ ✅ **fait (session 16, migration 041 appliquée en prod)** : les 3 tables mortes supprimées. `candidats_import` était un cul-de-sac d'import admin jamais relu → la fonctionnalité d'import « candidats » (schéma API `apprentis`, composant `PanelBackApprentis`, bouton + entrée sidebar) a été retirée du code en même temps. ⚠️ Le rollback de la 040 est désormais inopérant (il lisait les tables supprimées) — sans conséquence, la 040 est validée.
 3. Brancher les **filtres RQTH / télétravail** de la recherche entreprise (les colonnes existent dans `candidats`, les toggles UI ne filtrent rien).
 4. ~~**Ajout de candidature unifié** (helper `useCandidatures`)~~ ✅ **fait (session 15)** : helper partagé `lib/candidatures.js` (`construireCandidature` + `ajouterCandidature`) avec valeurs par défaut canoniques. Adopté par les 5 sites d'insertion (SuiviFormation, PanelCandidatOffres, PanelCandidatFormations, PanelCandidatCandidatures, API formations-lba). Plus aucune insertion littérale dans `candidat_candidatures`.
 5. ~~Supprimer le code mort : branche signup de `app/login/page.jsx`, branche « formations Allschool » de `PanelCandidatFormations`~~ ✅ **fait (session 16)** : 234 lignes mortes retirées (branche signup + sélecteur de rôle, rendu/enregistrement « formation Allschool », compteur `total`, branche non-LBA de `masquer`, badge « dont LBA », imports orphelins). `PanelCandidatFormations` est désormais 100 % LBA. Le prop `onNavigateFormation` n'est plus passé à ce panneau.
@@ -110,7 +110,7 @@ supabase/migrations/      ← 001→040 + rollbacks (TOUTES appliquées en prod 
 
 > ✅ Fait en session 14 (retiré du backlog) : bloc « Mon suivi » dans le drawer LBA · adoption de `lib/format`/`lib/regions`/`lib/niveaux` · sortie d'iCloud.
 > ✅ Fait en session 15 : ajout de candidature unifié (item #4 ci-dessus).
-> ✅ Fait en session 16 : suppression du code mort signup + recherche « formations Allschool » (item #5).
+> ✅ Fait en session 16 : suppression du code mort signup + recherche « formations Allschool » (item #5) · migration 041 de nettoyage des tables mortes + retrait import candidats (item #2).
 
 ## 7. Démarrage rapide d'une nouvelle session
 
