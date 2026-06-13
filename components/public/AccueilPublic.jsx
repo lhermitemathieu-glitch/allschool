@@ -279,13 +279,15 @@ export default function AccueilPublic() {
       <section style={{ background: C.bg, borderTop: `1px solid ${C.border}`, padding: '48px 24px' }}>
         <div className="acc-stats">
           {[
-            { num: '608 000+', label: 'candidatures envoyées en 2025' },
-            { num: '3,5M',     label: 'visiteurs sur La Bonne Alternance' },
-            { num: '44%',      label: 'des candidats galèrent à trouver' },
+            { num: '608 000+', label: 'candidatures envoyées en 2025 via La Bonne Alternance' },
+            { num: '44%',      label: 'des candidats en difficulté pour trouver une alternance' },
+            { num: '50%',      label: 'des entreprises en difficulté pour trouver le bon candidat' },
+            { num: '300',      label: 'candidatures en moyenne pour décrocher une alternance' },
+            { num: '4%',       label: 'de taux de réponse des entreprises' },
           ].map((s, i) => (
             <div key={i} style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: 34, fontWeight: 800, color: C.ink, letterSpacing: '-1px' }}>{s.num}</div>
-              <div style={{ fontSize: 14, color: C.sub, marginTop: 4 }}>{s.label}</div>
+              <div style={{ fontSize: 32, fontWeight: 800, color: C.ink, letterSpacing: '-1px' }}>{s.num}</div>
+              <div style={{ fontSize: 13, color: C.sub, marginTop: 6, lineHeight: 1.4 }}>{s.label}</div>
             </div>
           ))}
         </div>
@@ -415,7 +417,8 @@ const styleSheet = `
 .acc-feature { display: inline-flex; align-items: center; gap: 8px; color: rgba(255,255,255,0.78); font-size: 14px; font-weight: 500; }
 .acc-feature i { color: ${C.green}; font-size: 18px; }
 
-.acc-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; max-width: 720px; margin: 0 auto; }
+.acc-stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 24px; max-width: 1040px; margin: 0 auto; }
+@media (max-width: 920px) { .acc-stats { grid-template-columns: repeat(3, 1fr); } }
 .acc-footer-cols { display: grid; grid-template-columns: 1.4fr 1fr 1.4fr; gap: 32px; max-width: 980px; margin: 0 auto; }
 .acc-foot-link { display: block; font-size: 14px; color: ${C.sub}; text-decoration: none; margin-bottom: 10px; }
 .acc-foot-link:hover { color: ${C.orange}; }
